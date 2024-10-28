@@ -57,6 +57,11 @@
             color: #FFFFFF;
             font-size: 12px;
         }
+        .logo {
+            display: block;
+            margin: 0 auto 20px;
+            width: 150px;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
@@ -66,6 +71,7 @@
 </head>
 <body>
     <div class="container">
+        <img src="https://i.postimg.cc/hjJbVKSw/Picture2.png" alt="Logo" class="logo">
         <h1>Dairy Shed Hygiene Checklist</h1>
         
         <form id="hygiene-checklist-form">
@@ -262,15 +268,17 @@
                 const img = new Image();
                 img.src = imageUrl;
                 img.onload = () => {
-                    pdf.addImage(img, 'PNG', 40, 20, 100, 50);
+                    pdf.setFillColor('#002B5C');
+                    pdf.rect(0, 0, pdf.internal.pageSize.getWidth(), 80, 'F');
+                    pdf.addImage(img, 'PNG', (pdf.internal.pageSize.getWidth() - 100) / 2, 15, 100, 50);
                     resolve();
                 };
                 img.onerror = reject;
             });
 
             pdf.setFontSize(22);
-            pdf.setTextColor('#002B5C');
-            pdf.text('Dairy Shed Hygiene Checklist', 40, 100);
+            pdf.setTextColor('#FFFFFF');
+            pdf.text('Dairy Shed Hygiene Checklist', pdf.internal.pageSize.getWidth() / 2, 100, { align: 'center' });
 
             pdf.setFontSize(12);
             pdf.setTextColor('#000000');
