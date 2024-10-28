@@ -71,7 +71,7 @@
 </head>
 <body>
     <div class="container">
-        <img src="https://i.postimg.cc/hjJbVKSw/Picture2.png" alt="Logo" class="logo">
+        <img src="https://i.postimg.cc/hjJbVKSw/Picture2.png" alt="Logo" class="logo" style="width: 300px">
         <h1>Dairy Shed Hygiene Checklist</h1>
         
         <form id="hygiene-checklist-form">
@@ -270,7 +270,7 @@
                 img.onload = () => {
                     pdf.setFillColor('#002B5C');
                     pdf.rect(0, 0, pdf.internal.pageSize.getWidth(), 80, 'F');
-                    pdf.addImage(img, 'PNG', (pdf.internal.pageSize.getWidth() - 100) / 2, 15, 100, 50);
+                    pdf.addImage(img, 'PNG', (pdf.internal.pageSize.getWidth() - 200) / 2, 15, 200, 100);
                     resolve();
                 };
                 img.onerror = reject;
