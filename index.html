@@ -268,69 +268,52 @@
             pdf.text(`Inspection Completed By: ${form.querySelector('#inspection-completed-by').value || ''}`, 40, 335);
             pdf.text(`Call Type: ${form.querySelector('#call-type').value || ''}`, 40, 350);
 
-            // Collect Checklist Items data
+            // Add checklist items to PDF
+            const checklistItems = document.getElementById('checklist-items').children;
             const checklistData = [];
-            const images = [];
 
-            const checklistItems = form.querySelectorAll(".checklist-item");
-            checklistItems.forEach((item, index) => {
-                const labelElement = item.querySelector('label');
-                const statusElement = item.querySelector('select');
-                const commentsElement = item.querySelector('input[type="text"]');
-                const imageElement = item.querySelector('input[type="file"]');
+            for (let item of checklistItems) {
+                const itemName = item.querySelector('label').textContent;
+                const status = item.querySelector('select').value;
+                const comments = item.querySelector('input[type="text"]').value;
+                let notes = '';
 
-                if (labelElement && statusElement && commentsElement) {
-                    const label = labelElement.textContent;
-                    const status = statusElement.value;
-                    const comments = commentsElement.value;
-
-                    if (status === "attention-required") {
-                        checklistData.push([label, status, `${comments}\nSee attached photo below`]);
-                    } else {
-                        checklistData.push([label, status, comments]);
-                    }
-
-                    if (imageElement && imageElement.files.length > 0) {
-                        images.push({ index, label, file: imageElement.files[0] });
-                    }
+                if (status === 'attention-required') {
+                    notes = 'See attached photo below';
                 }
-            });
 
-            // Generate checklist items table in grid layout
+                checklistData.push([itemName, status, comments, notes]);
+            }
+
+            // Checklist items section
             pdf.autoTable({
-                startY: 380,
-                head: [['Item', 'Status', 'Comments']],
+                startY: 370,
+                head: [['Item', 'Status', 'Comments', 'Notes']],
                 body: checklistData,
-                theme: 'grid',
-                styles: {
-                    fontSize: 10,
-                    cellPadding: 5,
-                },
-                headStyles: {
-                    fillColor: '#002B5C',
-                    textColor: '#FFFFFF'
-                }
+                theme: 'striped',
+                styles: { fontSize: 10, textColor: '#000000' },
+                headStyles: { fillColor: '#002B5C', textColor: '#FFFFFF' }
             });
 
-            // Display images at the bottom
+            // Temperature Measurements
             let currentY = pdf.lastAutoTable.finalY + 20;
 
-            images.forEach(async (imageDetail) => {
-                pdf.setFont('helvetica', 'normal');
-                pdf.text(`Item: ${imageDetail.label}`, 40, currentY);
-                currentY += 10;
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Temperature Measurements:', 40, currentY);
+            currentY += 20;
 
-                const reader = new FileReader();
-                reader.onload = function (event) {
-                    const imageData = event.target.result;
-                    pdf.addImage(imageData, 'JPEG', 40, currentY, 150, 150);
-                    currentY += 160;
-                };
-                reader.readAsDataURL(imageDetail.file);
-                await new Promise((resolve) => reader.onloadend = resolve);
-            });
+            pdf.setFont('helvetica', 'normal');
+            pdf.text(`Hot Water Temp: ${form.querySelector('#hot-water-temp').value || ''} °C`, 40, currentY);
+            currentY += 15;
+            pdf.text(`Time Taken: ${form.querySelector('#hot-water-time').value || ''}`, 40, currentY);
+            currentY += 20;
 
-            // Upload the PDF to Firebase
+            pdf.text(`Milk Temp: ${form.querySelector('#milk-temp').value || ''} °C`, 40, currentY);
+            currentY += 15;
+            pdf.text(`Time Taken: ${form.querySelector('#milk-time').value || ''}`, 40, currentY);
+            currentY += 20;
+
+            // Upload PDF to Firebase
             const pdfBlob = pdf.output('blob');
             const timestamp = new Date().toISOString().split('T')[0];
             const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
@@ -345,6 +328,56 @@
             pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
         }
 
+        // View Records
+        async function viewRecords() {
+            document.getElementById('form-container').style.display = 'none';
+            document.getElementById('record-container').style.display = 'block';
+
+            const recordList = document.getElementById('record-list');
+            recordList.innerHTML = '';
+
+            try {
+                const listRef = storage.ref('customers');
+                const folders = await listRef.listAll();
+                folders.prefixes.forEach(folderRef => {
+                    const dairyNumber = folderRef.name;
+                    const link = document.createElement('a');
+                    link.href = '#';
+                    link.textContent = dairyNumber;
+                    link.onclick = () => loadReports(dairyNumber);
+                    recordList.appendChild(link);
+                });
+            } catch (error) {
+                console.error('Error loading records:', error);
+            }
+        }
+
+        async function loadReports(dairyNumber) {
+            const recordList = document.getElementById('record-list');
+            recordList.innerHTML = '';
+
+            try {
+                const listRef = storage.ref(`customers/${dairyNumber}`);
+                const reports = await listRef.listAll();
+                reports.items.forEach(itemRef => {
+                    const link = document.createElement('a');
+                    link.href = '#';
+                    const fileName = itemRef.name.split('-form-')[1].replace('.pdf', '');
+                    link.textContent = `${fileName}`; // Day/Month/Year
+                    link.onclick = () => itemRef.getDownloadURL().then(url => window.open(url));
+                    recordList.appendChild(link);
+                });
+            } catch (error) {
+                console.error('Error loading reports:', error);
+            }
+        }
+
+        function goBack() {
+            document.getElementById('record-container').style.display = 'none';
+            document.getElementById('form-container').style.display = 'block';
+        }
+
+        // Checklist Items Generation
         function createChecklistItems() {
             const checklistItems = [
                 "Pulsator Airline", "Long Bend Elbows", "Automatic Cup and Remover", "Diaphragm", "Receiving Can",
@@ -407,79 +440,6 @@
 
                 checklistContainer.appendChild(itemContainer);
             });
-        }
-
-        async function fetchFarmDetails() {
-            const dairyNumber = document.getElementById('dairy-number').value;
-            if (dairyNumber) {
-                const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
-                try {
-                    const url = await storageRef.getDownloadURL();
-                    const response = await fetch(url);
-                    if (!response.ok) {
-                        throw new Error('Failed to fetch the farm details');
-                    }
-                    const data = await response.json();
-                    if (data) {
-                        document.getElementById('dairy-company').value = data.dairyCompany || '';
-                        document.getElementById('address').value = data.address || '';
-                        document.getElementById('customer-name').value = data.customerName || '';
-                        document.getElementById('region').value = data.region || '';
-                        document.getElementById('farm-name').value = data.farmName || '';
-                        document.getElementById('island').value = data.island || '';
-                    }
-                } catch (error) {
-                    console.error('Error fetching farm details:', error);
-                }
-            }
-        }
-
-        async function viewRecords() {
-            document.getElementById('form-container').style.display = 'none';
-            document.getElementById('record-container').style.display = 'block';
-
-            const recordList = document.getElementById('record-list');
-            recordList.innerHTML = '';
-
-            try {
-                const listRef = storage.ref('customers');
-                const folders = await listRef.listAll();
-                folders.prefixes.forEach(folderRef => {
-                    const dairyNumber = folderRef.name;
-                    const link = document.createElement('a');
-                    link.href = '#';
-                    link.textContent = dairyNumber;
-                    link.onclick = () => loadReports(dairyNumber);
-                    recordList.appendChild(link);
-                });
-            } catch (error) {
-                console.error('Error loading records:', error);
-            }
-        }
-
-        async function loadReports(dairyNumber) {
-            const recordList = document.getElementById('record-list');
-            recordList.innerHTML = '';
-
-            try {
-                const listRef = storage.ref(`customers/${dairyNumber}`);
-                const reports = await listRef.listAll();
-                reports.items.forEach(itemRef => {
-                    const link = document.createElement('a');
-                    link.href = '#';
-                    const fileName = itemRef.name.split('-form-')[1].replace('.pdf', '');
-                    link.textContent = `${fileName}`; // Day/Month/Year
-                    link.onclick = () => itemRef.getDownloadURL().then(url => window.open(url));
-                    recordList.appendChild(link);
-                });
-            } catch (error) {
-                console.error('Error loading reports:', error);
-            }
-        }
-
-        function goBack() {
-            document.getElementById('record-container').style.display = 'none';
-            document.getElementById('form-container').style.display = 'block';
         }
     </script>
 </body>
