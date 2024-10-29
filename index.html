@@ -217,6 +217,117 @@
             createChecklistItems();
         });
 
+        async function fetchFarmDetails() {
+            const dairyNumber = document.getElementById('dairy-number').value;
+            if (dairyNumber) {
+                const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
+                try {
+                    const url = await storageRef.getDownloadURL();
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch the farm details');
+                    }
+
+                    const data = await response.json();
+                    if (data) {
+                        document.getElementById('dairy-company').value = data.dairyCompany || '';
+                        document.getElementById('address').value = data.address || '';
+                        document.getElementById('customer-name').value = data.customerName || '';
+                        document.getElementById('region').value = data.region || '';
+                        document.getElementById('farm-name').value = data.farmName || '';
+                        document.getElementById('island').value = data.island || '';
+                    }
+                } catch (error) {
+                    console.error("Error fetching farm details:", error);
+                }
+            }
+        }
+
+        async function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const form = document.getElementById('hygiene-checklist-form');
+            const dairyNumber = form.querySelector('#dairy-number').value;
+
+            let pdf = new jsPDF('p', 'pt', 'a4');
+            pdf.setFontSize(22);
+            pdf.setTextColor('#002B5C');
+            pdf.addImage(document.querySelector('.logo').src, 'PNG', 220, 20, 180, 100);
+            
+            pdf.setFontSize(12);
+            pdf.setTextColor('#000000');
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Farm Details:', 40, 150);
+
+            pdf.setFont('helvetica', 'normal');
+            pdf.text(`Dairy Company: ${form.querySelector('#dairy-company').value || ''}`, 40, 170);
+            pdf.text(`Dairy Number: ${form.querySelector('#dairy-number').value || ''}`, 40, 185);
+            pdf.text(`Address: ${form.querySelector('#address').value || ''}`, 40, 200);
+            pdf.text(`Customer Name: ${form.querySelector('#customer-name').value || ''}`, 40, 215);
+            pdf.text(`Region: ${form.querySelector('#region').value || ''}`, 40, 230);
+            pdf.text(`Farm Name: ${form.querySelector('#farm-name').value || ''}`, 40, 245);
+            pdf.text(`Island: ${form.querySelector('#island').value || ''}`, 40, 260);
+            pdf.text(`Visit Date: ${form.querySelector('#visit-date').value || ''}`, 40, 275);
+            pdf.text(`Visit Type: ${form.querySelector('#visit-type').value || ''}`, 40, 290);
+            pdf.text(`Inspection Start Time: ${form.querySelector('#inspection-start-time').value || ''}`, 40, 305);
+            pdf.text(`Inspection End Time: ${form.querySelector('#inspection-end-time').value || ''}`, 40, 320);
+            pdf.text(`Inspection Completed By: ${form.querySelector('#inspection-completed-by').value || ''}`, 40, 335);
+            pdf.text(`Call Type: ${form.querySelector('#call-type').value || ''}`, 40, 350);
+
+            // Add Checklist Items using autoTable
+            const checklistData = [];
+            const checklistItems = form.querySelectorAll(".checklist-item");
+
+            checklistItems.forEach((item) => {
+                const labelElement = item.querySelector('label');
+                const statusElement = item.querySelector('select');
+                const commentsElement = item.querySelector('input[type="text"]');
+
+                if (labelElement && statusElement && commentsElement) {
+                    const label = labelElement.textContent;
+                    const status = statusElement.value;
+                    const comments = commentsElement.value;
+
+                    checklistData.push([label, status, comments]);
+
+                    if (status === "attention-required") {
+                        checklistData.push(["", "Note:", "See attached photo below"]);
+                    }
+                }
+            });
+
+            if (checklistData.length > 0) {
+                pdf.autoTable({
+                    startY: 380,
+                    head: [['Item', 'Status', 'Comments']],
+                    body: checklistData,
+                    theme: 'striped',
+                    styles: {
+                        fontSize: 10,
+                        cellPadding: 5,
+                    },
+                    headStyles: {
+                        fillColor: '#002B5C',
+                        textColor: '#FFFFFF'
+                    }
+                });
+            }
+
+            // Save PDF and upload to Firebase
+            const pdfBlob = pdf.output('blob');
+            const timestamp = new Date().toISOString().split('T')[0];
+            const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
+            const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
+
+            try {
+                await storageRef.put(pdfBlob);
+                console.log('PDF uploaded successfully');
+            } catch (error) {
+                console.error('Error uploading PDF:', error);
+            }
+
+            pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
+        }
+
         async function viewRecords() {
             document.getElementById('form-container').style.display = 'none';
             document.getElementById('records-container').style.display = 'block';
@@ -252,7 +363,6 @@
                     const listItem = document.createElement('li');
                     listItem.className = 'list-group-item list-group-item-action';
 
-                    // Create link to open PDF directly when clicking on the date
                     const link = document.createElement('a');
                     link.className = 'record-link';
                     link.href = '#';
