@@ -205,7 +205,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 4.5</div>
+        <div class="version">Version 4.6</div>
     </div>
 
     <script>
@@ -222,6 +222,32 @@
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const storage = firebase.storage();
+        const firestore = firebase.firestore();
+
+        async function fetchFarmDetails() {
+            const dairyNumber = document.getElementById('dairy-number').value;
+            if (dairyNumber) {
+                const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
+                try {
+                    const url = await storageRef.getDownloadURL();
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch the farm details');
+                    }
+                    const data = await response.json();
+                    if (data) {
+                        document.getElementById('dairy-company').value = data.dairyCompany || '';
+                        document.getElementById('address').value = data.address || '';
+                        document.getElementById('customer-name').value = data.customerName || '';
+                        document.getElementById('region').value = data.region || '';
+                        document.getElementById('farm-name').value = data.farmName || '';
+                        document.getElementById('island').value = data.island || '';
+                    }
+                } catch (error) {
+                    console.error('Error fetching farm details:', error);
+                }
+            }
+        }
 
         async function generatePDF() {
             const form = document.getElementById('hygiene-checklist-form');
