@@ -296,7 +296,7 @@
             pdf.setFontSize(22);
             pdf.setTextColor('#002B5C');
 
-            // Add logo with the correct aspect ratio and reduced size
+            // Add logo with the correct aspect ratio and reduced size, centered at the top
             const logoUrl = 'https://i.postimg.cc/htZPjx5g/logo-89.png';
             const imageResponse = await fetch(logoUrl);
             const imageBlob = await imageResponse.blob();
@@ -305,7 +305,11 @@
                 reader.onload = () => resolve(reader.result);
                 reader.readAsDataURL(imageBlob);
             });
-            pdf.addImage(imageData, 'PNG', 110, 20, 225, 55); // Updated to half the size
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const logoWidth = 225;
+            const logoHeight = 55;
+            const xOffset = (pageWidth - logoWidth) / 2; // Center the logo
+            pdf.addImage(imageData, 'PNG', xOffset, 20, logoWidth, logoHeight);
 
             // Farm details section
             pdf.setFontSize(12);
