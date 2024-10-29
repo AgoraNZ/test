@@ -232,6 +232,41 @@
         firebase.initializeApp(firebaseConfig);
         const storage = firebase.storage();
 
+        // Fetch farm details based on dairy number
+        async function fetchFarmDetails() {
+            const dairyNumber = document.getElementById('dairy-number').value;
+            if (dairyNumber) {
+                const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
+                try {
+                    // Get the download URL for the JSON file
+                    const url = await storageRef.getDownloadURL();
+                    
+                    // Fetch the JSON content from the URL
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch the farm details');
+                    }
+
+                    // Parse the JSON data
+                    const data = await response.json();
+                    if (data) {
+                        // Populate the form fields with the fetched data
+                        document.getElementById('dairy-company').value = data.dairyCompany || '';
+                        document.getElementById('address').value = data.address || '';
+                        document.getElementById('customer-name').value = data.customerName || '';
+                        document.getElementById('region').value = data.region || '';
+                        document.getElementById('farm-name').value = data.farmName || '';
+                        document.getElementById('island').value = data.island || '';
+                        console.log("Farm details loaded successfully.");
+                    }
+                } catch (error) {
+                    console.error('Error fetching farm details:', error);
+                }
+            }
+        }
+
+        // Other functions (viewRecords, loadAllRecords, createChecklistItems, etc.) remain unchanged.
+
         // View all records
         function viewRecords() {
             document.querySelector('.container').style.display = 'none';
