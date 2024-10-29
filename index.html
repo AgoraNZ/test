@@ -232,6 +232,9 @@
         firebase.initializeApp(firebaseConfig);
         const storage = firebase.storage();
 
+        // Ensure jsPDF reference
+        const { jsPDF } = window.jspdf;
+
         // View records from Firebase
         function viewRecords() {
             document.querySelector(".container").style.display = "none";
@@ -333,15 +336,35 @@
                     }
                 } catch (error) {
                     console.error('Error fetching farm details:', error);
+                    alert('Farm details not found. You can enter new details for this dairy number.');
                 }
             }
         }
 
-        // Generate PDF function and other helper functions
-        document.addEventListener("DOMContentLoaded", () => {
-            createChecklistItems();
-        });
+        // Save farm details to Firebase storage
+        async function saveFarmDetails() {
+            const dairyNumber = document.getElementById('dairy-number').value;
+            const farmDetails = {
+                dairyCompany: document.getElementById('dairy-company').value,
+                address: document.getElementById('address').value,
+                customerName: document.getElementById('customer-name').value,
+                region: document.getElementById('region').value,
+                farmName: document.getElementById('farm-name').value,
+                island: document.getElementById('island').value
+            };
 
+            const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
+            try {
+                await storageRef.putString(JSON.stringify(farmDetails), 'raw', {
+                    contentType: 'application/json'
+                });
+                console.log("Farm details saved successfully.");
+            } catch (error) {
+                console.error("Error saving farm details:", error);
+            }
+        }
+
+        // Generate PDF function
         async function generatePDF() {
             const form = document.getElementById('hygiene-checklist-form');
             const dairyNumber = form.querySelector('#dairy-number').value;
@@ -350,6 +373,9 @@
                 alert("Please enter a Dairy Number.");
                 return;
             }
+
+            // Save farm details for auto-fill purposes
+            await saveFarmDetails();
 
             let pdf = new jsPDF('p', 'pt', 'a4');
             pdf.setFontSize(22);
@@ -376,8 +402,6 @@
             pdf.text(`Inspection Completed By: ${form.querySelector('#inspection-completed-by').value}`, 40, 265);
             pdf.text(`Call Type: ${form.querySelector('#call-type').value}`, 40, 280);
 
-            // TODO: Generate checklist table
-
             // Save PDF and upload to Firebase
             const pdfBlob = pdf.output('blob');
             const timestamp = new Date().toISOString().split('T')[0];
@@ -387,12 +411,18 @@
             try {
                 await storageRef.put(pdfBlob);
                 console.log('PDF uploaded successfully');
+                alert("PDF generated and uploaded successfully.");
             } catch (error) {
                 console.error('Error uploading PDF:', error);
+                alert("Failed to upload PDF.");
             }
 
             pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
         }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            createChecklistItems();
+        });
 
         function createChecklistItems() {
             const checklistItems = [
