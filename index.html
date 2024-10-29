@@ -235,134 +235,6 @@
         // Ensure jsPDF reference
         const { jsPDF } = window.jspdf;
 
-        // View records from Firebase
-        function viewRecords() {
-            document.querySelector(".container").style.display = "none";
-            document.getElementById("record-container").style.display = "block";
-            loadAllRecords();
-        }
-
-        function goBack() {
-            document.querySelector(".container").style.display = "block";
-            document.getElementById("record-container").style.display = "none";
-        }
-
-        async function loadAllRecords() {
-            const recordList = document.getElementById("record-list");
-            recordList.innerHTML = "";
-
-            const customersRef = storage.ref("customers");
-            try {
-                const result = await customersRef.listAll();
-                result.prefixes.forEach(async (folderRef) => {
-                    const folderName = folderRef.name; // Get dairy number as folder name
-                    const link = document.createElement("a");
-                    link.textContent = folderName; // Display only the dairy number
-                    link.href = "#";
-                    link.onclick = async () => {
-                        loadFolderRecords(folderRef);
-                    };
-                    recordList.appendChild(link);
-                });
-            } catch (error) {
-                console.error("Error loading records:", error);
-                recordList.innerHTML = "<p>No records found.</p>";
-            }
-        }
-
-        async function loadFolderRecords(folderRef) {
-            const recordList = document.getElementById("record-list");
-            recordList.innerHTML = "";
-
-            try {
-                const folderResult = await folderRef.listAll();
-                folderResult.items.forEach((itemRef) => {
-                    const datePart = itemRef.name.match(/(\d{4}-\d{2}-\d{2})/);
-                    if (datePart && datePart[0]) {
-                        const formattedDate = formatDate(datePart[0]);
-                        const link = document.createElement("a");
-                        link.textContent = formattedDate; // Display date as "DD/MM/YYYY"
-                        link.href = "#";
-                        link.onclick = async () => {
-                            const url = await itemRef.getDownloadURL();
-                            window.open(url, "_blank");
-                        };
-                        recordList.appendChild(link);
-                    }
-                });
-            } catch (error) {
-                console.error("Error loading folder records:", error);
-                recordList.innerHTML = "<p>No records found.</p>";
-            }
-
-            const backButton = document.createElement("button");
-            backButton.textContent = "Back to Dairy Numbers";
-            backButton.classList.add("back-button");
-            backButton.onclick = loadAllRecords;
-            recordList.appendChild(backButton);
-        }
-
-        function formatDate(dateString) {
-            const parts = dateString.split("-");
-            if (parts.length === 3) {
-                const day = parts[2];
-                const month = parts[1];
-                const year = parts[0];
-                return `${day}/${month}/${year}`;
-            }
-            return dateString;
-        }
-
-        // Fetch farm details based on dairy number
-        async function fetchFarmDetails() {
-            const dairyNumber = document.getElementById('dairy-number').value;
-            if (dairyNumber) {
-                const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
-                try {
-                    const url = await storageRef.getDownloadURL();
-                    const response = await fetch(url);
-                    if (!response.ok) {
-                        throw new Error('Failed to fetch the farm details');
-                    }
-                    const data = await response.json();
-                    if (data) {
-                        document.getElementById('dairy-company').value = data.dairyCompany || '';
-                        document.getElementById('address').value = data.address || '';
-                        document.getElementById('customer-name').value = data.customerName || '';
-                        document.getElementById('region').value = data.region || '';
-                        document.getElementById('farm-name').value = data.farmName || '';
-                        document.getElementById('island').value = data.island || '';
-                        console.log("Farm details loaded successfully.");
-                    }
-                } catch (error) {
-                    console.error('Error fetching farm details:', error);
-                }
-            }
-        }
-
-        // Save farm details to Firebase storage
-        async function saveFarmDetails() {
-            const dairyNumber = document.getElementById('dairy-number').value;
-            const farmDetails = {
-                dairyCompany: document.getElementById('dairy-company').value,
-                address: document.getElementById('address').value,
-                customerName: document.getElementById('customer-name').value,
-                region: document.getElementById('region').value,
-                farmName: document.getElementById('farm-name').value,
-                island: document.getElementById('island').value
-            };
-
-            const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
-            try {
-                await storageRef.putString(JSON.stringify(farmDetails), 'raw', {
-                    contentType: 'application/json'
-                });
-                console.log("Farm details saved successfully.");
-            } catch (error) {
-                console.error("Error saving farm details:", error);
-            }
-        }
-
         // Generate PDF function
         async function generatePDF() {
             const form = document.getElementById('hygiene-checklist-form');
@@ -387,52 +259,64 @@
             pdf.text('Farm Details:', 40, 80);
 
             pdf.setFont('helvetica', 'normal');
-            pdf.text(`Dairy Company: ${form.querySelector('#dairy-company').value}`, 40, 100);
+            pdf.text(`Dairy Company: ${form.querySelector('#dairy-company').value || ''}`, 40, 100);
             pdf.text(`Dairy Number: ${dairyNumber}`, 40, 115);
-            pdf.text(`Address: ${form.querySelector('#address').value}`, 40, 130);
-            pdf.text(`Customer Name: ${form.querySelector('#customer-name').value}`, 40, 145);
-            pdf.text(`Region: ${form.querySelector('#region').value}`, 40, 160);
-            pdf.text(`Farm Name: ${form.querySelector('#farm-name').value}`, 40, 175);
-            pdf.text(`Island: ${form.querySelector('#island').value}`, 40, 190);
-            pdf.text(`Visit Date: ${form.querySelector('#visit-date').value}`, 40, 205);
-            pdf.text(`Visit Type: ${form.querySelector('#visit-type').value}`, 40, 220);
-            pdf.text(`Inspection Start Time: ${form.querySelector('#inspection-start-time').value}`, 40, 235);
-            pdf.text(`Inspection End Time: ${form.querySelector('#inspection-end-time').value}`, 40, 250);
-            pdf.text(`Inspection Completed By: ${form.querySelector('#inspection-completed-by').value}`, 40, 265);
-            pdf.text(`Call Type: ${form.querySelector('#call-type').value}`, 40, 280);
+            pdf.text(`Address: ${form.querySelector('#address').value || ''}`, 40, 130);
+            pdf.text(`Customer Name: ${form.querySelector('#customer-name').value || ''}`, 40, 145);
+            pdf.text(`Region: ${form.querySelector('#region').value || ''}`, 40, 160);
+            pdf.text(`Farm Name: ${form.querySelector('#farm-name').value || ''}`, 40, 175);
+            pdf.text(`Island: ${form.querySelector('#island').value || ''}`, 40, 190);
+            pdf.text(`Visit Date: ${form.querySelector('#visit-date').value || ''}`, 40, 205);
+            pdf.text(`Visit Type: ${form.querySelector('#visit-type').value || ''}`, 40, 220);
+            pdf.text(`Inspection Start Time: ${form.querySelector('#inspection-start-time').value || ''}`, 40, 235);
+            pdf.text(`Inspection End Time: ${form.querySelector('#inspection-end-time').value || ''}`, 40, 250);
+            pdf.text(`Inspection Completed By: ${form.querySelector('#inspection-completed-by').value || ''}`, 40, 265);
+            pdf.text(`Call Type: ${form.querySelector('#call-type').value || ''}`, 40, 280);
 
             // Add Checklist Items
             const checklistItems = form.querySelectorAll(".checklist-item");
-            pdf.setFont('helvetica', 'bold');
-            pdf.text('Checklist Items:', 40, 300);
-            pdf.setFont('helvetica', 'normal');
-            let currentY = 320;
+            if (checklistItems.length > 0) {
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('Checklist Items:', 40, 300);
+                pdf.setFont('helvetica', 'normal');
+                let currentY = 320;
 
-            checklistItems.forEach((item) => {
-                const label = item.querySelector('label').textContent;
-                const status = item.querySelector('select').value;
-                const comments = item.querySelector('input[type="text"]').value;
+                checklistItems.forEach((item) => {
+                    const labelElement = item.querySelector('label');
+                    const statusElement = item.querySelector('select');
+                    const commentsElement = item.querySelector('input[type="text"]');
 
-                pdf.text(`${label} - Status: ${status}, Comments: ${comments}`, 40, currentY);
-                currentY += 15;
+                    if (labelElement && statusElement && commentsElement) {
+                        const label = labelElement.textContent;
+                        const status = statusElement.value;
+                        const comments = commentsElement.value;
 
-                if (status === "attention-required") {
-                    pdf.setFont('helvetica', 'bold');
-                    pdf.text("See attached photo below", 40, currentY);
-                    pdf.setFont('helvetica', 'normal');
-                    currentY += 15;
-                }
+                        pdf.text(`${label} - Status: ${status}, Comments: ${comments}`, 40, currentY);
+                        currentY += 15;
 
-                const imageFile = item.querySelector('input[type="file"]').files[0];
-                if (imageFile) {
-                    const reader = new FileReader();
-                    reader.onload = function(event) {
-                        pdf.addImage(event.target.result, 'JPEG', 40, currentY, 150, 150);
-                        currentY += 160;
-                    };
-                    reader.readAsDataURL(imageFile);
-                }
-            });
+                        if (status === "attention-required") {
+                            pdf.setFont('helvetica', 'bold');
+                            pdf.text("See attached photo below", 40, currentY);
+                            pdf.setFont('helvetica', 'normal');
+                            currentY += 15;
+                        }
+
+                        const imageUploadElement = item.querySelector('input[type="file"]');
+                        if (imageUploadElement && imageUploadElement.files.length > 0) {
+                            const imageFile = imageUploadElement.files[0];
+                            if (imageFile) {
+                                const reader = new FileReader();
+                                reader.onload = function(event) {
+                                    pdf.addImage(event.target.result, 'JPEG', 40, currentY, 150, 150);
+                                    pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
+                                    currentY += 160;
+                                };
+                                reader.readAsDataURL(imageFile);
+                            }
+                        }
+                    }
+                });
+            }
 
             // Save PDF and upload to Firebase
             const pdfBlob = pdf.output('blob');
@@ -448,8 +332,29 @@
                 console.error('Error uploading PDF:', error);
                 alert("Failed to upload PDF.");
             }
+        }
 
-            pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
+        // Save farm details to Firebase storage
+        async function saveFarmDetails() {
+            const dairyNumber = document.getElementById('dairy-number').value;
+            const farmDetails = {
+                dairyCompany: document.getElementById('dairy-company').value || '',
+                address: document.getElementById('address').value || '',
+                customerName: document.getElementById('customer-name').value || '',
+                region: document.getElementById('region').value || '',
+                farmName: document.getElementById('farm-name').value || '',
+                island: document.getElementById('island').value || ''
+            };
+
+            const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
+            try {
+                await storageRef.putString(JSON.stringify(farmDetails), 'raw', {
+                    contentType: 'application/json'
+                });
+                console.log("Farm details saved successfully.");
+            } catch (error) {
+                console.error("Error saving farm details:", error);
+            }
         }
 
         document.addEventListener("DOMContentLoaded", () => {
