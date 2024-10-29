@@ -239,15 +239,25 @@
                 const recordsList = document.getElementById('records-list');
                 recordsList.innerHTML = '';
 
-                listResult.items.forEach((item) => {
+                for (const item of listResult.items) {
                     const listItem = document.createElement('li');
                     listItem.className = 'list-group-item list-group-item-action';
                     const datePart = item.name.split('-form-')[1].split('.')[0];
                     const formattedDate = datePart.split('-').reverse().join('/');
                     listItem.textContent = `Record Date: ${formattedDate}`;
-                    listItem.onclick = () => window.open(item.getDownloadURL(), '_blank');
+
+                    // Fetch the download URL when clicking on the list item
+                    listItem.onclick = async () => {
+                        try {
+                            const downloadURL = await item.getDownloadURL();
+                            window.open(downloadURL, '_blank');
+                        } catch (error) {
+                            console.error("Error getting download URL:", error);
+                        }
+                    };
+
                     recordsList.appendChild(listItem);
-                });
+                }
             } catch (error) {
                 console.error("Error fetching customer records:", error);
             }
