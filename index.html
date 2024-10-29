@@ -215,6 +215,7 @@
         </div>
         <div id="record-list" class="record-list"></div>
         <button class="back-button" onclick="goBack()">Back to Checklist</button>
+        <button class="back-button" onclick="goBackToRecords()">Back to Dairy Records</button>
     </div>
 
     <script>
@@ -246,7 +247,7 @@
             pdf.setTextColor('#002B5C');
 
             const logoImage = document.querySelector('.logo').src;
-            pdf.addImage(logoImage, 'PNG', 140, 20, 300, 100);
+            pdf.addImage(logoImage, 'PNG', 170, 20, 240, 80);
 
             pdf.setFontSize(12);
             pdf.setTextColor('#000000');
@@ -271,6 +272,7 @@
             // Add checklist items to PDF
             const checklistItems = document.getElementById('checklist-items').children;
             const checklistData = [];
+            const images = [];
 
             for (let item of checklistItems) {
                 const itemName = item.querySelector('label').textContent;
@@ -280,6 +282,16 @@
 
                 if (status === 'attention-required') {
                     notes = 'See attached photo below';
+                }
+
+                const imageFile = item.querySelector('input[type="file"]').files[0];
+                if (imageFile) {
+                    const reader = new FileReader();
+                    reader.onload = function (event) {
+                        images.push({ image: event.target.result, itemName });
+                    };
+                    reader.readAsDataURL(imageFile);
+                    await new Promise((resolve) => (reader.onloadend = resolve));
                 }
 
                 checklistData.push([itemName, status, comments, notes]);
@@ -295,7 +307,7 @@
                 headStyles: { fillColor: '#002B5C', textColor: '#FFFFFF' }
             });
 
-            // Temperature Measurements
+            // Add temperature data
             let currentY = pdf.lastAutoTable.finalY + 20;
 
             pdf.setFont('helvetica', 'bold');
@@ -312,6 +324,29 @@
             currentY += 15;
             pdf.text(`Time Taken: ${form.querySelector('#milk-time').value || ''}`, 40, currentY);
             currentY += 20;
+
+            // Add photos
+            if (images.length > 0) {
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('Photos:', 40, currentY);
+                currentY += 20;
+
+                for (const imgDetail of images) {
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.text(`Item: ${imgDetail.itemName}`, 40, currentY);
+                    currentY += 10;
+
+                    const pageHeight = pdf.internal.pageSize.height;
+
+                    if (currentY + 160 > pageHeight) {
+                        pdf.addPage();
+                        currentY = 50; // Reset Y position for new page
+                    }
+
+                    pdf.addImage(imgDetail.image, 'JPEG', 40, currentY, 150, 150);
+                    currentY += 160; // Spacing for the next image
+                }
+            }
 
             // Upload PDF to Firebase
             const pdfBlob = pdf.output('blob');
@@ -363,7 +398,7 @@
                     const link = document.createElement('a');
                     link.href = '#';
                     const fileName = itemRef.name.split('-form-')[1].replace('.pdf', '');
-                    link.textContent = `${fileName}`; // Day/Month/Year
+                    link.textContent = `${fileName}`;
                     link.onclick = () => itemRef.getDownloadURL().then(url => window.open(url));
                     recordList.appendChild(link);
                 });
@@ -375,6 +410,14 @@
         function goBack() {
             document.getElementById('record-container').style.display = 'none';
             document.getElementById('form-container').style.display = 'block';
+        }
+
+        function goBackToRecords() {
+            const recordList = document.getElementById('record-list');
+            if (recordList.innerHTML) {
+                recordList.innerHTML = '';
+            }
+            viewRecords();
         }
 
         // Checklist Items Generation
