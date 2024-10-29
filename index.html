@@ -65,41 +65,6 @@
             margin: 0 auto 40px;
             width: 300px;
         }
-        .record-container {
-            background-color: #FFFFFF;
-            color: #000000;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
-            max-width: 1000px;
-            width: 100%;
-            margin: 20px auto;
-        }
-        .record-container h2 {
-            color: #002B5C;
-        }
-        .record-list {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        .record-list a {
-            text-decoration: none;
-            color: #007bff;
-            display: block;
-            margin-bottom: 10px;
-        }
-        .back-button {
-            margin-top: 20px;
-            background-color: #002B5C;
-            color: #FFFFFF;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .search-container {
-            margin-bottom: 20px;
-        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
@@ -207,16 +172,6 @@
         <div class="version">Version 4.4</div>
     </div>
 
-    <!-- Records Viewing Page -->
-    <div id="record-container" class="record-container" style="display: none;">
-        <h2>All Dairy Shed Hygiene Records</h2>
-        <div class="search-container">
-            <input type="text" id="search-dairy-number" class="form-control" placeholder="Search by Dairy Number" oninput="filterRecords()">
-        </div>
-        <div id="record-list" class="record-list"></div>
-        <button class="back-button" onclick="goBack()">Back to Checklist</button>
-    </div>
-
     <script>
         // Firebase configuration
         const firebaseConfig = {
@@ -239,7 +194,6 @@
             createChecklistItems();
         });
 
-        // Fetch farm details based on dairy number
         async function fetchFarmDetails() {
             const dairyNumber = document.getElementById('dairy-number').value;
             if (dairyNumber) {
@@ -327,49 +281,58 @@
             pdf.text(`Inspection Completed By: ${form.querySelector('#inspection-completed-by').value || ''}`, 40, 265);
             pdf.text(`Call Type: ${form.querySelector('#call-type').value || ''}`, 40, 280);
 
-            // Add Checklist Items
+            // Add Checklist Items using autoTable
+            const checklistData = [];
             const checklistItems = form.querySelectorAll(".checklist-item");
-            if (checklistItems.length > 0) {
-                pdf.setFont('helvetica', 'bold');
-                pdf.text('Checklist Items:', 40, 300);
-                pdf.setFont('helvetica', 'normal');
-                let currentY = 320;
 
-                checklistItems.forEach((item) => {
-                    const labelElement = item.querySelector('label');
-                    const statusElement = item.querySelector('select');
-                    const commentsElement = item.querySelector('input[type="text"]');
+            checklistItems.forEach((item) => {
+                const labelElement = item.querySelector('label');
+                const statusElement = item.querySelector('select');
+                const commentsElement = item.querySelector('input[type="text"]');
 
-                    if (labelElement && statusElement && commentsElement) {
-                        const label = labelElement.textContent;
-                        const status = statusElement.value;
-                        const comments = commentsElement.value;
+                if (labelElement && statusElement && commentsElement) {
+                    const label = labelElement.textContent;
+                    const status = statusElement.value;
+                    const comments = commentsElement.value;
 
-                        pdf.text(`${label} - Status: ${status}, Comments: ${comments}`, 40, currentY);
-                        currentY += 15;
+                    checklistData.push([label, status, comments]);
+                }
+            });
 
-                        if (status === "attention-required") {
-                            pdf.setFont('helvetica', 'bold');
-                            pdf.text("See attached photo below", 40, currentY);
-                            pdf.setFont('helvetica', 'normal');
-                            currentY += 15;
-                        }
-
-                        const imageUploadElement = item.querySelector('input[type="file"]');
-                        if (imageUploadElement && imageUploadElement.files.length > 0) {
-                            const imageFile = imageUploadElement.files[0];
-                            if (imageFile) {
-                                const reader = new FileReader();
-                                reader.onload = function(event) {
-                                    pdf.addImage(event.target.result, 'JPEG', 40, currentY, 150, 150);
-                                    currentY += 160;
-                                };
-                                reader.readAsDataURL(imageFile);
-                            }
-                        }
+            if (checklistData.length > 0) {
+                pdf.autoTable({
+                    startY: 300,
+                    head: [['Item', 'Status', 'Comments']],
+                    body: checklistData,
+                    theme: 'striped',
+                    styles: {
+                        fontSize: 10,
+                        cellPadding: 5,
+                    },
+                    headStyles: {
+                        fillColor: '#002B5C',
+                        textColor: '#FFFFFF'
                     }
                 });
             }
+
+            // Add images if available
+            const imageElements = form.querySelectorAll('.image-upload');
+            let currentY = pdf.lastAutoTable ? pdf.lastAutoTable.finalY + 20 : 350;
+
+            imageElements.forEach((imageUploadElement) => {
+                if (imageUploadElement.files.length > 0) {
+                    const imageFile = imageUploadElement.files[0];
+                    if (imageFile) {
+                        const reader = new FileReader();
+                        reader.onload = function(event) {
+                            pdf.addImage(event.target.result, 'JPEG', 40, currentY, 150, 150);
+                            currentY += 160;
+                        };
+                        reader.readAsDataURL(imageFile);
+                    }
+                }
+            });
 
             // Save PDF and upload to Firebase
             const pdfBlob = pdf.output('blob');
