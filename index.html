@@ -313,7 +313,7 @@
             // Save PDF and upload to Firebase
             const pdfBlob = pdf.output('blob');
             const timestamp = new Date().toISOString().split('T')[0];
-            const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
+            const fileName = `${dairyNumber}-${timestamp}.pdf`;
             const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
 
             try {
@@ -427,9 +427,10 @@
             try {
                 const listResult = await storageRef.listAll();
                 listResult.items.forEach((fileRef) => {
+                    const formattedDate = fileRef.name.split('-')[1].replace('.pdf', '').replace(/-/g, '/');
                     const listItem = document.createElement('li');
                     listItem.classList.add('list-group-item');
-                    listItem.innerHTML = `<a href="${fileRef.getDownloadURL()}" target="_blank">${fileRef.name}</a>`;
+                    listItem.innerHTML = `<a href="${fileRef.getDownloadURL()}" target="_blank">${formattedDate}</a>`;
                     recordsList.appendChild(listItem);
                 });
             } catch (error) {
