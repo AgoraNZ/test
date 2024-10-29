@@ -183,7 +183,7 @@
         const storage = firebase.storage();
 
         // Correct jsPDF reference
-        const jsPDF = window.jspdf.jsPDF;
+        const { jsPDF } = window.jspdf;
 
         document.addEventListener("DOMContentLoaded", () => {
             createChecklistItems();
@@ -253,44 +253,12 @@
             });
         }
 
-        async function fetchFarmDetails() {
-            const dairyNumber = document.getElementById('dairy-number').value;
-            if (dairyNumber) {
-                const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
-                try {
-                    // Get the download URL for the JSON file
-                    const url = await storageRef.getDownloadURL();
-                    
-                    // Fetch the JSON content from the URL
-                    const response = await fetch(url);
-                    if (!response.ok) {
-                        throw new Error('Failed to fetch the farm details');
-                    }
-
-                    // Parse the JSON data
-                    const data = await response.json();
-                    if (data) {
-                        // Populate the form fields with the fetched data
-                        document.getElementById('dairy-company').value = data.dairyCompany || '';
-                        document.getElementById('address').value = data.address || '';
-                        document.getElementById('customer-name').value = data.customerName || '';
-                        document.getElementById('region').value = data.region || '';
-                        document.getElementById('farm-name').value = data.farmName || '';
-                        document.getElementById('island').value = data.island || '';
-                        console.log("Farm details loaded successfully.");
-                    }
-                } catch (error) {
-                    console.error("Error fetching farm details:", error);
-                }
-            }
-        }
-
         async function generatePDF() {
             const form = document.getElementById('hygiene-checklist-form');
             let formData = new FormData(form);
             const dairyNumber = formData.get('dairy-number');
 
-            let pdf = new jsPDF('p', 'pt', 'a4');
+            const pdf = new jsPDF('p', 'pt', 'a4');
 
             pdf.setFontSize(22);
             pdf.setTextColor('#002B5C');
@@ -329,7 +297,7 @@
                 pdf.text(detail, xPosition, yPosition);
             });
 
-            console.log("Generate PDF function is executed");
+            pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
         }
     </script>
 </body>
