@@ -205,7 +205,17 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 4.6</div>
+        <div class="version">Version 4.8</div>
+    </div>
+
+    <!-- Records Viewing Page -->
+    <div id="record-container" class="record-container" style="display: none;">
+        <h2>All Dairy Shed Hygiene Records</h2>
+        <div class="search-container">
+            <input type="text" id="search-dairy-number" class="form-control" placeholder="Search by Dairy Number" oninput="filterRecords()">
+        </div>
+        <div id="record-list" class="record-list"></div>
+        <button class="back-button" onclick="goBack()">Back to Checklist</button>
     </div>
 
     <script>
@@ -249,10 +259,34 @@
             }
         }
 
+        async function saveFarmDetails(formData) {
+            const dairyNumber = formData.get('dairy-number');
+            const farmDetails = {
+                dairyCompany: formData.get('dairy-company'),
+                address: formData.get('address'),
+                customerName: formData.get('customer-name'),
+                region: formData.get('region'),
+                farmName: formData.get('farm-name'),
+                island: formData.get('island'),
+            };
+            const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
+            const metadata = {
+                contentType: 'application/json',
+            };
+            try {
+                await storageRef.put(new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }), metadata);
+                console.log('Farm details saved successfully.');
+            } catch (error) {
+                console.error('Error saving farm details:', error);
+            }
+        }
+
         async function generatePDF() {
             const form = document.getElementById('hygiene-checklist-form');
             const formData = new FormData(form);
             const dairyNumber = formData.get('dairy-number');
+
+            await saveFarmDetails(formData);
 
             const { jsPDF } = window.jspdf;
             let pdf = new jsPDF('p', 'pt', 'a4');
@@ -289,7 +323,7 @@
                 // Checklist Items Section
                 const checklistItemsDiv = document.getElementById('checklist-items').children;
                 const checklistTable = [];
-                const photos = [];
+                const attachedPhotos = [];
 
                 for (let item of checklistItemsDiv) {
                     const itemName = item.querySelector('label').textContent;
@@ -297,22 +331,22 @@
                     const comments = item.querySelector('input[type="text"]').value;
                     const imageFile = item.querySelector('input[type="file"]').files[0];
 
-                    let commentText = comments;
+                    let rowComments = comments;
                     if (status === 'attention-required') {
-                        commentText += ' (See Photo Below)';
+                        rowComments += " (See Photo Below)";
                     }
 
-                    checklistTable.push([itemName, status, commentText]);
+                    checklistTable.push([itemName, status, rowComments]);
 
                     if (imageFile) {
-                        const photoReader = new FileReader();
-                        photoReader.onload = function (event) {
-                            photos.push({
-                                title: itemName,
-                                data: event.target.result
+                        const imageReader = new FileReader();
+                        imageReader.onload = function (event) {
+                            attachedPhotos.push({
+                                imageUrl: event.target.result,
+                                title: itemName
                             });
                         };
-                        photoReader.readAsDataURL(imageFile);
+                        imageReader.readAsDataURL(imageFile);
                     }
                 }
 
@@ -331,14 +365,13 @@
                     }
                 });
 
-                // Add photos to the end of the PDF
-                let currentY = pdf.lastAutoTable.finalY + 30;
-                photos.forEach(photo => {
-                    pdf.setFont('helvetica', 'bold');
-                    pdf.text(photo.title, 40, currentY);
-                    pdf.addImage(photo.data, 'JPEG', 40, currentY + 15, 150, 150);
-                    currentY += 180;
-                });
+                // Add photos at the bottom of the PDF
+                let currentY = pdf.lastAutoTable.finalY + 20;
+                for (let photo of attachedPhotos) {
+                    pdf.addImage(photo.imageUrl, 'JPEG', 40, currentY, 100, 100);
+                    pdf.text(photo.title, 150, currentY + 50);
+                    currentY += 120;
+                }
 
                 // Save PDF and upload to Firebase
                 const pdfBlob = pdf.output('blob');
