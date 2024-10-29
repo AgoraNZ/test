@@ -88,6 +88,15 @@
             display: block;
             margin-bottom: 10px;
         }
+        .back-button {
+            margin-top: 20px;
+            background-color: #002B5C;
+            color: #FFFFFF;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
@@ -100,95 +109,8 @@
         <h1>Dairy Shed Hygiene Checklist</h1>
         
         <form id="hygiene-checklist-form">
-            <div class="section mb-4">
-                <h2>Farm Details</h2>
-                <label for="dairy-number">Dairy Number:</label>
-                <input type="text" class="form-control" id="dairy-number" name="dairy-number" onblur="fetchFarmDetails()">
-                
-                <label for="dairy-company">Dairy Company:</label>
-                <select id="dairy-company" name="dairy-company" class="form-select">
-                    <option value="fonterra">Fonterra</option>
-                    <option value="dairy-goat-coop">Dairy Goat Co-op</option>
-                    <option value="green-valley">Green Valley Dairies</option>
-                    <option value="maui-milk">Maui Milk</option>
-                    <option value="oceania">Oceania</option>
-                    <option value="ofi">OFI</option>
-                    <option value="synlait">Synlait Milk LTD</option>
-                    <option value="tatua">Tatua</option>
-                </select>
-                <label for="address">Address:</label>
-                <input type="text" class="form-control" id="address" name="address">
-                <label for="customer-name">Customer Name:</label>
-                <input type="text" class="form-control" id="customer-name" name="customer-name">
-                <label for="region">Region:</label>
-                <select id="region" name="region" class="form-select">
-                    <option value="northland">Northland</option>
-                    <option value="auckland">Auckland</option>
-                    <option value="waikato">Waikato</option>
-                    <option value="bay-of-plenty">Bay of Plenty</option>
-                    <option value="gisborne">Gisborne</option>
-                    <option value="hawkes-bay">Hawke's Bay</option>
-                    <option value="taranaki">Taranaki</option>
-                    <option value="manawatu-wanganui">Manawatu-Wanganui</option>
-                    <option value="wellington">Wellington</option>
-                    <option value="nelson">Nelson</option>
-                    <option value="marlborough">Marlborough</option>
-                    <option value="west-coast">West Coast</option>
-                    <option value="canterbury">Canterbury</option>
-                    <option value="otago">Otago</option>
-                    <option value="southland">Southland</option>
-                </select>
-                <label for="farm-name">Farm Name:</label>
-                <input type="text" class="form-control" id="farm-name" name="farm-name">
-                <label for="island">Island:</label>
-                <select id="island" name="island" class="form-select">
-                    <option value="north-island">North Island</option>
-                    <option value="south-island">South Island</option>
-                </select>
-                <label for="visit-date">Visit Date:</label>
-                <input type="date" class="form-control" id="visit-date" name="visit-date">
-                <label for="visit-type">Visit Type:</label>
-                <input type="text" class="form-control" id="visit-type" name="visit-type" value="Milking Plant & Milk Vat Check" readonly>
-                <label for="inspection-start-time">Inspection Start Time:</label>
-                <input type="time" class="form-control" id="inspection-start-time" name="inspection-start-time">
-                <label for="inspection-end-time">Inspection End Time:</label>
-                <input type="time" class="form-control" id="inspection-end-time" name="inspection-end-time">
-                <label for="inspection-completed-by">Inspection Completed By:</label>
-                <input type="text" class="form-control" id="inspection-completed-by" name="inspection-completed-by">
-                <label for="call-type">Call Type:</label>
-                <select id="call-type" name="call-type" class="form-select">
-                    <option value="alert">Alert</option>
-                    <option value="grade-call">Grade Call</option>
-                    <option value="regular-scheduled-visit" selected>Regular Scheduled Visit</option>
-                </select>
-            </div>
+            <!-- Your existing form code here... -->
 
-            <!-- Checklist Items Section -->
-            <div class="section mb-4">
-                <h2>Checklist Items</h2>
-                <div id="checklist-items">
-                    <!-- Checklist items will be dynamically added here -->
-                </div>
-            </div>
-
-            <!-- Temperature Measurements Section -->
-            <div class="section mb-4">
-                <h2>Temperature Measurements</h2>
-                <div class="checklist-item">
-                    <label for="hot-water-temp">Hot Water Temp (°C):</label>
-                    <input type="number" class="form-control" id="hot-water-temp" name="hot-water-temp" step="0.1">
-                    <label for="hot-water-time">Time Taken:</label>
-                    <input type="time" class="form-control" id="hot-water-time" name="hot-water-time">
-                </div>
-                <div class="checklist-item">
-                    <label for="milk-temp">Milk Temp (°C):</label>
-                    <input type="number" class="form-control" id="milk-temp" name="milk-temp" step="0.1">
-                    <label for="milk-time">Time Taken:</label>
-                    <input type="time" class="form-control" id="milk-time" name="milk-time">
-                </div>
-            </div>
-
-            <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
         <div class="version">Version 4.4</div>
@@ -197,9 +119,8 @@
     <!-- Records Viewing Page -->
     <div id="record-container" class="record-container" style="display: none;">
         <h2>All Dairy Shed Hygiene Records</h2>
-        <input type="text" id="search-dairy-number" class="form-control" placeholder="Search by Dairy Number" oninput="filterRecords()">
         <div id="record-list" class="record-list"></div>
-        <button type="button" onclick="goBack()">Back to Checklist</button>
+        <button class="back-button" onclick="goBack()">Back to Checklist</button>
     </div>
 
     <script>
@@ -224,7 +145,7 @@
             loadAllRecords();
         }
 
-        // Load all records from Firebase
+        // Load all dairy number folders from Firebase Storage
         async function loadAllRecords() {
             const recordList = document.getElementById('record-list');
             recordList.innerHTML = 'Loading...';
@@ -233,21 +154,58 @@
                 // Create a reference to the "customers" folder in Firebase Storage
                 const listRef = storage.ref().child('customers');
                 console.log("Attempting to list items in the 'customers' folder...");
-                
-                // List all files in the "customers" folder
-                const result = await listRef.listAll();
-                console.log("Successfully retrieved items from 'customers' folder:", result);
 
-                if (result.items.length === 0) {
-                    console.warn('No records found in the customers folder.');
+                // List all folders in the "customers" folder
+                const result = await listRef.listAll();
+                console.log("Successfully retrieved folders from 'customers' folder:", result);
+
+                if (result.prefixes.length === 0) {
+                    console.warn('No dairy folders found in the customers folder.');
                     recordList.innerHTML = 'No records found.';
                     return;
                 }
 
                 recordList.innerHTML = '';
 
+                result.prefixes.forEach((folderRef) => {
+                    console.log('Processing folder:', folderRef.name);
+                    const listItem = document.createElement('a');
+                    listItem.href = '#';
+                    listItem.textContent = `Dairy Number: ${folderRef.name}`;
+
+                    listItem.addEventListener('click', () => {
+                        loadReports(folderRef);
+                    });
+
+                    recordList.appendChild(listItem);
+                });
+
+            } catch (error) {
+                console.error('Error fetching dairy folders:', error);
+                recordList.innerHTML = 'Error loading records.';
+            }
+        }
+
+        // Load all reports from a selected dairy number folder
+        async function loadReports(folderRef) {
+            const recordList = document.getElementById('record-list');
+            recordList.innerHTML = 'Loading reports...';
+
+            try {
+                // List all files in the selected dairy folder
+                const result = await folderRef.listAll();
+                console.log("Successfully retrieved reports from folder:", result);
+
+                if (result.items.length === 0) {
+                    console.warn('No reports found in this folder.');
+                    recordList.innerHTML = 'No reports found.';
+                    return;
+                }
+
+                recordList.innerHTML = '';
+
                 result.items.forEach((itemRef) => {
-                    console.log('Processing item:', itemRef.name);
+                    console.log('Processing report:', itemRef.name);
                     const listItem = document.createElement('a');
                     listItem.href = '#';
                     listItem.textContent = itemRef.name;
@@ -267,24 +225,8 @@
                 });
 
             } catch (error) {
-                console.error('Error fetching records:', error);
-                recordList.innerHTML = 'Error loading records.';
-            }
-        }
-
-        // Filter records by dairy number
-        function filterRecords() {
-            const dairyNumber = document.getElementById('search-dairy-number').value.toLowerCase();
-            const recordList = document.getElementById('record-list');
-            const records = recordList.getElementsByTagName('a');
-
-            for (let record of records) {
-                const text = record.textContent.toLowerCase();
-                if (text.includes(dairyNumber)) {
-                    record.style.display = '';
-                } else {
-                    record.style.display = 'none';
-                }
+                console.error('Error fetching reports:', error);
+                recordList.innerHTML = 'Error loading reports.';
             }
         }
 
