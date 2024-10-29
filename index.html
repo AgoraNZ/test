@@ -312,36 +312,35 @@
                 }
             });
 
+            // Display images at the bottom
             let currentY = pdf.lastAutoTable.finalY + 20;
 
-            // Add images at the end of the PDF
-            for (let imgDetail of images) {
-                const reader = new FileReader();
-                await new Promise((resolve) => {
-                    reader.onload = function (event) {
-                        pdf.setFont('helvetica', 'bold');
-                        pdf.text(`Photo for: ${imgDetail.label}`, 40, currentY);
-                        currentY += 15;
-                        pdf.addImage(event.target.result, 'JPEG', 40, currentY, 150, 150);
-                        currentY += 170; // Spacing for the next image
-                        resolve();
-                    };
-                    reader.readAsDataURL(imgDetail.file);
-                });
-            }
+            images.forEach(async (imageDetail) => {
+                pdf.setFont('helvetica', 'normal');
+                pdf.text(`Item: ${imageDetail.label}`, 40, currentY);
+                currentY += 10;
 
-            // Save PDF and upload to Firebase
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    const imageData = event.target.result;
+                    pdf.addImage(imageData, 'JPEG', 40, currentY, 150, 150);
+                    currentY += 160;
+                };
+                reader.readAsDataURL(imageDetail.file);
+                await new Promise((resolve) => reader.onloadend = resolve);
+            });
+
+            // Upload the PDF to Firebase
             const pdfBlob = pdf.output('blob');
             const timestamp = new Date().toISOString().split('T')[0];
-            const fileName = `${dairyNumber}-${timestamp}.pdf`;
+            const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
             const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
 
-            try {
-                await storageRef.put(pdfBlob);
+            storageRef.put(pdfBlob).then(() => {
                 console.log('PDF uploaded successfully');
-            } catch (error) {
+            }).catch((error) => {
                 console.error('Error uploading PDF:', error);
-            }
+            });
 
             pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
         }
@@ -408,55 +407,6 @@
 
                 checklistContainer.appendChild(itemContainer);
             });
-        }
-
-        function viewRecords() {
-            document.getElementById('form-container').style.display = 'none';
-            document.getElementById('record-container').style.display = 'block';
-            loadRecords();
-        }
-
-        function goBack() {
-            document.getElementById('form-container').style.display = 'block';
-            document.getElementById('record-container').style.display = 'none';
-        }
-
-        async function loadRecords() {
-            const recordsList = document.getElementById('record-list');
-            recordsList.innerHTML = '';
-            const storageRef = storage.ref('customers');
-            
-            try {
-                const listResult = await storageRef.listAll();
-                listResult.prefixes.forEach((folderRef) => {
-                    const listItem = document.createElement('a');
-                    listItem.href = `javascript:loadCustomerRecords('${folderRef.name}')`;
-                    listItem.textContent = folderRef.name;
-                    recordsList.appendChild(listItem);
-                });
-            } catch (error) {
-                console.error('Error loading records:', error);
-            }
-        }
-
-        async function loadCustomerRecords(dairyNumber) {
-            const recordsList = document.getElementById('record-list');
-            recordsList.innerHTML = '';
-            const storageRef = storage.ref(`customers/${dairyNumber}`);
-
-            try {
-                const listResult = await storageRef.listAll();
-                listResult.items.forEach((fileRef) => {
-                    const formattedDate = fileRef.name.split('-')[1].replace('.pdf', '').replace(/-/g, '/');
-                    const listItem = document.createElement('a');
-                    listItem.href = fileRef.getDownloadURL();
-                    listItem.target = "_blank";
-                    listItem.textContent = formattedDate;
-                    recordsList.appendChild(listItem);
-                });
-            } catch (error) {
-                console.error('Error loading customer records:', error);
-            }
         }
     </script>
 </body>
