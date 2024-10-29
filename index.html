@@ -271,7 +271,7 @@
 
             pdf.setFont('helvetica', 'normal');
 
-            // Organize farm details in a modern and tidy way
+            // Organize farm details in a simple line-by-line layout
             const farmDetails = [
                 `Dairy Company: ${formData.get('dairy-company')}`,
                 `Dairy Number: ${formData.get('dairy-number')}`,
@@ -289,12 +289,9 @@
             ];
 
             let yPosition = 110;
-            farmDetails.forEach((detail, index) => {
-                if (index % 2 === 0 && index !== 0) {
-                    yPosition += 20;
-                }
-                const xPosition = index % 2 === 0 ? 40 : 300;
-                pdf.text(detail, xPosition, yPosition);
+            farmDetails.forEach((detail) => {
+                pdf.text(detail, 40, yPosition);
+                yPosition += 15;
             });
 
             pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
