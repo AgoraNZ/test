@@ -73,7 +73,6 @@
     <!-- Updated Firebase scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
     <div class="container">
@@ -188,22 +187,6 @@
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const storage = firebase.storage();
-        const db = firebase.firestore();
-
-        // Enable Firestore offline persistence
-        db.enablePersistence()
-            .then(() => {
-                console.log("Offline persistence enabled");
-            })
-            .catch((err) => {
-                if (err.code == 'failed-precondition') {
-                    console.error("Failed to enable persistence: Multiple tabs open");
-                } else if (err.code == 'unimplemented') {
-                    console.error("Offline persistence is not available in this environment");
-                } else {
-                    console.error("Failed to enable persistence:", err);
-                }
-            });
 
         // Correct jsPDF reference
         const jsPDF = window.jspdf.jsPDF;
@@ -280,11 +263,12 @@
         async function fetchFarmDetails() {
             const dairyNumber = document.getElementById('dairy-number').value;
             if (dairyNumber) {
+                const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
                 try {
-                    const docRef = db.collection("customers").doc(dairyNumber);
-                    const doc = await docRef.get();
-                    if (doc.exists) {
-                        const data = doc.data();
+                    const url = await storageRef.getDownloadURL();
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    if (data) {
                         document.getElementById('dairy-company').value = data.dairyCompany || '';
                         document.getElementById('address').value = data.address || '';
                         document.getElementById('customer-name').value = data.customerName || '';
@@ -292,11 +276,9 @@
                         document.getElementById('farm-name').value = data.farmName || '';
                         document.getElementById('island').value = data.island || '';
                         console.log("Farm details loaded successfully.");
-                    } else {
-                        console.log("No such document!");
                     }
                 } catch (error) {
-                    console.error("Error getting document:", error);
+                    console.error("Error fetching farm details:", error);
                 }
             }
         }
@@ -403,6 +385,24 @@
                 console.log('PDF uploaded successfully');
             } catch (error) {
                 console.error('Error uploading PDF:', error);
+            }
+
+            // Save Farm Details as a JSON File in Storage
+            const farmDetails = {
+                dairyCompany: formData.get('dairy-company'),
+                address: formData.get('address'),
+                customerName: formData.get('customer-name'),
+                region: formData.get('region'),
+                farmName: formData.get('farm-name'),
+                island: formData.get('island')
+            };
+            const farmDetailsBlob = new Blob([JSON.stringify(farmDetails)], { type: 'application/json' });
+            const farmDetailsRef = storage.ref(`farm_details/${dairyNumber}.json`);
+            try {
+                await farmDetailsRef.put(farmDetailsBlob);
+                console.log('Farm details saved successfully');
+            } catch (error) {
+                console.error('Error saving farm details:', error);
             }
 
             pdf.save('MILKING_PLANT_AND_MILK_VAT_CHECKLIST.pdf');
