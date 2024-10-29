@@ -276,7 +276,7 @@
                 }
             });
 
-            // Generate checklist items table
+            // Generate checklist items table in grid layout
             pdf.autoTable({
                 startY: 380,
                 head: [['Item', 'Status', 'Comments']],
@@ -388,6 +388,53 @@
 
                 checklistContainer.appendChild(itemContainer);
             });
+        }
+
+        function viewRecords() {
+            document.getElementById('form-container').style.display = 'none';
+            document.getElementById('records-container').style.display = 'block';
+            loadRecords();
+        }
+
+        function showForm() {
+            document.getElementById('form-container').style.display = 'block';
+            document.getElementById('records-container').style.display = 'none';
+        }
+
+        async function loadRecords() {
+            const recordsList = document.getElementById('records-list');
+            recordsList.innerHTML = '';
+            const storageRef = storage.ref('customers');
+            
+            try {
+                const listResult = await storageRef.listAll();
+                listResult.prefixes.forEach((folderRef) => {
+                    const listItem = document.createElement('li');
+                    listItem.classList.add('list-group-item');
+                    listItem.innerHTML = `<a href="javascript:void(0);" class="record-link" onclick="loadCustomerRecords('${folderRef.name}')">${folderRef.name}</a>`;
+                    recordsList.appendChild(listItem);
+                });
+            } catch (error) {
+                console.error('Error loading records:', error);
+            }
+        }
+
+        async function loadCustomerRecords(dairyNumber) {
+            const recordsList = document.getElementById('records-list');
+            recordsList.innerHTML = '';
+            const storageRef = storage.ref(`customers/${dairyNumber}`);
+
+            try {
+                const listResult = await storageRef.listAll();
+                listResult.items.forEach((fileRef) => {
+                    const listItem = document.createElement('li');
+                    listItem.classList.add('list-group-item');
+                    listItem.innerHTML = `<a href="${fileRef.getDownloadURL()}" target="_blank">${fileRef.name}</a>`;
+                    recordsList.appendChild(listItem);
+                });
+            } catch (error) {
+                console.error('Error loading customer records:', error);
+            }
         }
     </script>
 </body>
