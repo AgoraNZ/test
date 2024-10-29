@@ -237,4 +237,130 @@
 
                 statusSelect.addEventListener('change', () => {
                     if (statusSelect.value === 'attention-required') {
-          
+                        imageUpload.style.display = 'block';
+                    } else {
+                        imageUpload.style.display = 'none';
+                    }
+
+                    if (statusSelect.value === 'not-checked') {
+                        commentsInput.value = "Milk in Vat";
+                    } else {
+                        if (commentsInput.value === "Milk in Vat") {
+                            commentsInput.value = ""; // Clear the field if it was auto-filled by 'Not Checked'
+                        }
+                    }
+                });
+
+                checklistContainer.appendChild(itemContainer);
+            });
+        }
+
+        async function generatePDF() {
+            const form = document.getElementById('hygiene-checklist-form');
+            let formData = new FormData(form);
+            const dairyNumber = formData.get('dairy-number');
+
+            let pdf = new jsPDF('p', 'pt', 'a4');
+
+            // Add image at the top of the PDF with correct proportions
+            const imageUrl = 'https://i.postimg.cc/htZPjx5g/logo-89.png';
+            await new Promise((resolve, reject) => {
+                const img = new Image();
+                img.src = imageUrl;
+                img.onload = () => {
+                    pdf.setFillColor('#002B5C');
+                    pdf.rect(0, 0, pdf.internal.pageSize.getWidth(), 100, 'F');
+                    pdf.addImage(img, 'PNG', (pdf.internal.pageSize.getWidth() - 300) / 2, 20, 300, 70);
+                    resolve();
+                };
+                img.onerror = reject;
+            });
+
+            pdf.setFontSize(22);
+            pdf.setTextColor('#D3D3D3');
+            pdf.text('Dairy Shed Hygiene Checklist', pdf.internal.pageSize.getWidth() / 2, 120, { align: 'center' });
+
+            pdf.setFontSize(12);
+            pdf.setTextColor('#000000');
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Farm Details:', 40, 150);
+
+            pdf.setFont('helvetica', 'normal');
+            pdf.text(`Dairy Company: ${formData.get('dairy-company')}`, 40, 170);
+            pdf.text(`Dairy Number: ${formData.get('dairy-number')}`, 40, 185);
+            pdf.text(`Address: ${formData.get('address')}`, 40, 200);
+            pdf.text(`Customer Name: ${formData.get('customer-name')}`, 40, 215);
+            pdf.text(`Region: ${formData.get('region')}`, 40, 230);
+            pdf.text(`Farm Name: ${formData.get('farm-name')}`, 40, 245);
+            pdf.text(`Island: ${formData.get('island')}`, 40, 260);
+            pdf.text(`Visit Date: ${formData.get('visit-date')}`, 40, 275);
+            pdf.text(`Visit Type: ${formData.get('visit-type')}`, 40, 290);
+            pdf.text(`Inspection Start Time: ${formData.get('inspection-start-time')}`, 40, 305);
+            pdf.text(`Inspection End Time: ${formData.get('inspection-end-time')}`, 40, 320);
+            pdf.text(`Inspection Completed By: ${formData.get('inspection-completed-by')}`, 40, 335);
+            pdf.text(`Call Type: ${formData.get('call-type')}`, 40, 350);
+
+            const checklistItemsDiv = document.getElementById('checklist-items').children;
+
+            const checklistTable = [];
+
+            for (let item of checklistItemsDiv) {
+                const itemName = item.querySelector('label').textContent;
+                const status = item.querySelector('select').value;
+                const comments = item.querySelector('input[type="text"]').value;
+
+                const row = [itemName, status, comments];
+                checklistTable.push(row);
+            }
+
+            // Generate checklist items table
+            pdf.autoTable({
+                startY: 380,
+                head: [['Item', 'Status', 'Comments']],
+                body: checklistTable,
+                styles: {
+                    fontSize: 10,
+                    cellPadding: 5,
+                },
+                headStyles: {
+                    fillColor: '#002B5C',
+                    textColor: '#FFFFFF'
+                }
+            });
+
+            // Add temperature data
+            let currentY = pdf.lastAutoTable.finalY + 20;
+
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Temperature Measurements:', 40, currentY);
+            currentY += 20;
+
+            pdf.setFont('helvetica', 'normal');
+            pdf.text(`Hot Water Temp: ${formData.get('hot-water-temp')} °C`, 40, currentY);
+            currentY += 15;
+            pdf.text(`Time Taken: ${formData.get('hot-water-time')}`, 40, currentY);
+            currentY += 20;
+
+            pdf.text(`Milk Temp: ${formData.get('milk-temp')} °C`, 40, currentY);
+            currentY += 15;
+            pdf.text(`Time Taken: ${formData.get('milk-time')}`, 40, currentY);
+            currentY += 20;
+
+            // Save PDF and upload to Firebase
+            const pdfBlob = pdf.output('blob');
+            const timestamp = new Date().toISOString().split('T')[0];
+            const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
+            const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
+
+            try {
+                await storageRef.put(pdfBlob);
+                console.log('PDF uploaded successfully');
+            } catch (error) {
+                console.error('Error uploading PDF:', error);
+            }
+
+            pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
+        }
+    </script>
+</body>
+</html>
