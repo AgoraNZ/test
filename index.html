@@ -336,7 +336,6 @@
                     }
                 } catch (error) {
                     console.error('Error fetching farm details:', error);
-                    alert('Farm details not found. You can enter new details for this dairy number.');
                 }
             }
         }
@@ -401,6 +400,39 @@
             pdf.text(`Inspection End Time: ${form.querySelector('#inspection-end-time').value}`, 40, 250);
             pdf.text(`Inspection Completed By: ${form.querySelector('#inspection-completed-by').value}`, 40, 265);
             pdf.text(`Call Type: ${form.querySelector('#call-type').value}`, 40, 280);
+
+            // Add Checklist Items
+            const checklistItems = form.querySelectorAll(".checklist-item");
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Checklist Items:', 40, 300);
+            pdf.setFont('helvetica', 'normal');
+            let currentY = 320;
+
+            checklistItems.forEach((item) => {
+                const label = item.querySelector('label').textContent;
+                const status = item.querySelector('select').value;
+                const comments = item.querySelector('input[type="text"]').value;
+
+                pdf.text(`${label} - Status: ${status}, Comments: ${comments}`, 40, currentY);
+                currentY += 15;
+
+                if (status === "attention-required") {
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text("See attached photo below", 40, currentY);
+                    pdf.setFont('helvetica', 'normal');
+                    currentY += 15;
+                }
+
+                const imageFile = item.querySelector('input[type="file"]').files[0];
+                if (imageFile) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        pdf.addImage(event.target.result, 'JPEG', 40, currentY, 150, 150);
+                        currentY += 160;
+                    };
+                    reader.readAsDataURL(imageFile);
+                }
+            });
 
             // Save PDF and upload to Firebase
             const pdfBlob = pdf.output('blob');
