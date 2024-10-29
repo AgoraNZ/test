@@ -286,7 +286,49 @@
         }
 
         async function generatePDF() {
-            // Placeholder for generatePDF function
+            const form = document.getElementById('hygiene-checklist-form');
+            let formData = new FormData(form);
+            const dairyNumber = formData.get('dairy-number');
+
+            let pdf = new jsPDF('p', 'pt', 'a4');
+
+            pdf.setFontSize(22);
+            pdf.setTextColor('#002B5C');
+            pdf.text('Dairy Shed Hygiene Checklist', 40, 50);
+
+            pdf.setFontSize(12);
+            pdf.setTextColor('#000000');
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Farm Details:', 40, 90);
+
+            pdf.setFont('helvetica', 'normal');
+
+            // Organize farm details in a modern and tidy way
+            const farmDetails = [
+                `Dairy Company: ${formData.get('dairy-company')}`,
+                `Dairy Number: ${formData.get('dairy-number')}`,
+                `Address: ${formData.get('address')}`,
+                `Customer Name: ${formData.get('customer-name')}`,
+                `Region: ${formData.get('region')}`,
+                `Farm Name: ${formData.get('farm-name')}`,
+                `Island: ${formData.get('island')}`,
+                `Visit Date: ${formData.get('visit-date')}`,
+                `Visit Type: ${formData.get('visit-type')}`,
+                `Inspection Start Time: ${formData.get('inspection-start-time')}`,
+                `Inspection End Time: ${formData.get('inspection-end-time')}`,
+                `Inspection Completed By: ${formData.get('inspection-completed-by')}`,
+                `Call Type: ${formData.get('call-type')}`
+            ];
+
+            let yPosition = 110;
+            farmDetails.forEach((detail, index) => {
+                if (index % 2 === 0 && index !== 0) {
+                    yPosition += 20;
+                }
+                const xPosition = index % 2 === 0 ? 40 : 300;
+                pdf.text(detail, xPosition, yPosition);
+            });
+
             console.log("Generate PDF function is executed");
         }
     </script>
