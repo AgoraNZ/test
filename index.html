@@ -235,6 +235,60 @@
         // Ensure jsPDF reference
         const { jsPDF } = window.jspdf;
 
+        document.addEventListener("DOMContentLoaded", () => {
+            createChecklistItems();
+        });
+
+        // Fetch farm details based on dairy number
+        async function fetchFarmDetails() {
+            const dairyNumber = document.getElementById('dairy-number').value;
+            if (dairyNumber) {
+                const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
+                try {
+                    const url = await storageRef.getDownloadURL();
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch the farm details');
+                    }
+                    const data = await response.json();
+                    if (data) {
+                        document.getElementById('dairy-company').value = data.dairyCompany || '';
+                        document.getElementById('address').value = data.address || '';
+                        document.getElementById('customer-name').value = data.customerName || '';
+                        document.getElementById('region').value = data.region || '';
+                        document.getElementById('farm-name').value = data.farmName || '';
+                        document.getElementById('island').value = data.island || '';
+                        console.log("Farm details loaded successfully.");
+                    }
+                } catch (error) {
+                    console.error('Error fetching farm details:', error);
+                }
+            }
+        }
+
+        // Save farm details to Firebase storage
+        async function saveFarmDetails() {
+            const dairyNumber = document.getElementById('dairy-number').value;
+            const farmDetails = {
+                dairyCompany: document.getElementById('dairy-company').value || '',
+                address: document.getElementById('address').value || '',
+                customerName: document.getElementById('customer-name').value || '',
+                region: document.getElementById('region').value || '',
+                farmName: document.getElementById('farm-name').value || '',
+                island: document.getElementById('island').value || ''
+            };
+
+            const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
+            try {
+                await storageRef.putString(JSON.stringify(farmDetails), 'raw', {
+                    contentType: 'application/json'
+                });
+                console.log("Farm details saved successfully.");
+            } catch (error) {
+                console.error("Error saving farm details:", error);
+            }
+        }
+
         // Generate PDF function
         async function generatePDF() {
             const form = document.getElementById('hygiene-checklist-form');
@@ -308,7 +362,6 @@
                                 const reader = new FileReader();
                                 reader.onload = function(event) {
                                     pdf.addImage(event.target.result, 'JPEG', 40, currentY, 150, 150);
-                                    pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
                                     currentY += 160;
                                 };
                                 reader.readAsDataURL(imageFile);
@@ -332,34 +385,9 @@
                 console.error('Error uploading PDF:', error);
                 alert("Failed to upload PDF.");
             }
+
+            pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
         }
-
-        // Save farm details to Firebase storage
-        async function saveFarmDetails() {
-            const dairyNumber = document.getElementById('dairy-number').value;
-            const farmDetails = {
-                dairyCompany: document.getElementById('dairy-company').value || '',
-                address: document.getElementById('address').value || '',
-                customerName: document.getElementById('customer-name').value || '',
-                region: document.getElementById('region').value || '',
-                farmName: document.getElementById('farm-name').value || '',
-                island: document.getElementById('island').value || ''
-            };
-
-            const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
-            try {
-                await storageRef.putString(JSON.stringify(farmDetails), 'raw', {
-                    contentType: 'application/json'
-                });
-                console.log("Farm details saved successfully.");
-            } catch (error) {
-                console.error("Error saving farm details:", error);
-            }
-        }
-
-        document.addEventListener("DOMContentLoaded", () => {
-            createChecklistItems();
-        });
 
         function createChecklistItems() {
             const checklistItems = [
