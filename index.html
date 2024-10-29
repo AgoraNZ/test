@@ -296,7 +296,7 @@
             pdf.setFontSize(22);
             pdf.setTextColor('#002B5C');
 
-            // Add logo with the correct aspect ratio
+            // Add logo with the correct aspect ratio and reduced size
             const logoUrl = 'https://i.postimg.cc/htZPjx5g/logo-89.png';
             const imageResponse = await fetch(logoUrl);
             const imageBlob = await imageResponse.blob();
@@ -305,28 +305,28 @@
                 reader.onload = () => resolve(reader.result);
                 reader.readAsDataURL(imageBlob);
             });
-            pdf.addImage(imageData, 'PNG', 75, 20, 450, 110); // Updated to ensure proper aspect ratio
+            pdf.addImage(imageData, 'PNG', 110, 20, 225, 55); // Updated to half the size
 
             // Farm details section
             pdf.setFontSize(12);
             pdf.setTextColor('#000000');
             pdf.setFont('helvetica', 'bold');
-            pdf.text('Farm Details:', 40, 150);
+            pdf.text('Farm Details:', 40, 100);
 
             pdf.setFont('helvetica', 'normal');
-            pdf.text(`Dairy Company: ${formData.get('dairy-company')}`, 40, 170);
-            pdf.text(`Dairy Number: ${formData.get('dairy-number')}`, 40, 185);
-            pdf.text(`Address: ${formData.get('address')}`, 40, 200);
-            pdf.text(`Customer Name: ${formData.get('customer-name')}`, 40, 215);
-            pdf.text(`Region: ${formData.get('region')}`, 40, 230);
-            pdf.text(`Farm Name: ${formData.get('farm-name')}`, 40, 245);
-            pdf.text(`Island: ${formData.get('island')}`, 40, 260);
-            pdf.text(`Visit Date: ${formData.get('visit-date')}`, 40, 275);
-            pdf.text(`Visit Type: ${formData.get('visit-type')}`, 40, 290);
-            pdf.text(`Inspection Start Time: ${formData.get('inspection-start-time')}`, 40, 305);
-            pdf.text(`Inspection End Time: ${formData.get('inspection-end-time')}`, 40, 320);
-            pdf.text(`Inspection Completed By: ${formData.get('inspection-completed-by')}`, 40, 335);
-            pdf.text(`Call Type: ${formData.get('call-type')}`, 40, 350);
+            pdf.text(`Dairy Company: ${formData.get('dairy-company')}`, 40, 120);
+            pdf.text(`Dairy Number: ${formData.get('dairy-number')}`, 40, 135);
+            pdf.text(`Address: ${formData.get('address')}`, 40, 150);
+            pdf.text(`Customer Name: ${formData.get('customer-name')}`, 40, 165);
+            pdf.text(`Region: ${formData.get('region')}`, 40, 180);
+            pdf.text(`Farm Name: ${formData.get('farm-name')}`, 40, 195);
+            pdf.text(`Island: ${formData.get('island')}`, 40, 210);
+            pdf.text(`Visit Date: ${formData.get('visit-date')}`, 40, 225);
+            pdf.text(`Visit Type: ${formData.get('visit-type')}`, 40, 240);
+            pdf.text(`Inspection Start Time: ${formData.get('inspection-start-time')}`, 40, 255);
+            pdf.text(`Inspection End Time: ${formData.get('inspection-end-time')}`, 40, 270);
+            pdf.text(`Inspection Completed By: ${formData.get('inspection-completed-by')}`, 40, 285);
+            pdf.text(`Call Type: ${formData.get('call-type')}`, 40, 300);
 
             // Checklist items
             const checklistItemsDiv = document.getElementById('checklist-items').children;
@@ -340,7 +340,7 @@
             }
 
             pdf.autoTable({
-                startY: 370,
+                startY: 320,
                 head: [['Item', 'Status', 'Comments']],
                 body: checklistTable,
                 styles: {
