@@ -25,13 +25,8 @@
             max-width: 800px;
             width: 100%;
         }
-        h1 {
-            color: #D3D3D3; /* Light Gray for better readability */
-            text-align: center;
-            margin-bottom: 40px; /* Added more space below the main header */
-        }
-        h2 {
-            color: #D3D3D3;
+        h1, h2 {
+            color: #FF851B;
             text-align: center;
         }
         label {
@@ -64,13 +59,12 @@
         }
         .logo {
             display: block;
-            margin: 0 auto 20px;
-            width: 250px;
+            margin: 0 auto 40px;
+            width: 300px;
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-    <!-- Updated Firebase scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
 </head>
@@ -80,7 +74,6 @@
         <h1>Dairy Shed Hygiene Checklist</h1>
         
         <form id="hygiene-checklist-form">
-            <!-- Farm Details Section -->
             <div class="section mb-4">
                 <h2>Farm Details</h2>
                 <label for="dairy-company">Dairy Company:</label>
@@ -267,6 +260,9 @@
                 try {
                     const url = await storageRef.getDownloadURL();
                     const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch the farm details');
+                    }
                     const data = await response.json();
                     if (data) {
                         document.getElementById('dairy-company').value = data.dairyCompany || '';
@@ -387,7 +383,7 @@
                 console.error('Error uploading PDF:', error);
             }
 
-            // Save Farm Details as a JSON File in Storage
+            // Save or Update Farm Details as a JSON File in Storage
             const farmDetails = {
                 dairyCompany: formData.get('dairy-company'),
                 address: formData.get('address'),
@@ -400,9 +396,9 @@
             const farmDetailsRef = storage.ref(`farm_details/${dairyNumber}.json`);
             try {
                 await farmDetailsRef.put(farmDetailsBlob);
-                console.log('Farm details saved successfully');
+                console.log('Farm details saved/updated successfully');
             } catch (error) {
-                console.error('Error saving farm details:', error);
+                console.error('Error saving/updating farm details:', error);
             }
 
             pdf.save('MILKING_PLANT_AND_MILK_VAT_CHECKLIST.pdf');
