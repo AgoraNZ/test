@@ -62,8 +62,8 @@
         }
         .logo {
             display: block;
-            margin: 0 auto 40px;
-            width: 300px;
+            margin: 0 auto 20px;
+            width: 200px; /* Adjusted for a better size without distortion */
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
@@ -243,7 +243,7 @@
             }
         }
 
-        // Generate PDF function
+        // Generate PDF function with improved design
         async function generatePDF() {
             const form = document.getElementById('hygiene-checklist-form');
             const dairyNumber = form.querySelector('#dairy-number').value;
@@ -257,29 +257,36 @@
             await saveFarmDetails();
 
             let pdf = new jsPDF('p', 'pt', 'a4');
+
+            // Add the logo
+            const logoUrl = "https://i.postimg.cc/htZPjx5g/logo-89.png";
+            const logoWidth = 120; // Adjusted size for proper display
+            const logoHeight = 80;
+            pdf.addImage(logoUrl, 'PNG', (pdf.internal.pageSize.getWidth() - logoWidth) / 2, 20, logoWidth, logoHeight);
+
             pdf.setFontSize(22);
             pdf.setTextColor('#002B5C');
-            pdf.text('Dairy Shed Hygiene Checklist', 40, 50);
+            pdf.text('Dairy Shed Hygiene Checklist', pdf.internal.pageSize.getWidth() / 2, 120, { align: 'center' });
 
             pdf.setFontSize(12);
             pdf.setTextColor('#000000');
             pdf.setFont('helvetica', 'bold');
-            pdf.text('Farm Details:', 40, 80);
+            pdf.text('Farm Details:', 40, 150);
 
             pdf.setFont('helvetica', 'normal');
-            pdf.text(`Dairy Company: ${form.querySelector('#dairy-company').value || ''}`, 40, 100);
-            pdf.text(`Dairy Number: ${dairyNumber}`, 40, 115);
-            pdf.text(`Address: ${form.querySelector('#address').value || ''}`, 40, 130);
-            pdf.text(`Customer Name: ${form.querySelector('#customer-name').value || ''}`, 40, 145);
-            pdf.text(`Region: ${form.querySelector('#region').value || ''}`, 40, 160);
-            pdf.text(`Farm Name: ${form.querySelector('#farm-name').value || ''}`, 40, 175);
-            pdf.text(`Island: ${form.querySelector('#island').value || ''}`, 40, 190);
-            pdf.text(`Visit Date: ${form.querySelector('#visit-date').value || ''}`, 40, 205);
-            pdf.text(`Visit Type: ${form.querySelector('#visit-type').value || ''}`, 40, 220);
-            pdf.text(`Inspection Start Time: ${form.querySelector('#inspection-start-time').value || ''}`, 40, 235);
-            pdf.text(`Inspection End Time: ${form.querySelector('#inspection-end-time').value || ''}`, 40, 250);
-            pdf.text(`Inspection Completed By: ${form.querySelector('#inspection-completed-by').value || ''}`, 40, 265);
-            pdf.text(`Call Type: ${form.querySelector('#call-type').value || ''}`, 40, 280);
+            pdf.text(`Dairy Company: ${form.querySelector('#dairy-company').value || ''}`, 40, 170);
+            pdf.text(`Dairy Number: ${dairyNumber}`, 40, 185);
+            pdf.text(`Address: ${form.querySelector('#address').value || ''}`, 40, 200);
+            pdf.text(`Customer Name: ${form.querySelector('#customer-name').value || ''}`, 40, 215);
+            pdf.text(`Region: ${form.querySelector('#region').value || ''}`, 40, 230);
+            pdf.text(`Farm Name: ${form.querySelector('#farm-name').value || ''}`, 40, 245);
+            pdf.text(`Island: ${form.querySelector('#island').value || ''}`, 40, 260);
+            pdf.text(`Visit Date: ${form.querySelector('#visit-date').value || ''}`, 40, 275);
+            pdf.text(`Visit Type: ${form.querySelector('#visit-type').value || ''}`, 40, 290);
+            pdf.text(`Inspection Start Time: ${form.querySelector('#inspection-start-time').value || ''}`, 40, 305);
+            pdf.text(`Inspection End Time: ${form.querySelector('#inspection-end-time').value || ''}`, 40, 320);
+            pdf.text(`Inspection Completed By: ${form.querySelector('#inspection-completed-by').value || ''}`, 40, 335);
+            pdf.text(`Call Type: ${form.querySelector('#call-type').value || ''}`, 40, 350);
 
             // Add Checklist Items using autoTable
             const checklistData = [];
@@ -296,12 +303,16 @@
                     const comments = commentsElement.value;
 
                     checklistData.push([label, status, comments]);
+
+                    if (status === "attention-required") {
+                        checklistData.push(["", "Note:", "See attached photo below"]);
+                    }
                 }
             });
 
             if (checklistData.length > 0) {
                 pdf.autoTable({
-                    startY: 300,
+                    startY: 370,
                     head: [['Item', 'Status', 'Comments']],
                     body: checklistData,
                     theme: 'striped',
@@ -318,7 +329,7 @@
 
             // Add images if available
             const imageElements = form.querySelectorAll('.image-upload');
-            let currentY = pdf.lastAutoTable ? pdf.lastAutoTable.finalY + 20 : 350;
+            let currentY = pdf.lastAutoTable ? pdf.lastAutoTable.finalY + 20 : 400;
 
             imageElements.forEach((imageUploadElement) => {
                 if (imageUploadElement.files.length > 0) {
