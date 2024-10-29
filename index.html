@@ -63,7 +63,7 @@
         .logo {
             display: block;
             margin: 0 auto 20px;
-            width: 200px; /* Adjusted for a better size without distortion */
+            width: 250px; /* Set to the appropriate size you previously liked */
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
@@ -260,33 +260,33 @@
 
             // Add the logo
             const logoUrl = "https://i.postimg.cc/htZPjx5g/logo-89.png";
-            const logoWidth = 120; // Adjusted size for proper display
-            const logoHeight = 80;
+            const logoWidth = 180; // Adjusted size for proper display
+            const logoHeight = 100;
             pdf.addImage(logoUrl, 'PNG', (pdf.internal.pageSize.getWidth() - logoWidth) / 2, 20, logoWidth, logoHeight);
 
             pdf.setFontSize(22);
             pdf.setTextColor('#002B5C');
-            pdf.text('Dairy Shed Hygiene Checklist', pdf.internal.pageSize.getWidth() / 2, 120, { align: 'center' });
+            pdf.text('Dairy Shed Hygiene Checklist', pdf.internal.pageSize.getWidth() / 2, 150, { align: 'center' });
 
             pdf.setFontSize(12);
             pdf.setTextColor('#000000');
             pdf.setFont('helvetica', 'bold');
-            pdf.text('Farm Details:', 40, 150);
+            pdf.text('Farm Details:', 40, 180);
 
             pdf.setFont('helvetica', 'normal');
-            pdf.text(`Dairy Company: ${form.querySelector('#dairy-company').value || ''}`, 40, 170);
-            pdf.text(`Dairy Number: ${dairyNumber}`, 40, 185);
-            pdf.text(`Address: ${form.querySelector('#address').value || ''}`, 40, 200);
-            pdf.text(`Customer Name: ${form.querySelector('#customer-name').value || ''}`, 40, 215);
-            pdf.text(`Region: ${form.querySelector('#region').value || ''}`, 40, 230);
-            pdf.text(`Farm Name: ${form.querySelector('#farm-name').value || ''}`, 40, 245);
-            pdf.text(`Island: ${form.querySelector('#island').value || ''}`, 40, 260);
-            pdf.text(`Visit Date: ${form.querySelector('#visit-date').value || ''}`, 40, 275);
-            pdf.text(`Visit Type: ${form.querySelector('#visit-type').value || ''}`, 40, 290);
-            pdf.text(`Inspection Start Time: ${form.querySelector('#inspection-start-time').value || ''}`, 40, 305);
-            pdf.text(`Inspection End Time: ${form.querySelector('#inspection-end-time').value || ''}`, 40, 320);
-            pdf.text(`Inspection Completed By: ${form.querySelector('#inspection-completed-by').value || ''}`, 40, 335);
-            pdf.text(`Call Type: ${form.querySelector('#call-type').value || ''}`, 40, 350);
+            pdf.text(`Dairy Company: ${form.querySelector('#dairy-company').value || ''}`, 40, 200);
+            pdf.text(`Dairy Number: ${dairyNumber}`, 40, 215);
+            pdf.text(`Address: ${form.querySelector('#address').value || ''}`, 40, 230);
+            pdf.text(`Customer Name: ${form.querySelector('#customer-name').value || ''}`, 40, 245);
+            pdf.text(`Region: ${form.querySelector('#region').value || ''}`, 40, 260);
+            pdf.text(`Farm Name: ${form.querySelector('#farm-name').value || ''}`, 40, 275);
+            pdf.text(`Island: ${form.querySelector('#island').value || ''}`, 40, 290);
+            pdf.text(`Visit Date: ${form.querySelector('#visit-date').value || ''}`, 40, 305);
+            pdf.text(`Visit Type: ${form.querySelector('#visit-type').value || ''}`, 40, 320);
+            pdf.text(`Inspection Start Time: ${form.querySelector('#inspection-start-time').value || ''}`, 40, 335);
+            pdf.text(`Inspection End Time: ${form.querySelector('#inspection-end-time').value || ''}`, 40, 350);
+            pdf.text(`Inspection Completed By: ${form.querySelector('#inspection-completed-by').value || ''}`, 40, 365);
+            pdf.text(`Call Type: ${form.querySelector('#call-type').value || ''}`, 40, 380);
 
             // Add Checklist Items using autoTable
             const checklistData = [];
@@ -312,7 +312,7 @@
 
             if (checklistData.length > 0) {
                 pdf.autoTable({
-                    startY: 370,
+                    startY: 400,
                     head: [['Item', 'Status', 'Comments']],
                     body: checklistData,
                     theme: 'striped',
@@ -329,7 +329,7 @@
 
             // Add images if available
             const imageElements = form.querySelectorAll('.image-upload');
-            let currentY = pdf.lastAutoTable ? pdf.lastAutoTable.finalY + 20 : 400;
+            let currentY = pdf.lastAutoTable ? pdf.lastAutoTable.finalY + 20 : 420;
 
             imageElements.forEach((imageUploadElement) => {
                 if (imageUploadElement.files.length > 0) {
@@ -354,10 +354,8 @@
             try {
                 await storageRef.put(pdfBlob);
                 console.log('PDF uploaded successfully');
-                alert("PDF generated and uploaded successfully.");
             } catch (error) {
                 console.error('Error uploading PDF:', error);
-                alert("Failed to upload PDF.");
             }
 
             pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
@@ -425,6 +423,18 @@
 
                 checklistContainer.appendChild(itemContainer);
             });
+        }
+
+        async function viewRecords() {
+            const storageRef = storage.ref('customers');
+            try {
+                const listResult = await storageRef.listAll();
+                const recordsList = listResult.prefixes.map(folder => folder.name);
+                console.log("Records:", recordsList);
+                // Here you can create your UI for displaying the records
+            } catch (error) {
+                console.error("Error fetching records:", error);
+            }
         }
     </script>
 </body>
