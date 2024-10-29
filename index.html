@@ -408,6 +408,79 @@
                 checklistContainer.appendChild(itemContainer);
             });
         }
+
+        async function fetchFarmDetails() {
+            const dairyNumber = document.getElementById('dairy-number').value;
+            if (dairyNumber) {
+                const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
+                try {
+                    const url = await storageRef.getDownloadURL();
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch the farm details');
+                    }
+                    const data = await response.json();
+                    if (data) {
+                        document.getElementById('dairy-company').value = data.dairyCompany || '';
+                        document.getElementById('address').value = data.address || '';
+                        document.getElementById('customer-name').value = data.customerName || '';
+                        document.getElementById('region').value = data.region || '';
+                        document.getElementById('farm-name').value = data.farmName || '';
+                        document.getElementById('island').value = data.island || '';
+                    }
+                } catch (error) {
+                    console.error('Error fetching farm details:', error);
+                }
+            }
+        }
+
+        async function viewRecords() {
+            document.getElementById('form-container').style.display = 'none';
+            document.getElementById('record-container').style.display = 'block';
+
+            const recordList = document.getElementById('record-list');
+            recordList.innerHTML = '';
+
+            try {
+                const listRef = storage.ref('customers');
+                const folders = await listRef.listAll();
+                folders.prefixes.forEach(folderRef => {
+                    const dairyNumber = folderRef.name;
+                    const link = document.createElement('a');
+                    link.href = '#';
+                    link.textContent = dairyNumber;
+                    link.onclick = () => loadReports(dairyNumber);
+                    recordList.appendChild(link);
+                });
+            } catch (error) {
+                console.error('Error loading records:', error);
+            }
+        }
+
+        async function loadReports(dairyNumber) {
+            const recordList = document.getElementById('record-list');
+            recordList.innerHTML = '';
+
+            try {
+                const listRef = storage.ref(`customers/${dairyNumber}`);
+                const reports = await listRef.listAll();
+                reports.items.forEach(itemRef => {
+                    const link = document.createElement('a');
+                    link.href = '#';
+                    const fileName = itemRef.name.split('-form-')[1].replace('.pdf', '');
+                    link.textContent = `${fileName}`; // Day/Month/Year
+                    link.onclick = () => itemRef.getDownloadURL().then(url => window.open(url));
+                    recordList.appendChild(link);
+                });
+            } catch (error) {
+                console.error('Error loading reports:', error);
+            }
+        }
+
+        function goBack() {
+            document.getElementById('record-container').style.display = 'none';
+            document.getElementById('form-container').style.display = 'block';
+        }
     </script>
 </body>
 </html>
