@@ -190,6 +190,21 @@
         const storage = firebase.storage();
         const db = firebase.firestore();
 
+        // Enable Firestore offline persistence
+        db.enablePersistence()
+            .then(() => {
+                console.log("Offline persistence enabled");
+            })
+            .catch((err) => {
+                if (err.code == 'failed-precondition') {
+                    console.error("Failed to enable persistence: Multiple tabs open");
+                } else if (err.code == 'unimplemented') {
+                    console.error("Offline persistence is not available in this environment");
+                } else {
+                    console.error("Failed to enable persistence:", err);
+                }
+            });
+
         // Correct jsPDF reference
         const jsPDF = window.jspdf.jsPDF;
 
