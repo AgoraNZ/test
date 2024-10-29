@@ -339,6 +339,13 @@
             try {
                 const listRef = storage.ref('customers');
                 const result = await listRef.listAll();
+                console.log('Records found:', result.items.length);
+
+                if (result.items.length === 0) {
+                    recordList.innerHTML = 'No records found.';
+                    return;
+                }
+
                 recordList.innerHTML = '';
 
                 result.items.forEach((itemRef) => {
