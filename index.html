@@ -205,7 +205,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 4.8</div>
+        <div class="version">Version 4.9</div>
     </div>
 
     <!-- Records Viewing Page -->
@@ -367,11 +367,11 @@
 
                 // Add photos at the bottom of the PDF
                 let currentY = pdf.lastAutoTable.finalY + 20;
-                for (let photo of attachedPhotos) {
-                    pdf.addImage(photo.imageUrl, 'JPEG', 40, currentY, 100, 100);
-                    pdf.text(photo.title, 150, currentY + 50);
+                attachedPhotos.forEach(photo => {
+                    pdf.addImage(photo.imageUrl, 'JPEG', 40, currentY, 150, 100);
+                    pdf.text(photo.title, 200, currentY + 50);
                     currentY += 120;
-                }
+                });
 
                 // Save PDF and upload to Firebase
                 const pdfBlob = pdf.output('blob');
