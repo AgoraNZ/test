@@ -273,7 +273,7 @@
             const logo = await fetch(logoUrl).then((res) => res.blob());
             const reader = new FileReader();
             reader.readAsDataURL(logo);
-            reader.onload = function () {
+            reader.onload = async function () {
                 const imgData = reader.result;
                 pdf.addImage(imgData, 'PNG', 180, 40, 240, 80);
 
@@ -301,13 +301,30 @@
                 const checklistItemsDiv = document.getElementById('checklist-items').children;
 
                 const checklistTable = [];
+                const images = [];
 
                 for (let item of checklistItemsDiv) {
                     const itemName = item.querySelector('label').textContent;
                     const status = item.querySelector('select').value;
                     const comments = item.querySelector('input[type="text"]').value;
+                    const imageFile = item.querySelector('input[type="file"]').files[0];
 
-                    checklistTable.push([itemName, status, comments]);
+                    const row = [itemName, status, comments];
+                    
+                    if (status === 'attention-required') {
+                        row.push("See attached photo below");
+                    }
+
+                    if (imageFile) {
+                        const reader = new FileReader();
+                        reader.onload = function (event) {
+                            images.push({ image: event.target.result, itemName });
+                        };
+                        reader.readAsDataURL(imageFile);
+                        await new Promise(resolve => reader.onloadend = resolve);
+                    }
+
+                    checklistTable.push(row);
                 }
 
                 // Generate checklist items table
@@ -343,6 +360,30 @@
                 pdf.text(`Time Taken: ${formData.get('milk-time')}`, 40, currentY);
                 currentY += 20;
 
+                // Add images below the table with proper alignment
+                if (images.length > 0) {
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text('Photos:', 40, currentY);
+                    currentY += 20;
+
+                    images.forEach((imgDetail, index) => {
+                        pdf.setFont('helvetica', 'normal');
+                        pdf.text(`Item: ${imgDetail.itemName}`, 40, currentY);
+                        currentY += 10;
+
+                        const pageHeight = pdf.internal.pageSize.height;
+
+                        // Check if adding the image exceeds the page height
+                        if (currentY + 160 > pageHeight) {
+                            pdf.addPage();
+                            currentY = 50; // Reset Y position for new page
+                        }
+
+                        pdf.addImage(imgDetail.image, 'JPEG', 40, currentY, 150, 150);
+                        currentY += 160; // Spacing for the next image
+                    });
+                }
+
                 // Save PDF and upload to Firebase
                 const pdfBlob = pdf.output('blob');
                 const timestamp = new Date().toISOString().split('T')[0];
@@ -358,8 +399,6 @@
                 pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
             };
         }
-
-        // Other functions (viewRecords, loadAllRecords, createChecklistItems, etc.) remain unchanged.
 
         // Call createChecklistItems on page load
         document.addEventListener("DOMContentLoaded", () => {
