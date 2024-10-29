@@ -65,41 +65,6 @@
             margin: 0 auto 20px;
             width: 250px;
         }
-        .record-container {
-            background-color: #FFFFFF;
-            color: #000000;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
-            max-width: 1000px;
-            width: 100%;
-            margin: 20px auto;
-        }
-        .record-container h2 {
-            color: #002B5C;
-        }
-        .record-list {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        .record-list a {
-            text-decoration: none;
-            color: #007bff;
-            display: block;
-            margin-bottom: 10px;
-        }
-        .back-button {
-            margin-top: 20px;
-            background-color: #002B5C;
-            color: #FFFFFF;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .search-container {
-            margin-bottom: 20px;
-        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
@@ -119,6 +84,7 @@
                 <label for="dairy-number">Dairy Number:</label>
                 <input type="text" class="form-control" id="dairy-number" name="dairy-number" onblur="fetchFarmDetails()">
                 
+                <!-- Additional Farm Details Fields -->
                 <label for="dairy-company">Dairy Company:</label>
                 <select id="dairy-company" name="dairy-company" class="form-select">
                     <option value="fonterra">Fonterra</option>
@@ -203,19 +169,8 @@
             </div>
 
             <button type="button" onclick="generatePDF()">Generate PDF</button>
-            <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 4.4</div>
-    </div>
-
-    <!-- Records Viewing Page -->
-    <div id="record-container" class="record-container" style="display: none;">
-        <h2>All Dairy Shed Hygiene Records</h2>
-        <div class="search-container">
-            <input type="text" id="search-dairy-number" class="form-control" placeholder="Search by Dairy Number" oninput="filterRecords()">
-        </div>
-        <div id="record-list" class="record-list"></div>
-        <button class="back-button" onclick="goBack()">Back to Checklist</button>
+        $15.5$2
     </div>
 
     <script>
@@ -234,60 +189,10 @@
         const storage = firebase.storage();
         const firestore = firebase.firestore();
 
-        async function fetchFarmDetails() {
-            const dairyNumber = document.getElementById('dairy-number').value;
-            if (dairyNumber) {
-                const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
-                try {
-                    const url = await storageRef.getDownloadURL();
-                    const response = await fetch(url);
-                    if (!response.ok) {
-                        throw new Error('Failed to fetch the farm details');
-                    }
-                    const data = await response.json();
-                    if (data) {
-                        document.getElementById('dairy-company').value = data.dairyCompany || '';
-                        document.getElementById('address').value = data.address || '';
-                        document.getElementById('customer-name').value = data.customerName || '';
-                        document.getElementById('region').value = data.region || '';
-                        document.getElementById('farm-name').value = data.farmName || '';
-                        document.getElementById('island').value = data.island || '';
-                    }
-                } catch (error) {
-                    console.error('Error fetching farm details:', error);
-                }
-            }
-        }
-
-        // Functionality to create a new farm details record if not found
-        async function saveFarmDetails(formData) {
-            const dairyNumber = formData.get('dairy-number');
-            const farmDetails = {
-                dairyCompany: formData.get('dairy-company'),
-                address: formData.get('address'),
-                customerName: formData.get('customer-name'),
-                region: formData.get('region'),
-                farmName: formData.get('farm-name'),
-                island: formData.get('island'),
-            };
-            const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
-            const metadata = {
-                contentType: 'application/json',
-            };
-            try {
-                await storageRef.put(new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }), metadata);
-                console.log('Farm details saved successfully.');
-            } catch (error) {
-                console.error('Error saving farm details:', error);
-            }
-        }
-
         async function generatePDF() {
             const form = document.getElementById('hygiene-checklist-form');
             const formData = new FormData(form);
             const dairyNumber = formData.get('dairy-number');
-
-            await saveFarmDetails(formData); // Save farm details if not found
 
             const { jsPDF } = window.jspdf;
             let pdf = new jsPDF('p', 'pt', 'a4');
@@ -297,7 +202,7 @@
             const logo = await fetch(logoUrl).then((res) => res.blob());
             const reader = new FileReader();
             reader.readAsDataURL(logo);
-            reader.onload = function () {
+            reader.onload = async function () {
                 const imgData = reader.result;
                 pdf.addImage(imgData, 'PNG', 180, 40, 240, 60);
 
@@ -324,6 +229,7 @@
                 // Checklist Items Section
                 const checklistItemsDiv = document.getElementById('checklist-items').children;
                 const checklistTable = [];
+                let currentY = 350;
 
                 for (let item of checklistItemsDiv) {
                     const itemName = item.querySelector('label').textContent;
@@ -331,37 +237,42 @@
                     const comments = item.querySelector('input[type="text"]').value;
                     const imageFile = item.querySelector('input[type="file"]').files[0];
 
-                    const row = [itemName, status, comments];
+                    let commentsWithNote = comments;
                     if (status === 'attention-required') {
-                        row.push('See attached photo below');
+                        commentsWithNote += ' (See Photo Below)';
                     }
 
-                    checklistTable.push(row);
+                    checklistTable.push([itemName, status, commentsWithNote]);
 
+                    // Generate checklist items table
+                    pdf.autoTable({
+                        startY: currentY,
+                        head: [['Item', 'Status', 'Comments']],
+                        body: [[itemName, status, commentsWithNote]],
+                        styles: {
+                            fontSize: 10,
+                            cellPadding: 5,
+                        },
+                        headStyles: {
+                            fillColor: '#002B5C',
+                            textColor: '#FFFFFF'
+                        },
+                        didDrawPage: function (data) {
+                            currentY = data.cursor.y + 20;
+                        }
+                    });
+
+                    // Add photo if available
                     if (imageFile) {
-                        const reader = new FileReader();
-                        reader.onload = function (event) {
-                            pdf.addImage(event.target.result, 'JPEG', 40, pdf.lastAutoTable.finalY + 20, 100, 100);
-                            pdf.text(itemName, 150, pdf.lastAutoTable.finalY + 35);
+                        const imageReader = new FileReader();
+                        imageReader.onload = function (event) {
+                            pdf.addImage(event.target.result, 'JPEG', 40, currentY, 100, 100);
+                            currentY += 120;
+                            pdf.text(itemName, 150, currentY - 85);
                         };
-                        reader.readAsDataURL(imageFile);
+                        imageReader.readAsDataURL(imageFile);
                     }
                 }
-
-                // Generate checklist items table
-                pdf.autoTable({
-                    startY: 350,
-                    head: [['Item', 'Status', 'Comments']],
-                    body: checklistTable,
-                    styles: {
-                        fontSize: 10,
-                        cellPadding: 5,
-                    },
-                    headStyles: {
-                        fillColor: '#002B5C',
-                        textColor: '#FFFFFF'
-                    }
-                });
 
                 // Save PDF and upload to Firebase
                 const pdfBlob = pdf.output('blob');
@@ -446,80 +357,6 @@
                 checklistContainer.appendChild(itemContainer);
             });
         }
-
-        function viewRecords() {
-            document.getElementById('form-container').style.display = 'none';
-            document.getElementById('record-container').style.display = 'block';
-            loadAllRecords();
-        }
-
-        async function loadAllRecords() {
-            const recordList = document.getElementById('record-list');
-            recordList.innerHTML = '';
-            const storageRef = storage.ref('customers');
-
-            try {
-                const folderSnapshot = await storageRef.listAll();
-                folderSnapshot.prefixes.forEach(folderRef => {
-                    const dairyNumber = folderRef.name;
-                    const folderLink = document.createElement('a');
-                    folderLink.textContent = dairyNumber;
-                    folderLink.href = '#';
-                    folderLink.addEventListener('click', () => {
-                        loadRecordFiles(dairyNumber);
-                    });
-                    recordList.appendChild(folderLink);
-                });
-            } catch (error) {
-                console.error('Error fetching records:', error);
-            }
-        }
-
-        async function loadRecordFiles(dairyNumber) {
-            const recordList = document.getElementById('record-list');
-            recordList.innerHTML = '';
-            const storageRef = storage.ref(`customers/${dairyNumber}`);
-
-            try {
-                const fileSnapshot = await storageRef.listAll();
-                fileSnapshot.items.forEach(fileRef => {
-                    const fileName = fileRef.name;
-                    const dateOnly = fileName.match(/(\d{4}-\d{2}-\d{2})/);
-                    const displayName = dateOnly ? dateOnly[0] : fileName;
-
-                    const fileLink = document.createElement('a');
-                    fileLink.textContent = displayName;
-                    fileLink.href = '#';
-                    fileLink.addEventListener('click', async () => {
-                        try {
-                            const url = await fileRef.getDownloadURL();
-                            window.open(url, '_blank');
-                        } catch (error) {
-                            console.error('Error fetching file:', error);
-                        }
-                    });
-                    recordList.appendChild(fileLink);
-                });
-
-                const backButton = document.createElement('button');
-                backButton.textContent = 'Back to Records';
-                backButton.className = 'back-button';
-                backButton.addEventListener('click', goBackToRecords);
-                recordList.appendChild(backButton);
-            } catch (error) {
-                console.error('Error fetching record files:', error);
-            }
-        }
-
-        function goBack() {
-            document.getElementById('form-container').style.display = 'block';
-            document.getElementById('record-container').style.display = 'none';
-        }
-
-        function goBackToRecords() {
-            loadAllRecords();
-        }
-
     </script>
 </body>
 </html>
