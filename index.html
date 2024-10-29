@@ -76,6 +76,13 @@
             margin-bottom: 20px;
             background-color: #FF851B;
         }
+        a.record-link {
+            color: #a7ab01;
+            text-decoration: none;
+        }
+        a.record-link:hover {
+            text-decoration: underline;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
@@ -239,25 +246,26 @@
                 const recordsList = document.getElementById('records-list');
                 recordsList.innerHTML = '';
 
-                for (const item of listResult.items) {
-                    const listItem = document.createElement('li');
-                    listItem.className = 'list-group-item list-group-item-action';
+                listResult.items.forEach((item) => {
                     const datePart = item.name.split('-form-')[1].split('.')[0];
                     const formattedDate = datePart.split('-').reverse().join('/');
-                    listItem.textContent = `Record Date: ${formattedDate}`;
+                    const listItem = document.createElement('li');
+                    listItem.className = 'list-group-item list-group-item-action';
 
-                    // Fetch the download URL when clicking on the list item
-                    listItem.onclick = async () => {
-                        try {
-                            const downloadURL = await item.getDownloadURL();
-                            window.open(downloadURL, '_blank');
-                        } catch (error) {
-                            console.error("Error getting download URL:", error);
-                        }
+                    // Create link to open PDF directly when clicking on the date
+                    const link = document.createElement('a');
+                    link.className = 'record-link';
+                    link.href = '#';
+                    link.textContent = `Record Date: ${formattedDate}`;
+                    link.onclick = async (e) => {
+                        e.preventDefault();
+                        const url = await item.getDownloadURL();
+                        window.open(url, '_blank');
                     };
 
+                    listItem.appendChild(link);
                     recordsList.appendChild(listItem);
-                }
+                });
             } catch (error) {
                 console.error("Error fetching customer records:", error);
             }
