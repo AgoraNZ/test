@@ -63,7 +63,7 @@
         .logo {
             display: block;
             margin: 0 auto 20px;
-            width: 150px;
+            width: 300px;
         }
         .records-container {
             display: none;
@@ -226,33 +226,34 @@
             pdf.setFontSize(22);
             pdf.setTextColor('#002B5C');
             const logoImage = document.querySelector('.logo').src;
-            pdf.addImage(logoImage, 'PNG', 180, 20, 150, 60);  // Adjust width and height to keep correct aspect ratio
+            pdf.addImage(logoImage, 'PNG', 140, 20, 300, 100);  // Adjust width and height for a wider logo
 
             pdf.setFontSize(12);
             pdf.setTextColor('#000000');
             pdf.setFont('helvetica', 'bold');
-            pdf.text('Farm Details:', 40, 100);
+            pdf.text('Farm Details:', 40, 150);
 
             pdf.setFont('helvetica', 'normal');
-            pdf.text(`Dairy Company: ${form.querySelector('#dairy-company').value || ''}`, 40, 120);
-            pdf.text(`Dairy Number: ${form.querySelector('#dairy-number').value || ''}`, 40, 135);
-            pdf.text(`Address: ${form.querySelector('#address').value || ''}`, 40, 150);
-            pdf.text(`Customer Name: ${form.querySelector('#customer-name').value || ''}`, 40, 165);
-            pdf.text(`Region: ${form.querySelector('#region').value || ''}`, 40, 180);
-            pdf.text(`Farm Name: ${form.querySelector('#farm-name').value || ''}`, 40, 195);
-            pdf.text(`Island: ${form.querySelector('#island').value || ''}`, 40, 210);
-            pdf.text(`Visit Date: ${form.querySelector('#visit-date').value || ''}`, 40, 225);
-            pdf.text(`Visit Type: ${form.querySelector('#visit-type').value || ''}`, 40, 240);
-            pdf.text(`Inspection Start Time: ${form.querySelector('#inspection-start-time').value || ''}`, 40, 255);
-            pdf.text(`Inspection End Time: ${form.querySelector('#inspection-end-time').value || ''}`, 40, 270);
-            pdf.text(`Inspection Completed By: ${form.querySelector('#inspection-completed-by').value || ''}`, 40, 285);
-            pdf.text(`Call Type: ${form.querySelector('#call-type').value || ''}`, 40, 300);
+            pdf.text(`Dairy Company: ${form.querySelector('#dairy-company').value || ''}`, 40, 170);
+            pdf.text(`Dairy Number: ${form.querySelector('#dairy-number').value || ''}`, 40, 185);
+            pdf.text(`Address: ${form.querySelector('#address').value || ''}`, 40, 200);
+            pdf.text(`Customer Name: ${form.querySelector('#customer-name').value || ''}`, 40, 215);
+            pdf.text(`Region: ${form.querySelector('#region').value || ''}`, 40, 230);
+            pdf.text(`Farm Name: ${form.querySelector('#farm-name').value || ''}`, 40, 245);
+            pdf.text(`Island: ${form.querySelector('#island').value || ''}`, 40, 260);
+            pdf.text(`Visit Date: ${form.querySelector('#visit-date').value || ''}`, 40, 275);
+            pdf.text(`Visit Type: ${form.querySelector('#visit-type').value || ''}`, 40, 290);
+            pdf.text(`Inspection Start Time: ${form.querySelector('#inspection-start-time').value || ''}`, 40, 305);
+            pdf.text(`Inspection End Time: ${form.querySelector('#inspection-end-time').value || ''}`, 40, 320);
+            pdf.text(`Inspection Completed By: ${form.querySelector('#inspection-completed-by').value || ''}`, 40, 335);
+            pdf.text(`Call Type: ${form.querySelector('#call-type').value || ''}`, 40, 350);
 
-            // Add Checklist Items using autoTable
-            let currentY = 330;
+            // Collect Checklist Items data
+            const checklistData = [];
+            const images = [];
+
             const checklistItems = form.querySelectorAll(".checklist-item");
-
-            checklistItems.forEach((item) => {
+            checklistItems.forEach((item, index) => {
                 const labelElement = item.querySelector('label');
                 const statusElement = item.querySelector('select');
                 const commentsElement = item.querySelector('input[type="text"]');
@@ -263,36 +264,47 @@
                     const status = statusElement.value;
                     const comments = commentsElement.value;
 
-                    // Add checklist item text
-                    pdf.setFont('helvetica', 'bold');
-                    pdf.text(`Item: ${label}`, 40, currentY);
-                    currentY += 15;
+                    checklistData.push([label, status, comments]);
 
-                    pdf.setFont('helvetica', 'normal');
-                    pdf.text(`Status: ${status}`, 40, currentY);
-                    currentY += 15;
-
-                    pdf.text(`Comments: ${comments}`, 40, currentY);
-                    currentY += 20;
-
-                    if (status === "attention-required") {
-                        pdf.text("Note: See attached photo below", 40, currentY);
-                        currentY += 15;
-                    }
-
-                    // Add image if present
                     if (imageElement && imageElement.files.length > 0) {
-                        const reader = new FileReader();
-                        reader.onload = function (event) {
-                            pdf.addImage(event.target.result, 'JPEG', 40, currentY, 100, 100);
-                            pdf.setFont('helvetica', 'normal');
-                            pdf.text(`Photo for: ${label}`, 40, currentY + 110);
-                            currentY += 130;
-                        };
-                        reader.readAsDataURL(imageElement.files[0]);
+                        images.push({ index, label, file: imageElement.files[0] });
                     }
                 }
             });
+
+            // Generate checklist items table
+            pdf.autoTable({
+                startY: 380,
+                head: [['Item', 'Status', 'Comments']],
+                body: checklistData,
+                theme: 'grid',
+                styles: {
+                    fontSize: 10,
+                    cellPadding: 5,
+                },
+                headStyles: {
+                    fillColor: '#002B5C',
+                    textColor: '#FFFFFF'
+                }
+            });
+
+            let currentY = pdf.lastAutoTable.finalY + 20;
+
+            // Add images at the end of the PDF
+            for (let imgDetail of images) {
+                const reader = new FileReader();
+                await new Promise((resolve) => {
+                    reader.onload = function (event) {
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.text(`Photo for: ${imgDetail.label}`, 40, currentY);
+                        currentY += 15;
+                        pdf.addImage(event.target.result, 'JPEG', 40, currentY, 150, 150);
+                        currentY += 170; // Spacing for the next image
+                        resolve();
+                    };
+                    reader.readAsDataURL(imgDetail.file);
+                });
+            }
 
             // Save PDF and upload to Firebase
             const pdfBlob = pdf.output('blob');
