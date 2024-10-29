@@ -217,114 +217,6 @@
         firebase.initializeApp(firebaseConfig);
         const storage = firebase.storage();
 
-        // Correct jsPDF reference
-        const jsPDF = window.jspdf.jsPDF;
-
-        document.addEventListener("DOMContentLoaded", () => {
-            createChecklistItems();
-        });
-
-        function createChecklistItems() {
-            const checklistItems = [
-                "Pulsator Airline", "Long Bend Elbows", "Automatic Cup and Remover", "Diaphragm", "Receiving Can",
-                "Sanitary Trap", "Main Milk Line", "Milk Line Seals in Good Condition", "Stainless Droppers", "Long Milk Rubber",
-                "Liner", "Cluster", "Cluster Seal", "Cluster Button", "Non Return Valve at Milk Pump", "Milk Pump",
-                "Filter Housing", "Plate Cooler", "Interceptor", "Receiver Airline", "Flushing Pulsator", "Air Purge Valve",
-                "Vacuum Level", "Main Airline", "Plant Drainage - Milk Pump", "Plant Drainage - Filter/s", "Plant Drainage - Plate Cooler",
-                "Plant Drainage - Vat Entry", "Plant Wash Tap", "Wash Jetters", "Centre Gland", "Test Bucket", "Inlet Valve",
-                "Non-Return Valve", "Spray Ball", "Agitator", "Silo Door", "Manhole Seal", "Vat Outlet", "Walls in Silo"
-            ];
-
-            const checklistContainer = document.getElementById('checklist-items');
-            checklistContainer.innerHTML = '';
-
-            checklistItems.forEach(item => {
-                const itemContainer = document.createElement('div');
-                itemContainer.classList.add('checklist-item');
-
-                const label = document.createElement('label');
-                label.textContent = item;
-                itemContainer.appendChild(label);
-
-                const statusSelect = document.createElement('select');
-                statusSelect.classList.add('form-select');
-                statusSelect.innerHTML = `
-                    <option value="ok">OK</option>
-                    <option value="attention-required">Attention Required</option>
-                    <option value="na">N/A</option>
-                    <option value="not-checked">Not Checked</option>
-                `;
-                itemContainer.appendChild(statusSelect);
-
-                const commentsInput = document.createElement('input');
-                commentsInput.type = 'text';
-                commentsInput.classList.add('form-control');
-                commentsInput.placeholder = 'Comments';
-                itemContainer.appendChild(commentsInput);
-
-                const imageUpload = document.createElement('input');
-                imageUpload.type = 'file';
-                imageUpload.classList.add('form-control', 'image-upload');
-                imageUpload.style.display = 'none';
-                itemContainer.appendChild(imageUpload);
-
-                statusSelect.addEventListener('change', () => {
-                    if (statusSelect.value === 'attention-required') {
-                        imageUpload.style.display = 'block';
-                    } else {
-                        imageUpload.style.display = 'none';
-                    }
-
-                    if (statusSelect.value === 'not-checked') {
-                        commentsInput.value = "Milk in Vat";
-                    } else {
-                        if (commentsInput.value === "Milk in Vat") {
-                            commentsInput.value = ""; // Clear the field if it was auto-filled by 'Not Checked'
-                        }
-                    }
-                });
-
-                checklistContainer.appendChild(itemContainer);
-            });
-        }
-
-        async function fetchFarmDetails() {
-            const dairyNumber = document.getElementById('dairy-number').value;
-            if (dairyNumber) {
-                const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
-                try {
-                    // Get the download URL for the JSON file
-                    const url = await storageRef.getDownloadURL();
-                    
-                    // Fetch the JSON content from the URL
-                    const response = await fetch(url);
-                    if (!response.ok) {
-                        throw new Error('Failed to fetch the farm details');
-                    }
-
-                    // Parse the JSON data
-                    const data = await response.json();
-                    if (data) {
-                        // Populate the form fields with the fetched data
-                        document.getElementById('dairy-company').value = data.dairyCompany || '';
-                        document.getElementById('address').value = data.address || '';
-                        document.getElementById('customer-name').value = data.customerName || '';
-                        document.getElementById('region').value = data.region || '';
-                        document.getElementById('farm-name').value = data.farmName || '';
-                        document.getElementById('island').value = data.island || '';
-                        console.log("Farm details loaded successfully.");
-                    }
-                } catch (error) {
-                    console.error("Error fetching farm details:", error);
-                }
-            }
-        }
-
-        async function generatePDF() {
-            // Function to generate and save the PDF
-            // [unchanged for brevity]
-        }
-
         // View all records
         function viewRecords() {
             document.querySelector('.container').style.display = 'none';
@@ -336,12 +228,18 @@
         async function loadAllRecords() {
             const recordList = document.getElementById('record-list');
             recordList.innerHTML = 'Loading...';
+
             try {
-                const listRef = storage.ref('customers');
+                // Create a reference to the "customers" folder in Firebase Storage
+                const listRef = storage.ref().child('customers');
+                console.log("Attempting to list items in the 'customers' folder...");
+                
+                // List all files in the "customers" folder
                 const result = await listRef.listAll();
-                console.log('Records found:', result.items.length);
+                console.log("Successfully retrieved items from 'customers' folder:", result);
 
                 if (result.items.length === 0) {
+                    console.warn('No records found in the customers folder.');
                     recordList.innerHTML = 'No records found.';
                     return;
                 }
@@ -349,15 +247,25 @@
                 recordList.innerHTML = '';
 
                 result.items.forEach((itemRef) => {
+                    console.log('Processing item:', itemRef.name);
                     const listItem = document.createElement('a');
                     listItem.href = '#';
                     listItem.textContent = itemRef.name;
+
                     listItem.addEventListener('click', async () => {
-                        const url = await itemRef.getDownloadURL();
-                        window.open(url, '_blank');
+                        console.log(`Attempting to get download URL for: ${itemRef.fullPath}`);
+                        try {
+                            const url = await itemRef.getDownloadURL();
+                            console.log('Download URL retrieved successfully:', url);
+                            window.open(url, '_blank');
+                        } catch (error) {
+                            console.error('Error getting download URL:', error);
+                        }
                     });
+
                     recordList.appendChild(listItem);
                 });
+
             } catch (error) {
                 console.error('Error fetching records:', error);
                 recordList.innerHTML = 'Error loading records.';
