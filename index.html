@@ -205,7 +205,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 4.4</div>
+        <div class="version">Version 4.5</div>
     </div>
 
     <!-- Records Viewing Page -->
@@ -324,6 +324,7 @@
                 // Checklist Items Section
                 const checklistItemsDiv = document.getElementById('checklist-items').children;
                 const checklistTable = [];
+                const photos = [];
 
                 for (let item of checklistItemsDiv) {
                     const itemName = item.querySelector('label').textContent;
@@ -331,18 +332,20 @@
                     const comments = item.querySelector('input[type="text"]').value;
                     const imageFile = item.querySelector('input[type="file"]').files[0];
 
-                    const row = [itemName, status, comments];
+                    let commentText = comments;
                     if (status === 'attention-required') {
-                        row.push('See attached photo below');
+                        commentText += ' (See Photo Below)';
                     }
 
-                    checklistTable.push(row);
+                    checklistTable.push([itemName, status, commentText]);
 
                     if (imageFile) {
                         const reader = new FileReader();
                         reader.onload = function (event) {
-                            pdf.addImage(event.target.result, 'JPEG', 40, pdf.lastAutoTable.finalY + 20, 100, 100);
-                            pdf.text(itemName, 150, pdf.lastAutoTable.finalY + 35);
+                            photos.push({
+                                title: itemName,
+                                data: event.target.result
+                            });
                         };
                         reader.readAsDataURL(imageFile);
                     }
@@ -362,6 +365,15 @@
                         textColor: '#FFFFFF'
                     }
                 });
+
+                // Add photos to the end of the PDF
+                let currentY = pdf.lastAutoTable.finalY + 30;
+                for (let photo of photos) {
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text(photo.title, 40, currentY);
+                    pdf.addImage(photo.data, 'JPEG', 40, currentY + 15, 100, 100);
+                    currentY += 130;
+                }
 
                 // Save PDF and upload to Firebase
                 const pdfBlob = pdf.output('blob');
