@@ -26,7 +26,7 @@
             width: 100%;
         }
         h1, h2 {
-            color: #FFD700;
+            color: #4CAF50;
             text-align: center;
         }
         label {
@@ -74,11 +74,11 @@
         <h1>Dairy Shed Hygiene Checklist</h1>
         
         <form id="hygiene-checklist-form">
-            <label for="dairy-number">Dairy Number:</label>
-            <input type="text" class="form-control" id="dairy-number" name="dairy-number" onblur="fetchFarmDetails()">
-            
             <div class="section mb-4">
                 <h2>Farm Details</h2>
+                <label for="dairy-number">Dairy Number:</label>
+                <input type="text" class="form-control" id="dairy-number" name="dairy-number" onblur="fetchFarmDetails()">
+                
                 <label for="dairy-company">Dairy Company:</label>
                 <select id="dairy-company" name="dairy-company" class="form-select">
                     <option value="fonterra">Fonterra</option>
@@ -280,4 +280,15 @@
                         console.log("Farm details loaded successfully.");
                     }
                 } catch (error) {
-                    console.error
+                    console.error("Error fetching farm details:", error);
+                }
+            }
+        }
+
+        async function generatePDF() {
+            // Placeholder for generatePDF function
+            console.log("Generate PDF function is executed");
+        }
+    </script>
+</body>
+</html>
