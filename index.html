@@ -63,7 +63,7 @@
         .logo {
             display: block;
             margin: 0 auto 20px;
-            width: 300px;
+            width: 250px;
         }
         .records-container {
             display: none;
@@ -226,7 +226,7 @@
             pdf.setFontSize(22);
             pdf.setTextColor('#002B5C');
             const logoImage = document.querySelector('.logo').src;
-            pdf.addImage(logoImage, 'PNG', 140, 20, 300, 100);  // Adjust width and height for a wider logo
+            pdf.addImage(logoImage, 'PNG', 140, 20, 300, 100);
 
             pdf.setFontSize(12);
             pdf.setTextColor('#000000');
@@ -264,7 +264,11 @@
                     const status = statusElement.value;
                     const comments = commentsElement.value;
 
-                    checklistData.push([label, status, comments]);
+                    if (status === "attention-required") {
+                        checklistData.push([label, status, `${comments}\nSee attached photo below`]);
+                    } else {
+                        checklistData.push([label, status, comments]);
+                    }
 
                     if (imageElement && imageElement.files.length > 0) {
                         images.push({ index, label, file: imageElement.files[0] });
