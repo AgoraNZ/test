@@ -274,17 +274,18 @@
             try {
                 const folderResult = await folderRef.listAll();
                 folderResult.items.forEach((itemRef) => {
-                    const fileNameParts = itemRef.name.split('-');
-                    const date = fileNameParts[2].split('.')[0];
-                    const formattedDate = formatDate(date);
-                    const link = document.createElement("a");
-                    link.textContent = formattedDate; // Display date as "DD/MM/YYYY"
-                    link.href = "#";
-                    link.onclick = async () => {
-                        const url = await itemRef.getDownloadURL();
-                        window.open(url, "_blank");
-                    };
-                    recordList.appendChild(link);
+                    const datePart = itemRef.name.match(/(\d{4}-\d{2}-\d{2})/);
+                    if (datePart && datePart[0]) {
+                        const formattedDate = formatDate(datePart[0]);
+                        const link = document.createElement("a");
+                        link.textContent = formattedDate; // Display date as "DD/MM/YYYY"
+                        link.href = "#";
+                        link.onclick = async () => {
+                            const url = await itemRef.getDownloadURL();
+                            window.open(url, "_blank");
+                        };
+                        recordList.appendChild(link);
+                    }
                 });
             } catch (error) {
                 console.error("Error loading folder records:", error);
