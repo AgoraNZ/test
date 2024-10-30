@@ -205,7 +205,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 4.9</div>
+        <div class="version">Version 5.0</div>
     </div>
 
     <!-- Records Viewing Page -->
@@ -296,7 +296,7 @@
             const logo = await fetch(logoUrl).then((res) => res.blob());
             const reader = new FileReader();
             reader.readAsDataURL(logo);
-            reader.onload = function () {
+            reader.onload = async function () {
                 const imgData = reader.result;
                 pdf.addImage(imgData, 'PNG', 180, 40, 240, 60);
 
@@ -331,26 +331,22 @@
                     const comments = item.querySelector('input[type="text"]').value;
                     const imageFile = item.querySelector('input[type="file"]').files[0];
 
-                    let rowComments = comments;
+                    let rowComment = comments;
                     if (status === 'attention-required') {
-                        rowComments += " (See Photo Below)";
+                        rowComment += " (See Photo Below)";
                     }
 
-                    checklistTable.push([itemName, status, rowComments]);
+                    checklistTable.push([itemName, status, rowComment]);
 
                     if (imageFile) {
                         const imageReader = new FileReader();
                         imageReader.onload = function (event) {
-                            attachedPhotos.push({
-                                imageUrl: event.target.result,
-                                title: itemName
-                            });
+                            attachedPhotos.push({ label: itemName, image: event.target.result });
                         };
                         imageReader.readAsDataURL(imageFile);
                     }
                 }
 
-                // Generate checklist items table
                 pdf.autoTable({
                     startY: 350,
                     head: [['Item', 'Status', 'Comments']],
@@ -365,13 +361,17 @@
                     }
                 });
 
-                // Add photos at the bottom of the PDF
-                let currentY = pdf.lastAutoTable.finalY + 20;
-                attachedPhotos.forEach(photo => {
-                    pdf.addImage(photo.imageUrl, 'JPEG', 40, currentY, 150, 100);
-                    pdf.text(photo.title, 200, currentY + 50);
-                    currentY += 120;
-                });
+                // Adding photos to PDF
+                if (attachedPhotos.length > 0) {
+                    let currentY = pdf.lastAutoTable.finalY + 20;
+
+                    attachedPhotos.forEach(photo => {
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.text(photo.label, 40, currentY);
+                        pdf.addImage(photo.image, 'JPEG', 40, currentY + 10, 100, 100);
+                        currentY += 120;
+                    });
+                }
 
                 // Save PDF and upload to Firebase
                 const pdfBlob = pdf.output('blob');
@@ -379,12 +379,7 @@
                 const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
                 const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
 
-                storageRef.put(pdfBlob).then(() => {
-                    console.log('PDF uploaded successfully');
-                }).catch((error) => {
-                    console.error('Error uploading PDF:', error);
-                });
-
+                await storageRef.put(pdfBlob);
                 pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
             };
         }
