@@ -205,7 +205,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 4.6</div>
+        <div class="version">Version 4.5</div>
     </div>
 
     <!-- Records Viewing Page -->
@@ -259,35 +259,10 @@
             }
         }
 
-        // Functionality to create a new farm details record if not found
-        async function saveFarmDetails(formData) {
-            const dairyNumber = formData.get('dairy-number');
-            const farmDetails = {
-                dairyCompany: formData.get('dairy-company'),
-                address: formData.get('address'),
-                customerName: formData.get('customer-name'),
-                region: formData.get('region'),
-                farmName: formData.get('farm-name'),
-                island: formData.get('island'),
-            };
-            const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
-            const metadata = {
-                contentType: 'application/json',
-            };
-            try {
-                await storageRef.put(new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }), metadata);
-                console.log('Farm details saved successfully.');
-            } catch (error) {
-                console.error('Error saving farm details:', error);
-            }
-        }
-
         async function generatePDF() {
             const form = document.getElementById('hygiene-checklist-form');
             const formData = new FormData(form);
             const dairyNumber = formData.get('dairy-number');
-
-            await saveFarmDetails(formData); // Save farm details if not found
 
             const { jsPDF } = window.jspdf;
             let pdf = new jsPDF('p', 'pt', 'a4');
@@ -297,7 +272,7 @@
             const logo = await fetch(logoUrl).then((res) => res.blob());
             const reader = new FileReader();
             reader.readAsDataURL(logo);
-            reader.onload = async function () {
+            reader.onload = function () {
                 const imgData = reader.result;
                 pdf.addImage(imgData, 'PNG', 180, 40, 240, 60);
 
@@ -326,6 +301,7 @@
                 const checklistTable = [];
                 const imagesToAdd = [];
 
+                // Process checklist items and collect images
                 for (let item of checklistItemsDiv) {
                     const itemName = item.querySelector('label').textContent;
                     const status = item.querySelector('select').value;
@@ -366,13 +342,13 @@
                     }
                 });
 
-                // Add images to PDF
+                // Add images to PDF after checklist items are generated
                 let currentY = pdf.lastAutoTable.finalY + 20;
-                for (let i = 0; i < imagesToAdd.length; i++) {
-                    pdf.text(imagesToAdd[i].name, 40, currentY);
-                    pdf.addImage(imagesToAdd[i].image, 'JPEG', 40, currentY + 10, 100, 100);
+                imagesToAdd.forEach(imageObj => {
+                    pdf.text(imageObj.name, 40, currentY);
+                    pdf.addImage(imageObj.image, 'JPEG', 40, currentY + 10, 100, 100);
                     currentY += 120;
-                }
+                });
 
                 // Save PDF and upload to Firebase
                 const pdfBlob = pdf.output('blob');
