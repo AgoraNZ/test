@@ -205,7 +205,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 4.5</div>
+        <div class="version">Version 4.6</div>
     </div>
 
     <!-- Records Viewing Page -->
@@ -316,14 +316,11 @@
                     checklistTable.push([itemName, status, commentsText]);
 
                     if (imageFile) {
-                        const imageReader = new FileReader();
-                        imageReader.onload = function (event) {
-                            imagesToAdd.push({
-                                name: itemName,
-                                image: event.target.result
-                            });
+                        const reader = new FileReader();
+                        reader.onload = function (event) {
+                            imagesToAdd.push({ imgData: event.target.result, itemName });
                         };
-                        imageReader.readAsDataURL(imageFile);
+                        reader.readAsDataURL(imageFile);
                     }
                 }
 
@@ -342,11 +339,11 @@
                     }
                 });
 
-                // Add images to PDF after checklist items are generated
+                // Add images to PDF after the checklist table
                 let currentY = pdf.lastAutoTable.finalY + 20;
-                imagesToAdd.forEach(imageObj => {
-                    pdf.text(imageObj.name, 40, currentY);
-                    pdf.addImage(imageObj.image, 'JPEG', 40, currentY + 10, 100, 100);
+                imagesToAdd.forEach((image, index) => {
+                    pdf.addImage(image.imgData, 'JPEG', 40, currentY, 100, 100);
+                    pdf.text(image.itemName, 150, currentY + 15);
                     currentY += 120;
                 });
 
