@@ -205,7 +205,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 4.7</div>
+        <div class="version">Version 4.5</div>
     </div>
 
     <!-- Records Viewing Page -->
@@ -324,6 +324,7 @@
                 // Checklist Items Section
                 const checklistItemsDiv = document.getElementById('checklist-items').children;
                 const checklistTable = [];
+                const imagesToAdd = [];
 
                 for (let item of checklistItemsDiv) {
                     const itemName = item.querySelector('label').textContent;
@@ -338,15 +339,14 @@
 
                     checklistTable.push([itemName, status, commentText]);
 
-                    // Attach the image below checklist if attention-required is selected
+                    // Attach the image if there is one
                     if (imageFile) {
                         const imageReader = new FileReader();
                         imageReader.onload = function (event) {
-                            pdf.addPage();
-                            pdf.setFontSize(12);
-                            pdf.text(itemName, 40, 30);
-                            pdf.addImage(event.target.result, 'JPEG', 40, 50, 200, 200);
-                            pdf.text('See attached photo above.', 40, 260);
+                            imagesToAdd.push({
+                                name: itemName,
+                                data: event.target.result,
+                            });
                         };
                         imageReader.readAsDataURL(imageFile);
                     }
@@ -366,6 +366,16 @@
                         textColor: '#FFFFFF'
                     }
                 });
+
+                // Add photos below checklist items
+                let currentY = pdf.lastAutoTable.finalY + 20;
+                for (let image of imagesToAdd) {
+                    pdf.addPage();
+                    pdf.setFontSize(12);
+                    pdf.text(image.name, 40, 30);
+                    pdf.addImage(image.data, 'JPEG', 40, 50, 200, 200);
+                    pdf.text('See attached photo above.', 40, 260);
+                }
 
                 // Save PDF and upload to Firebase
                 const pdfBlob = pdf.output('blob');
