@@ -205,7 +205,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 4.6</div>
+        <div class="version">Version 4.7</div>
     </div>
 
     <!-- Records Viewing Page -->
@@ -297,7 +297,7 @@
             const logo = await fetch(logoUrl).then((res) => res.blob());
             const reader = new FileReader();
             reader.readAsDataURL(logo);
-            reader.onload = function () {
+            reader.onload = async function () {
                 const imgData = reader.result;
                 pdf.addImage(imgData, 'PNG', 180, 40, 240, 60);
 
@@ -324,7 +324,6 @@
                 // Checklist Items Section
                 const checklistItemsDiv = document.getElementById('checklist-items').children;
                 const checklistTable = [];
-                const imageDataList = [];
 
                 for (let item of checklistItemsDiv) {
                     const itemName = item.querySelector('label').textContent;
@@ -332,23 +331,24 @@
                     const comments = item.querySelector('input[type="text"]').value;
                     const imageFile = item.querySelector('input[type="file"]').files[0];
 
-                    let rowComments = comments;
-
+                    let commentText = comments;
                     if (status === 'attention-required') {
-                        rowComments += ' (See attached photo below)';
+                        commentText += " (See attached photo below)";
                     }
 
-                    checklistTable.push([itemName, status, rowComments]);
+                    checklistTable.push([itemName, status, commentText]);
 
+                    // Attach the image below checklist if attention-required is selected
                     if (imageFile) {
-                        const reader = new FileReader();
-                        reader.onload = function (event) {
-                            imageDataList.push({
-                                imageData: event.target.result,
-                                itemName: itemName,
-                            });
+                        const imageReader = new FileReader();
+                        imageReader.onload = function (event) {
+                            pdf.addPage();
+                            pdf.setFontSize(12);
+                            pdf.text(itemName, 40, 30);
+                            pdf.addImage(event.target.result, 'JPEG', 40, 50, 200, 200);
+                            pdf.text('See attached photo above.', 40, 260);
                         };
-                        reader.readAsDataURL(imageFile);
+                        imageReader.readAsDataURL(imageFile);
                     }
                 }
 
@@ -366,14 +366,6 @@
                         textColor: '#FFFFFF'
                     }
                 });
-
-                // Add photos at the bottom of the PDF
-                let currentY = pdf.lastAutoTable.finalY + 20;
-                for (const imageData of imageDataList) {
-                    pdf.addImage(imageData.imageData, 'JPEG', 40, currentY, 100, 100);
-                    pdf.text(imageData.itemName, 150, currentY + 50);
-                    currentY += 120;
-                }
 
                 // Save PDF and upload to Firebase
                 const pdfBlob = pdf.output('blob');
