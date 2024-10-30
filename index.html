@@ -205,7 +205,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 4.7</div>
+        <div class="version">Version 4.5</div>
     </div>
 
     <!-- Records Viewing Page -->
@@ -263,7 +263,7 @@
             const form = document.getElementById('hygiene-checklist-form');
             const formData = new FormData(form);
             const dairyNumber = formData.get('dairy-number');
-
+            
             const { jsPDF } = window.jspdf;
             let pdf = new jsPDF('p', 'pt', 'a4');
 
@@ -301,19 +301,18 @@
                 const checklistTable = [];
                 const imagesToAdd = [];
 
-                // Process checklist items and collect images
                 for (let item of checklistItemsDiv) {
                     const itemName = item.querySelector('label').textContent;
                     const status = item.querySelector('select').value;
                     const comments = item.querySelector('input[type="text"]').value;
                     const imageFile = item.querySelector('input[type="file"]').files[0];
 
-                    let commentsText = comments;
-                    if (status === 'attention-required' && imageFile) {
-                        commentsText += ' (See attached photo below)';
+                    let commentsWithPhotoNote = comments;
+                    if (status === 'attention-required') {
+                        commentsWithPhotoNote += ' (See attached photo below)';
                     }
 
-                    checklistTable.push([itemName, status, commentsText]);
+                    checklistTable.push([itemName, status, commentsWithPhotoNote]);
 
                     if (imageFile) {
                         const reader = new FileReader();
