@@ -205,7 +205,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 4.5</div>
+        <div class="version">Version 4.6</div>
     </div>
 
     <!-- Records Viewing Page -->
@@ -301,64 +301,70 @@
                 const checklistTable = [];
                 const imagesToAdd = [];
 
-                for (let item of checklistItemsDiv) {
-                    const itemName = item.querySelector('label').textContent;
-                    const status = item.querySelector('select').value;
-                    const comments = item.querySelector('input[type="text"]').value;
-                    const imageFile = item.querySelector('input[type="file"]').files[0];
+                const loadImagePromises = Array.from(checklistItemsDiv).map((item) => {
+                    return new Promise((resolve) => {
+                        const itemName = item.querySelector('label').textContent;
+                        const status = item.querySelector('select').value;
+                        const comments = item.querySelector('input[type="text"]').value;
+                        const imageFile = item.querySelector('input[type="file"]').files[0];
 
-                    let commentsWithPhotoNote = comments;
-                    if (status === 'attention-required') {
-                        commentsWithPhotoNote += ' (See attached photo below)';
-                    }
+                        let commentsText = comments;
+                        if (status === 'attention-required') {
+                            commentsText += ' (See attached photo below)';
+                        }
 
-                    checklistTable.push([itemName, status, commentsWithPhotoNote]);
+                        checklistTable.push([itemName, status, commentsText]);
 
-                    if (imageFile) {
-                        const reader = new FileReader();
-                        reader.onload = function (event) {
-                            imagesToAdd.push({ imgData: event.target.result, itemName });
-                        };
-                        reader.readAsDataURL(imageFile);
-                    }
-                }
-
-                // Generate checklist items table
-                pdf.autoTable({
-                    startY: 350,
-                    head: [['Item', 'Status', 'Comments']],
-                    body: checklistTable,
-                    styles: {
-                        fontSize: 10,
-                        cellPadding: 5,
-                    },
-                    headStyles: {
-                        fillColor: '#002B5C',
-                        textColor: '#FFFFFF'
-                    }
+                        if (imageFile) {
+                            const reader = new FileReader();
+                            reader.onload = function (event) {
+                                imagesToAdd.push({ imageData: event.target.result, label: itemName });
+                                resolve();
+                            };
+                            reader.readAsDataURL(imageFile);
+                        } else {
+                            resolve();
+                        }
+                    });
                 });
 
-                // Add images to PDF after the checklist table
-                let currentY = pdf.lastAutoTable.finalY + 20;
-                imagesToAdd.forEach((image, index) => {
-                    pdf.addImage(image.imgData, 'JPEG', 40, currentY, 100, 100);
-                    pdf.text(image.itemName, 150, currentY + 15);
-                    currentY += 120;
+                Promise.all(loadImagePromises).then(() => {
+                    pdf.autoTable({
+                        startY: 350,
+                        head: [['Item', 'Status', 'Comments']],
+                        body: checklistTable,
+                        styles: {
+                            fontSize: 10,
+                            cellPadding: 5,
+                        },
+                        headStyles: {
+                            fillColor: '#002B5C',
+                            textColor: '#FFFFFF'
+                        }
+                    });
+
+                    // Add images to the PDF after the checklist table
+                    let currentY = pdf.lastAutoTable.finalY + 20;
+                    imagesToAdd.forEach((img) => {
+                        pdf.addImage(img.imageData, 'JPEG', 40, currentY, 100, 100);
+                        pdf.text(img.label, 150, currentY + 20);
+                        currentY += 120; // Leave space between images
+                    });
+
+                    // Save PDF and upload to Firebase
+                    const pdfBlob = pdf.output('blob');
+                    const timestamp = new Date().toISOString().split('T')[0];
+                    const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
+                    const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
+
+                    storageRef.put(pdfBlob).then(() => {
+                        console.log('PDF uploaded successfully');
+                    }).catch((error) => {
+                        console.error('Error uploading PDF:', error);
+                    });
+
+                    pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
                 });
-
-                // Save PDF and upload to Firebase
-                const pdfBlob = pdf.output('blob');
-                const timestamp = new Date().toISOString().split('T')[0];
-                const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
-                const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
-
-                storageRef.put(pdfBlob).then(() => {
-                    console.log('PDF uploaded successfully');
-                }).catch((error) => {
-                    console.error('Error uploading PDF:', error);
-                });
-
-                pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
             };
         }
 
