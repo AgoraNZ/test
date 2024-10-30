@@ -205,7 +205,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 4.5</div>
+        <div class="version">Version 4.6</div>
     </div>
 
     <!-- Records Viewing Page -->
@@ -332,20 +332,19 @@
                     const comments = item.querySelector('input[type="text"]').value;
                     const imageFile = item.querySelector('input[type="file"]').files[0];
 
-                    let commentText = comments;
-                    if (status === 'attention-required') {
-                        commentText += " (See attached photo below)";
+                    let commentsText = comments;
+                    if (status === 'attention-required' && imageFile) {
+                        commentsText += ' (See attached photo below)';
                     }
 
-                    checklistTable.push([itemName, status, commentText]);
+                    checklistTable.push([itemName, status, commentsText]);
 
-                    // Attach the image if there is one
                     if (imageFile) {
                         const imageReader = new FileReader();
                         imageReader.onload = function (event) {
                             imagesToAdd.push({
                                 name: itemName,
-                                data: event.target.result,
+                                image: event.target.result
                             });
                         };
                         imageReader.readAsDataURL(imageFile);
@@ -367,14 +366,12 @@
                     }
                 });
 
-                // Add photos below checklist items
+                // Add images to PDF
                 let currentY = pdf.lastAutoTable.finalY + 20;
-                for (let image of imagesToAdd) {
-                    pdf.addPage();
-                    pdf.setFontSize(12);
-                    pdf.text(image.name, 40, 30);
-                    pdf.addImage(image.data, 'JPEG', 40, 50, 200, 200);
-                    pdf.text('See attached photo above.', 40, 260);
+                for (let i = 0; i < imagesToAdd.length; i++) {
+                    pdf.text(imagesToAdd[i].name, 40, currentY);
+                    pdf.addImage(imagesToAdd[i].image, 'JPEG', 40, currentY + 10, 100, 100);
+                    currentY += 120;
                 }
 
                 // Save PDF and upload to Firebase
