@@ -163,6 +163,20 @@
                     <option value="north-island">North Island</option>
                     <option value="south-island">South Island</option>
                 </select>
+                <label for="visit-date">Visit Date:</label>
+                <input type="date" class="form-control" id="visit-date" name="visit-date">
+                <label for="inspection-start-time">Inspection Start Time:</label>
+                <input type="time" class="form-control" id="inspection-start-time" name="inspection-start-time">
+                <label for="inspection-end-time">Inspection End Time:</label>
+                <input type="time" class="form-control" id="inspection-end-time" name="inspection-end-time">
+                <label for="inspection-completed-by">Inspection Completed By:</label>
+                <input type="text" class="form-control" id="inspection-completed-by" name="inspection-completed-by">
+                <label for="call-type">Call Type:</label>
+                <select id="call-type" name="call-type" class="form-select">
+                    <option value="alert">Alert</option>
+                    <option value="grade-call">Grade Call</option>
+                    <option value="regular-scheduled-visit" selected>Regular Scheduled Visit</option>
+                </select>
             </div>
 
             <!-- Checklist Items Section -->
@@ -193,7 +207,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 6.0</div>
+        <div class="version">Version 6.1</div>
     </div>
 
     <!-- Records Viewing Page -->
@@ -247,16 +261,38 @@
             }
         }
 
-        // Function to generate PDF
+        async function saveFarmDetails(formData) {
+            const dairyNumber = formData.get('dairy-number');
+            const farmDetails = {
+                dairyCompany: formData.get('dairy-company'),
+                address: formData.get('address'),
+                customerName: formData.get('customer-name'),
+                region: formData.get('region'),
+                farmName: formData.get('farm-name'),
+                island: formData.get('island'),
+            };
+            const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
+            const metadata = {
+                contentType: 'application/json',
+            };
+            try {
+                await storageRef.put(new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }), metadata);
+                console.log('Farm details saved successfully.');
+            } catch (error) {
+                console.error('Error saving farm details:', error);
+            }
+        }
+
         async function generatePDF() {
             const form = document.getElementById('hygiene-checklist-form');
             const formData = new FormData(form);
             const dairyNumber = formData.get('dairy-number');
 
+            await saveFarmDetails(formData);
+
             const { jsPDF } = window.jspdf;
             let pdf = new jsPDF('p', 'pt', 'a4');
 
-            // Add logo centered
             const logoUrl = "https://i.postimg.cc/htZPjx5g/logo-89.png";
             const logo = await fetch(logoUrl).then((res) => res.blob());
             const reader = new FileReader();
@@ -279,8 +315,9 @@
                 pdf.text(`Farm Name: ${formData.get('farm-name')}`, 40, 225);
                 pdf.text(`Island: ${formData.get('island')}`, 40, 240);
                 pdf.text(`Visit Date: ${formData.get('visit-date')}`, 40, 255);
+                pdf.text(`Inspection Completed By: ${formData.get('inspection-completed-by')}`, 40, 270);
+                pdf.text(`Call Type: ${formData.get('call-type')}`, 40, 285);
 
-                // Checklist Items Section
                 const checklistItemsDiv = document.getElementById('checklist-items').children;
                 const checklistTable = [];
                 const photos = [];
@@ -291,8 +328,8 @@
                     let comments = item.querySelector('input[type="text"]').value;
                     const imageFile = item.querySelector('input[type="file"]').files[0];
 
-                    if (status === 'attention-required') {
-                        comments += " (See attached photo below)";
+                    if (status === 'attention-required' && autoFillItems.includes(itemName)) {
+                        comments = "Milk in Vat";
                     }
 
                     checklistTable.push([itemName, status, comments]);
@@ -309,7 +346,6 @@
                     }
                 }
 
-                // Generate checklist items table
                 pdf.autoTable({
                     startY: 350,
                     head: [['Item', 'Status', 'Comments']],
@@ -324,7 +360,6 @@
                     }
                 });
 
-                // Add temperature data
                 let currentY = pdf.lastAutoTable.finalY + 20;
 
                 pdf.setFont('helvetica', 'bold');
@@ -342,7 +377,6 @@
                 pdf.text(`Time Taken: ${formData.get('milk-time')}`, 40, currentY);
                 currentY += 20;
 
-                // Add photos after the checklist
                 setTimeout(() => {
                     let photoY = pdf.lastAutoTable.finalY + 120;
 
@@ -366,6 +400,11 @@
         document.addEventListener("DOMContentLoaded", () => {
             createChecklistItems();
         });
+
+        const autoFillItems = [
+            "Inlet Valve", "Non-Return Valve", "Spray Ball", "Agitator",
+            "Silo Door", "Manhole Seal", "Vat Outlet", "Walls in Silo"
+        ];
 
         function createChecklistItems() {
             const checklistItems = [
@@ -414,17 +453,14 @@
                 statusSelect.addEventListener('change', () => {
                     if (statusSelect.value === 'attention-required') {
                         imageUpload.style.display = 'block';
-                        commentsInput.value = "(See photos below)";
                     } else {
                         imageUpload.style.display = 'none';
                     }
 
-                    if (statusSelect.value === 'not-checked') {
+                    if (autoFillItems.includes(item) && statusSelect.value === 'attention-required') {
                         commentsInput.value = "Milk in Vat";
                     } else {
-                        if (commentsInput.value === "Milk in Vat") {
-                            commentsInput.value = ""; // Clear the field if it was auto-filled by 'Not Checked'
-                        }
+                        commentsInput.value = "";
                     }
                 });
 
@@ -438,7 +474,72 @@
             loadAllRecords();
         }
 
-        // Additional functions for offline capabilities and service worker registration should be included here.
+        async function loadAllRecords() {
+            const recordList = document.getElementById('record-list');
+            recordList.innerHTML = '';
+            const storageRef = storage.ref('customers');
+
+            try {
+                const folderSnapshot = await storageRef.listAll();
+                folderSnapshot.prefixes.forEach(folderRef => {
+                    const dairyNumber = folderRef.name;
+                    const folderLink = document.createElement('a');
+                    folderLink.textContent = dairyNumber;
+                    folderLink.href = '#';
+                    folderLink.addEventListener('click', () => {
+                        loadRecordFiles(dairyNumber);
+                    });
+                    recordList.appendChild(folderLink);
+                });
+            } catch (error) {
+                console.error('Error fetching records:', error);
+            }
+        }
+
+        async function loadRecordFiles(dairyNumber) {
+            const recordList = document.getElementById('record-list');
+            recordList.innerHTML = '';
+            const storageRef = storage.ref(`customers/${dairyNumber}`);
+
+            try {
+                const fileSnapshot = await storageRef.listAll();
+                fileSnapshot.items.forEach(fileRef => {
+                    const fileName = fileRef.name;
+                    const dateOnly = fileName.match(/(\d{4}-\d{2}-\d{2})/);
+                    const displayName = dateOnly ? dateOnly[0] : fileName;
+
+                    const fileLink = document.createElement('a');
+                    fileLink.textContent = displayName;
+                    fileLink.href = '#';
+                    fileLink.addEventListener('click', async () => {
+                        try {
+                            const url = await fileRef.getDownloadURL();
+                            window.open(url, '_blank');
+                        } catch (error) {
+                            console.error('Error fetching file:', error);
+                        }
+                    });
+                    recordList.appendChild(fileLink);
+                });
+
+                const backButton = document.createElement('button');
+                backButton.textContent = 'Back to Records';
+                backButton.className = 'back-button';
+                backButton.addEventListener('click', goBackToRecords);
+                recordList.appendChild(backButton);
+            } catch (error) {
+                console.error('Error fetching record files:', error);
+            }
+        }
+
+        function goBack() {
+            document.getElementById('form-container').style.display = 'block';
+            document.getElementById('record-container').style.display = 'none';
+        }
+
+        function goBackToRecords() {
+            loadAllRecords();
+        }
     </script>
 </body>
 
