@@ -225,7 +225,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 4.9</div>
+        <div class="version">Version 5.0</div>
     </div>
 
     <!-- Records Viewing Page -->
@@ -403,29 +403,38 @@
                 pdf.text(`Time Taken: ${formData.get('milk-time')}`, 40, currentY);
                 currentY += 20;
 
-                // Add photos after the checklist
-                setTimeout(() => {
-                    photos.forEach((photo, index) => {
-                        pdf.addPage();
-                        pdf.addImage(photo.imageData, 'JPEG', 40, 60, 200, 100);
-                        pdf.setFontSize(12);
-                        pdf.text(photo.title, 40, 40);
-                    });
+// Add photos after the checklist
+setTimeout(() => {
+    let photoY = pdf.lastAutoTable.finalY + 40; // Start placing photos after the last auto table
+    
+    photos.forEach((photo, index) => {
+        if (photoY > 700) {
+            // If we're getting close to the end of the page, add a new page
+            pdf.addPage();
+            photoY = 60; // Reset Y position for the new page
+        }
+        
+        pdf.addImage(photo.imageData, 'JPEG', 40, photoY, 250, 200); // Adjust the size to fit more photos
+        pdf.setFontSize(12);
+        pdf.text(photo.title, 40, photoY - 10); // Add the title above the photo
+        photoY += 220; // Move Y position down for the next photo (image height + spacing)
+    });
 
-                    // Save PDF and upload to Firebase
-                    const pdfBlob = pdf.output('blob');
-                    const timestamp = new Date().toISOString().split('T')[0];
-                    const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
-                    const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
+    // Save PDF and upload to Firebase
+    const pdfBlob = pdf.output('blob');
+    const timestamp = new Date().toISOString().split('T')[0];
+    const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
+    const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
 
-                    storageRef.put(pdfBlob).then(() => {
-                        console.log('PDF uploaded successfully');
-                    }).catch((error) => {
-                        console.error('Error uploading PDF:', error);
-                    });
+    storageRef.put(pdfBlob).then(() => {
+        console.log('PDF uploaded successfully');
+    }).catch((error) => {
+        console.error('Error uploading PDF:', error);
+    });
 
-                    pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
-                }, 1000);
+    pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
+}, 1000);
+
             };
         }
 
