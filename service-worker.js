@@ -1,18 +1,18 @@
-const CACHE_NAME = 'dairy-shed-checklist-cache-v5';
-const DATA_CACHE_NAME = 'data-cache-v5';
+const CACHE_NAME = 'dairy-shed-checklist-cache-v6';
+const DATA_CACHE_NAME = 'data-cache-v6';
 const urlsToCache = [
-    '/test/', // The root of your GitHub Pages site (adjust this if necessary)
-    '/test/index.html', // Your main form page
+    '/test/',
+    '/test/index.html',
     'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css',
     'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js',
     'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js',
     'https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js',
     'https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js',
     'https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js',
-    'https://i.postimg.cc/htZPjx5g/logo-89.png'
+    '/test/logo.png' // Update to use a locally cached logo
 ];
 
-// Install service worker and cache necessary files
+// Install service worker and cache files
 self.addEventListener('install', function (event) {
     event.waitUntil(
         caches.open(CACHE_NAME)
@@ -27,7 +27,7 @@ self.addEventListener('install', function (event) {
     self.skipWaiting();
 });
 
-// Activate service worker and clean up old caches
+// Activate service worker
 self.addEventListener('activate', function (event) {
     event.waitUntil(
         caches.keys().then(function (cacheNames) {
@@ -44,10 +44,9 @@ self.addEventListener('activate', function (event) {
     self.clients.claim();
 });
 
-// Fetch handler to serve cached files when offline
+// Fetch handler
 self.addEventListener('fetch', function (event) {
     if (event.request.mode !== 'navigate') {
-        // For requests that are not navigation requests, use cache-first approach
         event.respondWith(
             caches.match(event.request)
                 .then(function (response) {
@@ -61,82 +60,11 @@ self.addEventListener('fetch', function (event) {
                 })
         );
     } else {
-        // For navigation requests, use network-first approach with fallback to cache
         event.respondWith(
             fetch(event.request)
                 .catch(function () {
-                    return caches.match('/test/index.html'); // Serve the cached version of the form when offline
+                    return caches.match('/test/index.html');
                 })
         );
     }
 });
-
-// Listen for messages from the main script for saving the PDF offline
-self.addEventListener('message', function (event) {
-    if (event.data && event.data.type === 'SAVE_PDF_OFFLINE') {
-        savePDFOffline(event.data.dairyNumber, event.data.pdfBlob);
-    }
-});
-
-// Function to save PDF offline for later sync
-async function savePDFOffline(dairyNumber, pdfBlob) {
-    try {
-        const dbPromise = idb.open('pdf-store', 1, upgradeDB => {
-            if (!upgradeDB.objectStoreNames.contains('pdfs')) {
-                upgradeDB.createObjectStore('pdfs', { keyPath: 'id' });
-            }
-        });
-
-        const db = await dbPromise;
-        const tx = db.transaction('pdfs', 'readwrite');
-        const store = tx.objectStore('pdfs');
-        await store.put({
-            id: dairyNumber,
-            pdfBlob: pdfBlob,
-            timestamp: Date.now()
-        });
-
-        console.log('PDF saved offline successfully');
-    } catch (error) {
-        console.error('Error saving PDF offline:', error);
-    }
-}
-
-// Sync the saved PDFs when the connection is back
-self.addEventListener('sync', function (event) {
-    if (event.tag === 'sync-pdfs') {
-        event.waitUntil(syncPDFs());
-    }
-});
-
-// Function to sync PDFs from the indexedDB to Firebase
-async function syncPDFs() {
-    try {
-        const dbPromise = idb.open('pdf-store', 1);
-        const db = await dbPromise;
-        const tx = db.transaction('pdfs', 'readonly');
-        const store = tx.objectStore('pdfs');
-        const allPdfs = await store.getAll();
-
-        for (const pdf of allPdfs) {
-            const dairyNumber = pdf.id;
-            const timestamp = new Date(pdf.timestamp).toISOString().split('T')[0];
-            const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
-            const storageRef = firebase.storage().ref(`customers/${dairyNumber}/${fileName}`);
-
-            try {
-                await storageRef.put(pdf.pdfBlob);
-                console.log('PDF synced successfully:', fileName);
-
-                // Remove synced PDF from indexedDB
-                const deleteTx = db.transaction('pdfs', 'readwrite');
-                const deleteStore = deleteTx.objectStore('pdfs');
-                await deleteStore.delete(pdf.id);
-            } catch (error) {
-                console.error('Error syncing PDF to Firebase:', error);
-            }
-        }
-    } catch (error) {
-        console.error('Error syncing PDFs:', error);
-    }
-}
