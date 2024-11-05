@@ -240,9 +240,6 @@
 
     <!-- JavaScript Section -->
     <script>
-        // Your JavaScript code should be properly enclosed in this script tag
-        // Firebase configuration and JavaScript logic
-
         // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDr9nA44Kkej*****GUzbMDECI8cTFI",
@@ -294,34 +291,75 @@
             }
         }
 
-        async function saveFarmDetails(formData) {
-            const dairyNumber = formData.get('dairy-number');
-            const farmDetails = {
-                dairyCompany: formData.get('dairy-company'),
-                address: formData.get('address'),
-                customerName: formData.get('customer-name'),
-                region: formData.get('region'),
-                farmName: formData.get('farm-name'),
-                island: formData.get('island'),
-            };
-            const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
-            const metadata = {
-                contentType: 'application/json',
-            };
-            try {
-                await storageRef.put(new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }), metadata);
-                console.log('Farm details saved successfully.');
-            } catch (error) {
-                console.error('Error saving farm details:', error);
-            }
-        }
-
         function createChecklistItems() {
-            // Add your JavaScript functions here that deal with creating checklist items and other logic
+            const checklistItems = [
+                "Pulsator Airline", "Long Bend Elbows", "Automatic Cup and Remover", "Diaphragm", "Receiving Can",
+                "Sanitary Trap", "Main Milk Line", "Milk Line Seals in Good Condition", "Stainless Droppers", "Long Milk Rubber",
+                "Liner", "Cluster", "Cluster Seal", "Cluster Button", "Non Return Valve at Milk Pump", "Milk Pump",
+                "Filter Housing", "Plate Cooler", "Interceptor", "Receiver Airline", "Flushing Pulsator", "Air Purge Valve",
+                "Vacuum Level", "Main Airline", "Plant Drainage - Milk Pump", "Plant Drainage - Filter/s", "Plant Drainage - Plate Cooler",
+                "Plant Drainage - Vat Entry", "Plant Wash Tap", "Wash Jetters", "Centre Gland", "Test Bucket", "Inlet Valve",
+                "Non-Return Valve", "Spray Ball", "Agitator", "Silo Door", "Manhole Seal", "Vat Outlet", "Walls in Silo"
+            ];
+
+            const checklistContainer = document.getElementById('checklist-items');
+            checklistContainer.innerHTML = '';
+
+            checklistItems.forEach(item => {
+                const itemContainer = document.createElement('div');
+                itemContainer.classList.add('checklist-item');
+
+                const label = document.createElement('label');
+                label.textContent = item;
+                itemContainer.appendChild(label);
+
+                const statusSelect = document.createElement('select');
+                statusSelect.classList.add('form-select');
+                statusSelect.innerHTML = `
+                    <option value="ok">OK</option>
+                    <option value="attention-required">Attention Required</option>
+                    <option value="na">N/A</option>
+                    <option value="not-checked">Not Checked</option>
+                `;
+                itemContainer.appendChild(statusSelect);
+
+                const commentsInput = document.createElement('input');
+                commentsInput.type = 'text';
+                commentsInput.classList.add('form-control');
+                commentsInput.placeholder = 'Comments';
+                itemContainer.appendChild(commentsInput);
+
+                const imageUpload = document.createElement('input');
+                imageUpload.type = 'file';
+                imageUpload.classList.add('form-control', 'image-upload');
+                imageUpload.style.display = 'none';
+                itemContainer.appendChild(imageUpload);
+
+                statusSelect.addEventListener('change', () => {
+                    if (statusSelect.value === 'attention-required') {
+                        imageUpload.style.display = 'block';
+                    } else {
+                        imageUpload.style.display = 'none';
+                    }
+
+                    if (statusSelect.value === 'not-checked' && autoFillItems.includes(item)) {
+                        commentsInput.value = "Milk in Vat";
+                    } else {
+                        if (commentsInput.value === "Milk in Vat") {
+                            commentsInput.value = "";
+                        }
+                    }
+                });
+
+                checklistContainer.appendChild(itemContainer);
+            });
         }
 
-        // Add any other JavaScript code here
+        document.addEventListener("DOMContentLoaded", () => {
+            createChecklistItems();
+        });
 
+        // Add any other JavaScript code for functionality like viewRecords, generatePDF, etc.
     </script>
 </body>
 
