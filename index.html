@@ -6,6 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dairy Shed Hygiene Checklist</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
     <style>
         body {
             background-color: #002B5C;
@@ -120,11 +126,6 @@
             margin-bottom: 20px;
         }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
 </head>
 
 <body>
@@ -225,7 +226,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 5.0</div>
+        <div class="version">Version 5.1</div>
     </div>
 
     <!-- Records Viewing Page -->
@@ -254,24 +255,26 @@
         const storage = firebase.storage();
         const firestore = firebase.firestore();
 
+        // Use localForage to store data offline
+        localforage.config({
+            name: 'dairyShedRecords',
+            storeName: 'records'
+        });
+
         async function fetchFarmDetails() {
             const dairyNumber = document.getElementById('dairy-number').value;
             if (dairyNumber) {
-                const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
                 try {
-                    const url = await storageRef.getDownloadURL();
-                    const response = await fetch(url);
-                    if (!response.ok) {
-                        throw new Error('Failed to fetch the farm details');
-                    }
-                    const data = await response.json();
-                    if (data) {
-                        document.getElementById('dairy-company').value = data.dairyCompany || '';
-                        document.getElementById('address').value = data.address || '';
-                        document.getElementById('customer-name').value = data.customerName || '';
-                        document.getElementById('region').value = data.region || '';
-                        document.getElementById('farm-name').value = data.farmName || '';
-                        document.getElementById('island').value = data.island || '';
+                    const storedData = await localforage.getItem(`farm_details_${dairyNumber}`);
+                    if (storedData) {
+                        populateFarmDetails(storedData);
+                    } else {
+                        const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
+                        const url = await storageRef.getDownloadURL();
+                        const response = await fetch(url);
+                        const data = await response.json();
+                        populateFarmDetails(data);
+                        await localforage.setItem(`farm_details_${dairyNumber}`, data);
                     }
                 } catch (error) {
                     console.error('Error fetching farm details:', error);
@@ -279,7 +282,15 @@
             }
         }
 
-        // Functionality to create a new farm details record if not found
+        function populateFarmDetails(data) {
+            document.getElementById('dairy-company').value = data.dairyCompany || '';
+            document.getElementById('address').value = data.address || '';
+            document.getElementById('customer-name').value = data.customerName || '';
+            document.getElementById('region').value = data.region || '';
+            document.getElementById('farm-name').value = data.farmName || '';
+            document.getElementById('island').value = data.island || '';
+        }
+
         async function saveFarmDetails(formData) {
             const dairyNumber = formData.get('dairy-number');
             const farmDetails = {
@@ -290,15 +301,14 @@
                 farmName: formData.get('farm-name'),
                 island: formData.get('island'),
             };
-            const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
-            const metadata = {
-                contentType: 'application/json',
-            };
-            try {
+            await localforage.setItem(`farm_details_${dairyNumber}`, farmDetails);
+            if (navigator.onLine) {
+                const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
+                const metadata = { contentType: 'application/json' };
                 await storageRef.put(new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }), metadata);
-                console.log('Farm details saved successfully.');
-            } catch (error) {
-                console.error('Error saving farm details:', error);
+                console.log('Farm details saved successfully to Firebase.');
+            } else {
+                console.log('Saved offline, will sync when online.');
             }
         }
 
@@ -405,41 +415,61 @@
 
                 // Add photos after the checklist
                 setTimeout(() => {
-                    let photoY = pdf.lastAutoTable.finalY + 120; // Start placing photos after the last auto table
-                    
+                    let photoY = pdf.lastAutoTable.finalY + 120;
+
                     photos.forEach((photo, index) => {
                         if (photoY > 700) {
-                            // If we're getting close to the end of the page, add a new page
                             pdf.addPage();
-                            photoY = 60; // Reset Y position for the new page
+                            photoY = 60;
                         }
-                        
-                        pdf.addImage(photo.imageData, 'JPEG', 40, photoY, 250, 200); // Adjust the size to fit more photos
+
+                        pdf.addImage(photo.imageData, 'JPEG', 40, photoY, 250, 200);
                         pdf.setFontSize(12);
-                        pdf.text(photo.title, 40, photoY - 10); // Add the title above the photo
-                        photoY += 220; // Move Y position down for the next photo (image height + spacing)
+                        pdf.text(photo.title, 40, photoY - 10);
+                        photoY += 220;
                     });
 
-                    // Save PDF and upload to Firebase
                     const pdfBlob = pdf.output('blob');
                     const timestamp = new Date().toISOString().split('T')[0];
                     const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
-                    const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
 
-                    storageRef.put(pdfBlob).then(() => {
-                        console.log('PDF uploaded successfully');
-                    }).catch((error) => {
-                        console.error('Error uploading PDF:', error);
-                    });
+                    if (navigator.onLine) {
+                        const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
+                        storageRef.put(pdfBlob).then(() => {
+                            console.log('PDF uploaded successfully');
+                        }).catch((error) => {
+                            console.error('Error uploading PDF:', error);
+                        });
+                    } else {
+                        // Store the PDF blob in IndexedDB when offline
+                        localforage.setItem(`pdf_${fileName}`, pdfBlob);
+                        console.log('PDF saved offline, will sync when back online.');
+                    }
 
                     pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
                 }, 1000);
-
             };
         }
 
         document.addEventListener("DOMContentLoaded", () => {
             createChecklistItems();
+
+            // Sync data from localForage to Firebase when online
+            window.addEventListener('online', async () => {
+                console.log('Back online, syncing local data...');
+                const keys = await localforage.keys();
+                for (const key of keys) {
+                    if (key.startsWith('pdf_')) {
+                        const pdfBlob = await localforage.getItem(key);
+                        const fileName = key.replace('pdf_', '');
+                        const dairyNumber = fileName.split('-')[0];
+                        const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
+                        await storageRef.put(pdfBlob);
+                        await localforage.removeItem(key);
+                        console.log(`Synced and removed local PDF: ${fileName}`);
+                    }
+                }
+            });
         });
 
         function createChecklistItems() {
@@ -497,7 +527,7 @@
                         commentsInput.value = "Milk in Vat";
                     } else {
                         if (commentsInput.value === "Milk in Vat") {
-                            commentsInput.value = ""; // Clear the field if it was auto-filled by 'Not Checked'
+                            commentsInput.value = "";
                         }
                     }
                 });
