@@ -322,19 +322,19 @@
             const { jsPDF } = window.jspdf;
             let pdf = new jsPDF('p', 'pt', 'a4');
 
-            // Add logo centered
-            const storageRef = storage.ref('logos/Picture3.jpg');
-            storageRef.getDownloadURL().then((url) => {
+            try {
+                const logoRef = storage.ref('logos/Picture3.jpg');
+                const url = await logoRef.getDownloadURL();
                 const img = new Image();
                 img.src = url;
                 img.onload = function () {
                     pdf.addImage(img, 'JPEG', 20, 20, pdf.internal.pageSize.getWidth() - 40, 80);
                     generatePDFContent(pdf, formData);
                 };
-            }).catch((error) => {
+            } catch (error) {
                 console.error('Error loading logo:', error);
                 generatePDFContent(pdf, formData);
-            });
+            }
         }
 
         function generatePDFContent(pdf, formData) {
@@ -386,7 +386,6 @@
                 }
             }
 
-            // Generate checklist items table
             pdf.autoTable({
                 startY: 350,
                 head: [['Item', 'Status', 'Comments']],
@@ -418,32 +417,23 @@
             pdf.text(`Time Taken: ${formData.get('milk-time')}`, 40, currentY);
             currentY += 20;
 
-            let photoY = pdf.lastAutoTable.finalY + 120;
+            setTimeout(() => {
+                let photoY = pdf.lastAutoTable.finalY + 120;
 
-            photos.forEach((photo, index) => {
-                if (photoY > 700) {
-                    pdf.addPage();
-                    photoY = 60;
-                }
+                photos.forEach((photo) => {
+                    if (photoY > 700) {
+                        pdf.addPage();
+                        photoY = 60;
+                    }
 
-                pdf.addImage(photo.imageData, 'JPEG', 40, photoY, 250, 200);
-                pdf.setFontSize(12);
-                pdf.text(photo.title, 40, photoY - 10);
-                photoY += 220;
-            });
+                    pdf.addImage(photo.imageData, 'JPEG', 40, photoY, 250, 200);
+                    pdf.setFontSize(12);
+                    pdf.text(photo.title, 40, photoY - 10);
+                    photoY += 220;
+                });
 
-            const pdfBlob = pdf.output('blob');
-            const timestamp = new Date().toISOString().split('T')[0];
-            const fileName = `${formData.get('dairy-number')}-form-${timestamp}.pdf`;
-            const storageRef = storage.ref(`customers/${formData.get('dairy-number')}/${fileName}`);
-
-            storageRef.put(pdfBlob).then(() => {
-                console.log('PDF uploaded successfully');
-            }).catch((error) => {
-                console.error('Error uploading PDF:', error);
-            });
-
-            pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
+                pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
+            }, 1000);
         }
 
         document.addEventListener("DOMContentLoaded", () => {
@@ -505,7 +495,7 @@
                         commentsInput.value = "Milk in Vat";
                     } else {
                         if (commentsInput.value === "Milk in Vat") {
-                            commentsInput.value = ""; // Clear the field if it was auto-filled by 'Not Checked'
+                            commentsInput.value = "";
                         }
                     }
                 });
