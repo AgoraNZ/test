@@ -1,43 +1,34 @@
-const CACHE_NAME = 'dairy-shed-cache-v2';
+const CACHE_NAME = 'dairy-shed-cache-v3';
 const urlsToCache = [
-  '/test/', // Root page
-  '/test/index.html', // HTML page
-  '/test/service-worker.js', // Service worker script itself
-  'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css', // Bootstrap CSS
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js', // jsPDF
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js', // jsPDF AutoTable
-  'https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js', // Firebase App
-  'https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js', // Firebase Storage
-  'https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js', // Firebase Firestore
-  '/test/logo-89.png' // Logo image
+  '/test/', 
+  '/test/index.html',
+  '/test/service-worker.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css',
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js',
+  'https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js',
+  'https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js',
+  'https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js'
 ];
 
 self.addEventListener('install', function(event) {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(function(cache) {
-        console.log('Opened cache');
-        return Promise.all(
-          urlsToCache.map(url => {
-            return cache.add(url).catch(err => {
-              console.error('Failed to cache', url, err);
-            });
-          })
-        );
-      })
+    caches.open(CACHE_NAME).then(function(cache) {
+      return cache.addAll(urlsToCache);
+    }).catch(function(error) {
+      console.error('Failed to cache resources during install:', error);
+    })
   );
 });
 
 self.addEventListener('fetch', function(event) {
   event.respondWith(
-    caches.match(event.request)
-      .then(function(response) {
-        // Cache hit - return response
-        if (response) {
-          return response;
-        }
-        return fetch(event.request);
-      })
+    caches.match(event.request).then(function(response) {
+      // Return cached version if available, otherwise fetch from network
+      return response || fetch(event.request).catch(function() {
+        console.error('Fetch failed; returning offline page:', event.request.url);
+      });
+    })
   );
 });
 
