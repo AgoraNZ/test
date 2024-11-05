@@ -513,6 +513,79 @@
                 checklistContainer.appendChild(itemContainer);
             });
         }
+
+        function viewRecords() {
+            document.getElementById('form-container').style.display = 'none';
+            document.getElementById('record-container').style.display = 'block';
+            loadAllRecords();
+        }
+
+        async function loadAllRecords() {
+            const recordList = document.getElementById('record-list');
+            recordList.innerHTML = '';
+            const storageRef = storage.ref('customers');
+
+            try {
+                const folderSnapshot = await storageRef.listAll();
+                folderSnapshot.prefixes.forEach(folderRef => {
+                    const dairyNumber = folderRef.name;
+                    const folderLink = document.createElement('a');
+                    folderLink.textContent = dairyNumber;
+                    folderLink.href = '#';
+                    folderLink.addEventListener('click', () => {
+                        loadRecordFiles(dairyNumber);
+                    });
+                    recordList.appendChild(folderLink);
+                });
+            } catch (error) {
+                console.error('Error fetching records:', error);
+            }
+        }
+
+        async function loadRecordFiles(dairyNumber) {
+            const recordList = document.getElementById('record-list');
+            recordList.innerHTML = '';
+            const storageRef = storage.ref(`customers/${dairyNumber}`);
+
+            try {
+                const fileSnapshot = await storageRef.listAll();
+                fileSnapshot.items.forEach(fileRef => {
+                    const fileName = fileRef.name;
+                    const dateOnly = fileName.match(/(\d{4}-\d{2}-\d{2})/);
+                    const displayName = dateOnly ? dateOnly[0] : fileName;
+
+                    const fileLink = document.createElement('a');
+                    fileLink.textContent = displayName;
+                    fileLink.href = '#';
+                    fileLink.addEventListener('click', async () => {
+                        try {
+                            const url = await fileRef.getDownloadURL();
+                            window.open(url, '_blank');
+                        } catch (error) {
+                            console.error('Error fetching file:', error);
+                        }
+                    });
+                    recordList.appendChild(fileLink);
+                });
+
+                const backButton = document.createElement('button');
+                backButton.textContent = 'Back to Records';
+                backButton.className = 'back-button';
+                backButton.addEventListener('click', goBackToRecords);
+                recordList.appendChild(backButton);
+            } catch (error) {
+                console.error('Error fetching record files:', error);
+            }
+        }
+
+        function goBack() {
+            document.getElementById('form-container').style.display = 'block';
+            document.getElementById('record-container').style.display = 'none';
+        }
+
+        function goBackToRecords() {
+            loadAllRecords();
+        }
     </script>
 </body>
 
