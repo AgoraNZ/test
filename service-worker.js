@@ -1,6 +1,6 @@
-const CACHE_NAME = 'dairy-shed-cache-v3';
-const OFFLINE_URLS = [
-    '/test/',
+const cacheName = 'dairy-shed-cache-v1';
+const resourcesToCache = [
+    '/test/',  // Assuming this is the root URL for the offline form
     '/test/index.html',
     '/test/service-worker.js',
     'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css',
@@ -9,40 +9,57 @@ const OFFLINE_URLS = [
     'https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js',
     'https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js',
     'https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js',
-    '/test/logo-89.png',  // Assuming your logo is hosted here.
+    'https://i.postimg.cc/htZPjx5g/logo-89.png'
 ];
 
-self.addEventListener('install', (event) => {
+self.addEventListener('install', event => {
     event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll(OFFLINE_URLS);
-        })
+        caches.open(cacheName)
+            .then(cache => {
+                return cache.addAll(resourcesToCache);
+            })
+            .catch(error => {
+                console.error('Failed to cache some resources:', error);
+            })
     );
-    self.skipWaiting();
 });
 
-self.addEventListener('activate', (event) => {
+self.addEventListener('activate', event => {
     event.waitUntil(
-        caches.keys().then((keyList) => {
+        caches.keys().then(cacheNames => {
             return Promise.all(
-                keyList.map((key) => {
-                    if (key !== CACHE_NAME) {
-                        return caches.delete(key);
-                    }
-                })
+                cacheNames.filter(name => name !== cacheName)
+                    .map(name => caches.delete(name))
             );
         })
     );
-    self.clients.claim();
 });
 
-self.addEventListener('fetch', (event) => {
+self.addEventListener('fetch', event => {
     event.respondWith(
-        caches.match(event.request).then((cachedResponse) => {
-            if (cachedResponse) {
-                return cachedResponse;
-            }
-            return fetch(event.request).catch(() => caches.match('/test/index.html'));
-        })
+        caches.match(event.request)
+            .then(response => {
+                if (response) {
+                    return response; // If the cache is hit, return the cached response.
+                }
+                return fetch(event.request)
+                    .then(networkResponse => {
+                        // Cache the new fetched response if it's successful
+                        if (networkResponse && networkResponse.status === 200) {
+                            const responseClone = networkResponse.clone();
+                            caches.open(cacheName)
+                                .then(cache => {
+                                    cache.put(event.request, responseClone);
+                                });
+                        }
+                        return networkResponse;
+                    });
+            })
+            .catch(() => {
+                // If offline and request not in cache, serve fallback if applicable
+                if (event.request.mode === 'navigate') {
+                    return caches.match('/test/index.html');
+                }
+            })
     );
 });
