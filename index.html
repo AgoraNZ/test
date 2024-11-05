@@ -287,15 +287,59 @@
             let pdf = new jsPDF('p', 'pt', 'a4');
 
             pdf.setFontSize(14);
-            pdf.text("Dairy Shed Hygiene Checklist", 20, 20);
-            pdf.text("Farm Details:", 20, 40);
-            pdf.text("Dairy Company: " + formData.get('dairy-company'), 20, 60);
-            pdf.text("Dairy Number: " + formData.get('dairy-number'), 20, 80);
-            pdf.text("Address: " + formData.get('address'), 20, 100);
-            pdf.text("Customer Name: " + formData.get('customer-name'), 20, 120);
-            pdf.text("Region: " + formData.get('region'), 20, 140);
-            pdf.text("Farm Name: " + formData.get('farm-name'), 20, 160);
-            pdf.text("Island: " + formData.get('island'), 20, 180);
+            pdf.text("Dairy Shed Hygiene Checklist", 40, 40);
+            pdf.setFontSize(12);
+
+            // Farm Details Section
+            pdf.text("Farm Details:", 40, 70);
+            pdf.text(`Dairy Company: ${formData.get('dairy-company')}`, 40, 90);
+            pdf.text(`Dairy Number: ${formData.get('dairy-number')}`, 40, 110);
+            pdf.text(`Address: ${formData.get('address')}`, 40, 130);
+            pdf.text(`Customer Name: ${formData.get('customer-name')}`, 40, 150);
+            pdf.text(`Region: ${formData.get('region')}`, 40, 170);
+            pdf.text(`Farm Name: ${formData.get('farm-name')}`, 40, 190);
+            pdf.text(`Island: ${formData.get('island')}`, 40, 210);
+
+            // Checklist Items Section
+            const checklistItems = document.getElementById('checklist-items').children;
+            let checklistTable = [];
+            for (let item of checklistItems) {
+                const itemName = item.querySelector('label').textContent;
+                const status = item.querySelector('select').value;
+                let comments = item.querySelector('input[type="text"]').value;
+                if (status === 'attention-required') {
+                    comments += " (Attention Required)";
+                }
+                checklistTable.push([itemName, status, comments]);
+            }
+
+            pdf.autoTable({
+                startY: 230,
+                head: [['Item', 'Status', 'Comments']],
+                body: checklistTable,
+                styles: {
+                    fontSize: 10,
+                    cellPadding: 5,
+                },
+                headStyles: {
+                    fillColor: '#002B5C',
+                    textColor: '#FFFFFF'
+                }
+            });
+
+            // Temperature Measurements Section
+            let currentY = pdf.lastAutoTable.finalY + 20;
+            pdf.text('Temperature Measurements:', 40, currentY);
+            currentY += 20;
+
+            pdf.text(`Hot Water Temp: ${formData.get('hot-water-temp')} °C`, 40, currentY);
+            currentY += 15;
+            pdf.text(`Time Taken: ${formData.get('hot-water-time')}`, 40, currentY);
+            currentY += 20;
+
+            pdf.text(`Milk Temp: ${formData.get('milk-temp')} °C`, 40, currentY);
+            currentY += 15;
+            pdf.text(`Time Taken: ${formData.get('milk-time')}`, 40, currentY);
 
             // Save PDF Offline
             pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
@@ -371,28 +415,6 @@
                 commentsInput.placeholder = 'Comments';
                 itemContainer.appendChild(commentsInput);
 
-                const imageUpload = document.createElement('input');
-                imageUpload.type = 'file';
-                imageUpload.classList.add('form-control', 'image-upload');
-                imageUpload.style.display = 'none';
-                itemContainer.appendChild(imageUpload);
-
-                statusSelect.addEventListener('change', () => {
-                    if (statusSelect.value === 'attention-required') {
-                        imageUpload.style.display = 'block';
-                    } else {
-                        imageUpload.style.display = 'none';
-                    }
-
-                    if (statusSelect.value === 'not-checked') {
-                        commentsInput.value = "Milk in Vat";
-                    } else {
-                        if (commentsInput.value === "Milk in Vat") {
-                            commentsInput.value = "";
-                        }
-                    }
-                });
-
                 checklistContainer.appendChild(itemContainer);
             });
         }
@@ -409,22 +431,31 @@
             const storageRef = storage.ref('pdfs');
 
             try {
-                const folderSnapshot = await storageRef.listAll();
-                folderSnapshot.items.forEach(itemRef => {
-                    const fileName = itemRef.name;
-                    const link = document.createElement('a');
-                    link.textContent = fileName;
-                    link.href = '#';
-                    link.addEventListener('click', async () => {
+                const fileSnapshot = await storageRef.listAll();
+                fileSnapshot.items.forEach(fileRef => {
+                    const fileName = fileRef.name;
+                    const dateOnly = fileName.match(/(\d{4}-\d{2}-\d{2})/);
+                    const displayName = dateOnly ? dateOnly[0] : fileName;
+
+                    const fileLink = document.createElement('a');
+                    fileLink.textContent = displayName;
+                    fileLink.href = '#';
+                    fileLink.addEventListener('click', async () => {
                         try {
-                            const url = await itemRef.getDownloadURL();
+                            const url = await fileRef.getDownloadURL();
                             window.open(url, '_blank');
                         } catch (error) {
                             console.error('Error fetching file:', error);
                         }
                     });
-                    recordList.appendChild(link);
+                    recordList.appendChild(fileLink);
                 });
+
+                const backButton = document.createElement('button');
+                backButton.textContent = 'Back to Records';
+                backButton.className = 'back-button';
+                backButton.addEventListener('click', goBackToRecords);
+                recordList.appendChild(backButton);
             } catch (error) {
                 console.error('Error fetching records:', error);
             }
@@ -433,6 +464,10 @@
         function goBack() {
             document.getElementById('form-container').style.display = 'block';
             document.getElementById('record-container').style.display = 'none';
+        }
+
+        function goBackToRecords() {
+            loadAllRecords();
         }
     </script>
 </body>
