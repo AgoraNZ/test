@@ -247,6 +247,7 @@
             }
         }
 
+        // Function to generate PDF
         async function generatePDF() {
             const form = document.getElementById('hygiene-checklist-form');
             const formData = new FormData(form);
@@ -255,7 +256,7 @@
             const { jsPDF } = window.jspdf;
             let pdf = new jsPDF('p', 'pt', 'a4');
 
-            // Add logo
+            // Add logo centered
             const logoUrl = "https://i.postimg.cc/htZPjx5g/logo-89.png";
             const logo = await fetch(logoUrl).then((res) => res.blob());
             const reader = new FileReader();
@@ -357,7 +358,6 @@
                         photoY += 220;
                     });
 
-                    // Save PDF offline and handle later upload to Firebase
                     pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
                 }, 1000);
             };
@@ -432,7 +432,13 @@
             });
         }
 
-        // Add other functions like viewRecords, saveFarmDetails, etc., similar to the previous full implementation.
+        function viewRecords() {
+            document.getElementById('form-container').style.display = 'none';
+            document.getElementById('record-container').style.display = 'block';
+            loadAllRecords();
+        }
+
+        // Additional functions for offline capabilities and service worker registration should be included here.
     </script>
 </body>
 
