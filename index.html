@@ -254,6 +254,10 @@
         const storage = firebase.storage();
         const firestore = firebase.firestore();
 
+        const autoFillItems = [
+            "Inlet Valve", "Non-Return Valve", "Spray Ball", "Agitator", "Silo Door", "Manhole Seal", "Vat Outlet", "Walls in Silo"
+        ];
+
         async function fetchFarmDetails() {
             const dairyNumber = document.getElementById('dairy-number').value;
             if (dairyNumber) {
@@ -312,7 +316,7 @@
             const { jsPDF } = window.jspdf;
             let pdf = new jsPDF('p', 'pt', 'a4');
 
-            // Add logo centered (from Firebase Storage)
+            // Add logo stretched to width of the page (from Firebase Storage)
             const logoRef = storage.ref('deosan edge.png');
             try {
                 const logoUrl = await logoRef.getDownloadURL();
@@ -321,7 +325,7 @@
                 reader.readAsDataURL(logoBlob);
                 reader.onload = function () {
                     const imgData = reader.result;
-                    pdf.addImage(imgData, 'PNG', 180, 40, 240, 60);
+                    pdf.addImage(imgData, 'PNG', 40, 20, 500, 100); // Stretched to fit the page width
 
                     pdf.setFontSize(12);
                     pdf.setTextColor('#000000');
@@ -356,9 +360,12 @@
                         const imageFile = item.querySelector('input[type="file"]').files[0];
 
                         // Add note to comments for specific checklist items if 'Not Checked' is selected
-                        const autoFillItems = ["Inlet Valve", "Non-Return Valve", "Spray Ball", "Agitator", "Silo Door", "Manhole Seal", "Vat Outlet", "Walls in Silo"];
                         if (status === 'not-checked' && autoFillItems.includes(itemName)) {
                             comments = "Milk In Vat";
+                        }
+
+                        if (status === 'attention-required') {
+                            comments += " (See attached photo below)";
                         }
 
                         checklistTable.push([itemName, status, comments]);
