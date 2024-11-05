@@ -224,7 +224,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 5.0</div>
+        <div class="version">Version 5.1</div>
     </div>
 
     <!-- Records Viewing Page -->
@@ -238,12 +238,12 @@
     </div>
 
     <script>
-        // Firebase Configuration
+        // Firebase configuration
         const firebaseConfig = {
             apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
             projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
             messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
             appId: "YOUR_APP_ID"
         };
@@ -253,87 +253,50 @@
         const storage = firebase.storage();
         const firestore = firebase.firestore();
 
-        document.addEventListener("DOMContentLoaded", () => {
-            createChecklistItems();
-        });
-
-        function createChecklistItems() {
-            const checklistItems = [
-                "Pulsator Airline", "Long Bend Elbows", "Automatic Cup and Remover", "Diaphragm", "Receiving Can",
-                "Sanitary Trap", "Main Milk Line", "Milk Line Seals in Good Condition", "Stainless Droppers", "Long Milk Rubber",
-                "Liner", "Cluster", "Cluster Seal", "Cluster Button", "Non Return Valve at Milk Pump", "Milk Pump",
-                "Filter Housing", "Plate Cooler", "Interceptor", "Receiver Airline", "Flushing Pulsator", "Air Purge Valve",
-                "Vacuum Level", "Main Airline", "Plant Drainage - Milk Pump", "Plant Drainage - Filter/s", "Plant Drainage - Plate Cooler",
-                "Plant Drainage - Vat Entry", "Plant Wash Tap", "Wash Jetters", "Centre Gland", "Test Bucket", "Inlet Valve",
-                "Non-Return Valve", "Spray Ball", "Agitator", "Silo Door", "Manhole Seal", "Vat Outlet", "Walls in Silo"
-            ];
-
-            const checklistContainer = document.getElementById('checklist-items');
-            checklistContainer.innerHTML = '';
-
-            checklistItems.forEach(item => {
-                const itemContainer = document.createElement('div');
-                itemContainer.classList.add('checklist-item');
-
-                const label = document.createElement('label');
-                label.textContent = item;
-                itemContainer.appendChild(label);
-
-                const statusSelect = document.createElement('select');
-                statusSelect.classList.add('form-select');
-                statusSelect.innerHTML = `
-                    <option value="ok">OK</option>
-                    <option value="attention-required">Attention Required</option>
-                    <option value="na">N/A</option>
-                    <option value="not-checked">Not Checked</option>
-                `;
-                itemContainer.appendChild(statusSelect);
-
-                const commentsInput = document.createElement('input');
-                commentsInput.type = 'text';
-                commentsInput.classList.add('form-control');
-                commentsInput.placeholder = 'Comments';
-                itemContainer.appendChild(commentsInput);
-
-                const imageUpload = document.createElement('input');
-                imageUpload.type = 'file';
-                imageUpload.classList.add('form-control', 'image-upload');
-                imageUpload.style.display = 'none';
-                itemContainer.appendChild(imageUpload);
-
-                statusSelect.addEventListener('change', () => {
-                    if (statusSelect.value === 'attention-required') {
-                        imageUpload.style.display = 'block';
-                    } else {
-                        imageUpload.style.display = 'none';
+        // Fetch farm details from Firebase when Dairy Number is entered
+        async function fetchFarmDetails() {
+            const dairyNumber = document.getElementById('dairy-number').value;
+            if (navigator.onLine && dairyNumber) {
+                try {
+                    const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
+                    const url = await storageRef.getDownloadURL();
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    if (data) {
+                        document.getElementById('dairy-company').value = data.dairyCompany || '';
+                        document.getElementById('address').value = data.address || '';
+                        document.getElementById('customer-name').value = data.customerName || '';
+                        document.getElementById('region').value = data.region || '';
+                        document.getElementById('farm-name').value = data.farmName || '';
+                        document.getElementById('island').value = data.island || '';
                     }
-
-                    if (statusSelect.value === 'not-checked') {
-                        commentsInput.value = "Milk in Vat";
-                    } else {
-                        if (commentsInput.value === "Milk in Vat") {
-                            commentsInput.value = ""; // Clear the field if it was auto-filled by 'Not Checked'
-                        }
-                    }
-                });
-
-                checklistContainer.appendChild(itemContainer);
-            });
+                } catch (error) {
+                    console.error('Error fetching farm details:', error);
+                }
+            } else {
+                console.log("Offline or no dairy number provided");
+            }
         }
 
+        // Generate PDF function
         async function generatePDF() {
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF();
+            const form = document.getElementById('hygiene-checklist-form');
+            const formData = new FormData(form);
+            const dairyNumber = formData.get('dairy-number');
 
+            const { jsPDF } = window.jspdf;
+            let pdf = new jsPDF('p', 'pt', 'a4');
+
+            pdf.setFontSize(14);
             pdf.text("Dairy Shed Hygiene Checklist", 20, 20);
             pdf.text("Farm Details:", 20, 40);
-            pdf.text("Dairy Company: " + document.getElementById('dairy-company').value, 20, 60);
-            pdf.text("Dairy Number: " + document.getElementById('dairy-number').value, 20, 80);
-            pdf.text("Address: " + document.getElementById('address').value, 20, 100);
-            pdf.text("Customer Name: " + document.getElementById('customer-name').value, 20, 120);
-            pdf.text("Region: " + document.getElementById('region').value, 20, 140);
-            pdf.text("Farm Name: " + document.getElementById('farm-name').value, 20, 160);
-            pdf.text("Island: " + document.getElementById('island').value, 20, 180);
+            pdf.text("Dairy Company: " + formData.get('dairy-company'), 20, 60);
+            pdf.text("Dairy Number: " + formData.get('dairy-number'), 20, 80);
+            pdf.text("Address: " + formData.get('address'), 20, 100);
+            pdf.text("Customer Name: " + formData.get('customer-name'), 20, 120);
+            pdf.text("Region: " + formData.get('region'), 20, 140);
+            pdf.text("Farm Name: " + formData.get('farm-name'), 20, 160);
+            pdf.text("Island: " + formData.get('island'), 20, 180);
 
             // Save PDF Offline
             pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
@@ -371,31 +334,6 @@
             }
         });
 
-        async function fetchFarmDetails() {
-            const dairyNumber = document.getElementById('dairy-number').value;
-            if (navigator.onLine && dairyNumber) {
-                try {
-                    const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
-                    const url = await storageRef.getDownloadURL();
-                    const response = await fetch(url);
-                    const data = await response.json();
-                    if (data) {
-                        document.getElementById('dairy-company').value = data.dairyCompany || '';
-                        document.getElementById('address').value = data.address || '';
-                        document.getElementById('customer-name').value = data.customerName || '';
-                        document.getElementById('region').value = data.region || '';
-                        document.getElementById('farm-name').value = data.farmName || '';
-                        document.getElementById('island').value = data.island || '';
-                    }
-                } catch (error) {
-                    console.error('Error fetching farm details:', error);
-                }
-            } else {
-                console.log("Offline or no dairy number provided");
-            }
-        }
-
-        // Record viewing functions (for online mode)
         function viewRecords() {
             document.getElementById('form-container').style.display = 'none';
             document.getElementById('record-container').style.display = 'block';
