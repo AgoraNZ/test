@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,6 +18,7 @@
             padding: 20px;
             margin: 0;
         }
+
         .container {
             background-color: #002B5C;
             padding: 30px;
@@ -25,16 +27,21 @@
             max-width: 800px;
             width: 100%;
         }
-        h1, h2 {
+
+        h1,
+        h2 {
             color: #a7ab01;
             text-align: center;
         }
+
         h1 {
             margin-bottom: 40px;
         }
+
         label {
             margin-top: 10px;
         }
+
         button {
             background-color: #FF851B;
             color: #FFFFFF;
@@ -45,26 +52,33 @@
             margin: 20px auto;
             border-radius: 5px;
         }
+
         button:hover {
             background-color: #FF4136;
         }
+
         .checklist-item {
             margin-bottom: 30px;
         }
-        .form-control, .form-select {
+
+        .form-control,
+        .form-select {
             margin-top: 5px;
         }
+
         .version {
             text-align: center;
             margin-top: 20px;
             color: #FFFFFF;
             font-size: 12px;
         }
+
         .logo {
             display: block;
             margin: 0 auto 20px;
             width: 250px;
         }
+
         .record-container {
             background-color: #FFFFFF;
             color: #000000;
@@ -75,19 +89,23 @@
             width: 100%;
             margin: 20px auto;
         }
+
         .record-container h2 {
             color: #002B5C;
         }
+
         .record-list {
             max-height: 400px;
             overflow-y: auto;
         }
+
         .record-list a {
             text-decoration: none;
             color: #007bff;
             display: block;
             margin-bottom: 10px;
         }
+
         .back-button {
             margin-top: 20px;
             background-color: #002B5C;
@@ -97,6 +115,7 @@
             border-radius: 5px;
             cursor: pointer;
         }
+
         .search-container {
             margin-bottom: 20px;
         }
@@ -107,18 +126,19 @@
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
 </head>
+
 <body>
     <div class="container" id="form-container">
         <img src="https://i.postimg.cc/htZPjx5g/logo-89.png" alt="Logo" class="logo">
         <h1>Dairy Shed Hygiene Checklist</h1>
-        
+
         <form id="hygiene-checklist-form">
             <!-- Form Fields -->
             <div class="section mb-4">
                 <h2>Farm Details</h2>
                 <label for="dairy-number">Dairy Number:</label>
                 <input type="text" class="form-control" id="dairy-number" name="dairy-number" onblur="fetchFarmDetails()">
-                
+
                 <label for="dairy-company">Dairy Company:</label>
                 <select id="dairy-company" name="dairy-company" class="form-select">
                     <option value="fonterra">Fonterra</option>
@@ -259,11 +279,36 @@
             }
         }
 
+        // Functionality to create a new farm details record if not found
+        async function saveFarmDetails(formData) {
+            const dairyNumber = formData.get('dairy-number');
+            const farmDetails = {
+                dairyCompany: formData.get('dairy-company'),
+                address: formData.get('address'),
+                customerName: formData.get('customer-name'),
+                region: formData.get('region'),
+                farmName: formData.get('farm-name'),
+                island: formData.get('island'),
+            };
+            const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
+            const metadata = {
+                contentType: 'application/json',
+            };
+            try {
+                await storageRef.put(new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }), metadata);
+                console.log('Farm details saved successfully.');
+            } catch (error) {
+                console.error('Error saving farm details:', error);
+            }
+        }
+
         async function generatePDF() {
             const form = document.getElementById('hygiene-checklist-form');
             const formData = new FormData(form);
             const dairyNumber = formData.get('dairy-number');
-            
+
+            await saveFarmDetails(formData); // Save farm details if not found
+
             const { jsPDF } = window.jspdf;
             let pdf = new jsPDF('p', 'pt', 'a4');
 
@@ -299,72 +344,77 @@
                 // Checklist Items Section
                 const checklistItemsDiv = document.getElementById('checklist-items').children;
                 const checklistTable = [];
-                const imagesToAdd = [];
 
-                const loadImagePromises = Array.from(checklistItemsDiv).map((item) => {
-                    return new Promise((resolve) => {
-                        const itemName = item.querySelector('label').textContent;
-                        const status = item.querySelector('select').value;
-                        const comments = item.querySelector('input[type="text"]').value;
-                        const imageFile = item.querySelector('input[type="file"]').files[0];
+                for (let item of checklistItemsDiv) {
+                    const itemName = item.querySelector('label').textContent;
+                    const status = item.querySelector('select').value;
+                    const comments = item.querySelector('input[type="text"]').value;
+                    const imageFile = item.querySelector('input[type="file"]').files[0];
 
-                        let commentsText = comments;
-                        if (status === 'attention-required') {
-                            commentsText += ' (See attached photo below)';
-                        }
+                    const row = [itemName, status, comments];
+                    if (status === 'attention-required') {
+                        row.push('See attached photo below');
+                    }
 
-                        checklistTable.push([itemName, status, commentsText]);
+                    checklistTable.push(row);
 
-                        if (imageFile) {
-                            const reader = new FileReader();
-                            reader.onload = function (event) {
-                                imagesToAdd.push({ imageData: event.target.result, label: itemName });
-                                resolve();
-                            };
-                            reader.readAsDataURL(imageFile);
-                        } else {
-                            resolve();
-                        }
-                    });
+                    if (imageFile) {
+                        const imgReader = new FileReader();
+                        imgReader.onload = function (event) {
+                            pdf.addPage(); // Add a new page for each photo if too many
+                            pdf.addImage(event.target.result, 'JPEG', 40, 40, 100, 100);
+                            pdf.text(itemName, 150, 60);
+                        };
+                        imgReader.readAsDataURL(imageFile);
+                    }
+                }
+
+                // Generate checklist items table
+                pdf.autoTable({
+                    startY: 350,
+                    head: [['Item', 'Status', 'Comments']],
+                    body: checklistTable,
+                    styles: {
+                        fontSize: 10,
+                        cellPadding: 5,
+                    },
+                    headStyles: {
+                        fillColor: '#002B5C',
+                        textColor: '#FFFFFF'
+                    }
                 });
 
-                Promise.all(loadImagePromises).then(() => {
-                    pdf.autoTable({
-                        startY: 350,
-                        head: [['Item', 'Status', 'Comments']],
-                        body: checklistTable,
-                        styles: {
-                            fontSize: 10,
-                            cellPadding: 5,
-                        },
-                        headStyles: {
-                            fillColor: '#002B5C',
-                            textColor: '#FFFFFF'
-                        }
-                    });
+                // Add temperature data
+                let currentY = pdf.lastAutoTable.finalY + 20;
 
-                    // Add images to the PDF after the checklist table
-                    let currentY = pdf.lastAutoTable.finalY + 20;
-                    imagesToAdd.forEach((img) => {
-                        pdf.addImage(img.imageData, 'JPEG', 40, currentY, 100, 100);
-                        pdf.text(img.label, 150, currentY + 20);
-                        currentY += 120; // Leave space between images
-                    });
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('Temperature Measurements:', 40, currentY);
+                currentY += 20;
 
-                    // Save PDF and upload to Firebase
-                    const pdfBlob = pdf.output('blob');
-                    const timestamp = new Date().toISOString().split('T')[0];
-                    const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
-                    const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
+                pdf.setFont('helvetica', 'normal');
+                pdf.text(`Hot Water Temp: ${formData.get('hot-water-temp')} °C`, 40, currentY);
+                currentY += 15;
+                pdf.text(`Time Taken: ${formData.get('hot-water-time')}`, 40, currentY);
+                currentY += 20;
 
-                    storageRef.put(pdfBlob).then(() => {
-                        console.log('PDF uploaded successfully');
-                    }).catch((error) => {
-                        console.error('Error uploading PDF:', error);
-                    });
+                pdf.text(`Milk Temp: ${formData.get('milk-temp')} °C`, 40, currentY);
+                currentY += 15;
+                pdf.text(`Time Taken: ${formData.get('milk-time')}`, 40, currentY);
+                currentY += 20;
 
-                    pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
+                // Save PDF and upload to Firebase
+                const pdfBlob = pdf.output('blob');
+                const timestamp = new Date().toISOString().split('T')[0];
+                const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
+                const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
+
+                storageRef.put(pdfBlob).then(() => {
+                    console.log('PDF uploaded successfully');
+                }).catch((error) => {
+                    console.error('Error uploading PDF:', error);
                 });
+
+                pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
             };
         }
 
@@ -508,7 +558,7 @@
         function goBackToRecords() {
             loadAllRecords();
         }
-
     </script>
 </body>
+
 </html>
