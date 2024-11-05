@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -18,7 +17,6 @@
             padding: 20px;
             margin: 0;
         }
-
         .container {
             background-color: #002B5C;
             padding: 30px;
@@ -27,21 +25,16 @@
             max-width: 800px;
             width: 100%;
         }
-
-        h1,
-        h2 {
+        h1, h2 {
             color: #a7ab01;
             text-align: center;
         }
-
         h1 {
             margin-bottom: 40px;
         }
-
         label {
             margin-top: 10px;
         }
-
         button {
             background-color: #FF851B;
             color: #FFFFFF;
@@ -52,33 +45,26 @@
             margin: 20px auto;
             border-radius: 5px;
         }
-
         button:hover {
             background-color: #FF4136;
         }
-
         .checklist-item {
             margin-bottom: 30px;
         }
-
-        .form-control,
-        .form-select {
+        .form-control, .form-select {
             margin-top: 5px;
         }
-
         .version {
             text-align: center;
             margin-top: 20px;
             color: #FFFFFF;
             font-size: 12px;
         }
-
         .logo {
             display: block;
             margin: 0 auto 20px;
             width: 250px;
         }
-
         .record-container {
             background-color: #FFFFFF;
             color: #000000;
@@ -89,23 +75,19 @@
             width: 100%;
             margin: 20px auto;
         }
-
         .record-container h2 {
             color: #002B5C;
         }
-
         .record-list {
             max-height: 400px;
             overflow-y: auto;
         }
-
         .record-list a {
             text-decoration: none;
             color: #007bff;
             display: block;
             margin-bottom: 10px;
         }
-
         .back-button {
             margin-top: 20px;
             background-color: #002B5C;
@@ -115,7 +97,6 @@
             border-radius: 5px;
             cursor: pointer;
         }
-
         .search-container {
             margin-bottom: 20px;
         }
@@ -126,19 +107,18 @@
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
 </head>
-
 <body>
     <div class="container" id="form-container">
         <img src="https://i.postimg.cc/htZPjx5g/logo-89.png" alt="Logo" class="logo">
         <h1>Dairy Shed Hygiene Checklist</h1>
-
+        
         <form id="hygiene-checklist-form">
             <!-- Form Fields -->
             <div class="section mb-4">
                 <h2>Farm Details</h2>
                 <label for="dairy-number">Dairy Number:</label>
                 <input type="text" class="form-control" id="dairy-number" name="dairy-number" onblur="fetchFarmDetails()">
-
+                
                 <label for="dairy-company">Dairy Company:</label>
                 <select id="dairy-company" name="dairy-company" class="form-select">
                     <option value="fonterra">Fonterra</option>
@@ -225,7 +205,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 4.7</div>
+        <div class="version">Version 4.5</div>
     </div>
 
     <!-- Records Viewing Page -->
@@ -344,29 +324,27 @@
                 // Checklist Items Section
                 const checklistItemsDiv = document.getElementById('checklist-items').children;
                 const checklistTable = [];
-                const photos = [];
 
                 for (let item of checklistItemsDiv) {
                     const itemName = item.querySelector('label').textContent;
                     const status = item.querySelector('select').value;
-                    let comments = item.querySelector('input[type="text"]').value;
+                    const comments = item.querySelector('input[type="text"]').value;
                     const imageFile = item.querySelector('input[type="file"]').files[0];
 
+                    const row = [itemName, status, comments];
                     if (status === 'attention-required') {
-                        comments += " (See attached photo below)";
+                        row.push('See attached photo below');
                     }
 
-                    checklistTable.push([itemName, status, comments]);
+                    checklistTable.push(row);
 
                     if (imageFile) {
-                        const imgReader = new FileReader();
-                        imgReader.onload = function (event) {
-                            photos.push({
-                                imageData: event.target.result,
-                                title: itemName
-                            });
+                        const reader = new FileReader();
+                        reader.onload = function (event) {
+                            pdf.addImage(event.target.result, 'JPEG', 40, pdf.lastAutoTable.finalY + 20, 100, 50);
+                            pdf.text(itemName, 150, pdf.lastAutoTable.finalY + 35);
                         };
-                        imgReader.readAsDataURL(imageFile);
+                        reader.readAsDataURL(imageFile);
                     }
                 }
 
@@ -385,47 +363,19 @@
                     }
                 });
 
-                // Add temperature data
-                let currentY = pdf.lastAutoTable.finalY + 20;
+                // Save PDF and upload to Firebase
+                const pdfBlob = pdf.output('blob');
+                const timestamp = new Date().toISOString().split('T')[0];
+                const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
+                const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
 
-                pdf.setFont('helvetica', 'bold');
-                pdf.text('Temperature Measurements:', 40, currentY);
-                currentY += 20;
+                storageRef.put(pdfBlob).then(() => {
+                    console.log('PDF uploaded successfully');
+                }).catch((error) => {
+                    console.error('Error uploading PDF:', error);
+                });
 
-                pdf.setFont('helvetica', 'normal');
-                pdf.text(`Hot Water Temp: ${formData.get('hot-water-temp')} °C`, 40, currentY);
-                currentY += 15;
-                pdf.text(`Time Taken: ${formData.get('hot-water-time')}`, 40, currentY);
-                currentY += 20;
-
-                pdf.text(`Milk Temp: ${formData.get('milk-temp')} °C`, 40, currentY);
-                currentY += 15;
-                pdf.text(`Time Taken: ${formData.get('milk-time')}`, 40, currentY);
-                currentY += 20;
-
-                // Add photos after the checklist
-                setTimeout(() => {
-                    photos.forEach((photo, index) => {
-                        pdf.addPage();
-                        pdf.addImage(photo.imageData, 'JPEG', 40, 60, 500, 400);
-                        pdf.setFontSize(12);
-                        pdf.text(photo.title, 40, 40);
-                    });
-
-                    // Save PDF and upload to Firebase
-                    const pdfBlob = pdf.output('blob');
-                    const timestamp = new Date().toISOString().split('T')[0];
-                    const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
-                    const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
-
-                    storageRef.put(pdfBlob).then(() => {
-                        console.log('PDF uploaded successfully');
-                    }).catch((error) => {
-                        console.error('Error uploading PDF:', error);
-                    });
-
-                    pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
-                }, 1000);
+                pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
             };
         }
 
@@ -571,5 +521,4 @@
         }
     </script>
 </body>
-
 </html>
