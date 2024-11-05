@@ -205,7 +205,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 4.5</div>
+        <div class="version">Version 4.6</div>
     </div>
 
     <!-- Records Viewing Page -->
@@ -328,23 +328,23 @@
                 for (let item of checklistItemsDiv) {
                     const itemName = item.querySelector('label').textContent;
                     const status = item.querySelector('select').value;
-                    const comments = item.querySelector('input[type="text"]').value;
+                    let comments = item.querySelector('input[type="text"]').value;
                     const imageFile = item.querySelector('input[type="file"]').files[0];
 
-                    const row = [itemName, status, comments];
                     if (status === 'attention-required') {
-                        row.push('See attached photo below');
+                        comments += ' (See attached photo below)';
                     }
 
-                    checklistTable.push(row);
+                    checklistTable.push([itemName, status, comments]);
 
                     if (imageFile) {
-                        const reader = new FileReader();
-                        reader.onload = function (event) {
-                            pdf.addImage(event.target.result, 'JPEG', 40, pdf.lastAutoTable.finalY + 20, 100, 50);
-                            pdf.text(itemName, 150, pdf.lastAutoTable.finalY + 35);
+                        const imageReader = new FileReader();
+                        imageReader.onload = function (event) {
+                            pdf.addImage(event.target.result, 'JPEG', 40, pdf.lastAutoTable.finalY + 20, 150, 100);
+                            pdf.text(itemName, 200, pdf.lastAutoTable.finalY + 35);
+                            pdf.setFontSize(10);
                         };
-                        reader.readAsDataURL(imageFile);
+                        imageReader.readAsDataURL(imageFile);
                     }
                 }
 
