@@ -1,5 +1,5 @@
-const CACHE_NAME = 'dairy-shed-checklist-cache-v3';
-const DATA_CACHE_NAME = 'data-cache-v3';
+const CACHE_NAME = 'dairy-shed-checklist-cache-v4';
+const DATA_CACHE_NAME = 'data-cache-v4';
 const urlsToCache = [
     '/',
     '/index.html',
@@ -13,23 +13,26 @@ const urlsToCache = [
 ];
 
 // Install service worker and cache necessary files
-self.addEventListener('install', function(event) {
+self.addEventListener('install', function (event) {
     event.waitUntil(
         caches.open(CACHE_NAME)
-            .then(function(cache) {
+            .then(function (cache) {
                 console.log('Opened cache');
                 return cache.addAll(urlsToCache);
+            })
+            .catch(function (error) {
+                console.error('Failed to cache resources during install', error);
             })
     );
     self.skipWaiting();
 });
 
 // Activate service worker and clean up old caches
-self.addEventListener('activate', function(event) {
+self.addEventListener('activate', function (event) {
     event.waitUntil(
-        caches.keys().then(function(cacheNames) {
+        caches.keys().then(function (cacheNames) {
             return Promise.all(
-                cacheNames.map(function(cacheName) {
+                cacheNames.map(function (cacheName) {
                     if (cacheName !== CACHE_NAME && cacheName !== DATA_CACHE_NAME) {
                         console.log('Deleting old cache:', cacheName);
                         return caches.delete(cacheName);
@@ -42,21 +45,21 @@ self.addEventListener('activate', function(event) {
 });
 
 // Fetch handler to serve cached files when offline
-self.addEventListener('fetch', function(event) {
+self.addEventListener('fetch', function (event) {
     if (event.request.url.includes('/farm_details/') || event.request.url.includes('/customers/')) {
         // Network-first approach for Firebase data
         event.respondWith(
             fetch(event.request)
-                .then(function(response) {
+                .then(function (response) {
                     if (response && response.status === 200) {
                         const clonedResponse = response.clone();
-                        caches.open(DATA_CACHE_NAME).then(function(cache) {
+                        caches.open(DATA_CACHE_NAME).then(function (cache) {
                             cache.put(event.request, clonedResponse);
                         });
                     }
                     return response;
                 })
-                .catch(function() {
+                .catch(function () {
                     return caches.match(event.request);
                 })
         );
@@ -64,7 +67,7 @@ self.addEventListener('fetch', function(event) {
         // Cache-first approach for static assets
         event.respondWith(
             caches.match(event.request)
-                .then(function(response) {
+                .then(function (response) {
                     return response || fetch(event.request);
                 })
         );
@@ -72,7 +75,7 @@ self.addEventListener('fetch', function(event) {
 });
 
 // Listen for messages from the main script for saving the PDF offline
-self.addEventListener('message', function(event) {
+self.addEventListener('message', function (event) {
     if (event.data && event.data.type === 'SAVE_PDF_OFFLINE') {
         savePDFOffline(event.data.dairyNumber, event.data.pdfBlob);
     }
@@ -103,7 +106,7 @@ async function savePDFOffline(dairyNumber, pdfBlob) {
 }
 
 // Sync the saved PDFs when the connection is back
-self.addEventListener('sync', function(event) {
+self.addEventListener('sync', function (event) {
     if (event.tag === 'sync-pdfs') {
         event.waitUntil(syncPDFs());
     }
