@@ -155,7 +155,23 @@
                 <label for="customer-name">Customer Name:</label>
                 <input type="text" class="form-control" id="customer-name" name="customer-name">
                 <label for="region">Region:</label>
-                <input type="text" class="form-control" id="region" name="region">
+                <select id="region" name="region" class="form-select">
+                    <option value="northland">Northland</option>
+                    <option value="auckland">Auckland</option>
+                    <option value="waikato">Waikato</option>
+                    <option value="bay-of-plenty">Bay of Plenty</option>
+                    <option value="gisborne">Gisborne</option>
+                    <option value="hawkes-bay">Hawke's Bay</option>
+                    <option value="taranaki">Taranaki</option>
+                    <option value="manawatu-wanganui">Manawatu-Wanganui</option>
+                    <option value="wellington">Wellington</option>
+                    <option value="nelson">Nelson</option>
+                    <option value="marlborough">Marlborough</option>
+                    <option value="west-coast">West Coast</option>
+                    <option value="canterbury">Canterbury</option>
+                    <option value="otago">Otago</option>
+                    <option value="southland">Southland</option>
+                </select>
                 <label for="farm-name">Farm Name:</label>
                 <input type="text" class="form-control" id="farm-name" name="farm-name">
                 <label for="island">Island:</label>
@@ -165,6 +181,8 @@
                 </select>
                 <label for="visit-date">Visit Date:</label>
                 <input type="date" class="form-control" id="visit-date" name="visit-date">
+                <label for="visit-type">Visit Type:</label>
+                <input type="text" class="form-control" id="visit-type" name="visit-type" value="Milking Plant & Milk Vat Check" readonly>
                 <label for="inspection-start-time">Inspection Start Time:</label>
                 <input type="time" class="form-control" id="inspection-start-time" name="inspection-start-time">
                 <label for="inspection-end-time">Inspection End Time:</label>
@@ -207,7 +225,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 6.1</div>
+        <div class="version">Version 5.0</div>
     </div>
 
     <!-- Records Viewing Page -->
@@ -261,6 +279,7 @@
             }
         }
 
+        // Functionality to create a new farm details record if not found
         async function saveFarmDetails(formData) {
             const dairyNumber = formData.get('dairy-number');
             const farmDetails = {
@@ -288,123 +307,147 @@
             const formData = new FormData(form);
             const dairyNumber = formData.get('dairy-number');
 
-            await saveFarmDetails(formData);
+            await saveFarmDetails(formData); // Save farm details if not found
 
             const { jsPDF } = window.jspdf;
             let pdf = new jsPDF('p', 'pt', 'a4');
 
-            const logoUrl = "https://i.postimg.cc/htZPjx5g/logo-89.png";
-            const logo = await fetch(logoUrl).then((res) => res.blob());
-            const reader = new FileReader();
-            reader.readAsDataURL(logo);
-            reader.onload = function () {
-                const imgData = reader.result;
-                pdf.addImage(imgData, 'PNG', 180, 40, 240, 60);
+            // Add logo centered (from Firebase Storage)
+            const logoRef = storage.ref('deosan edge.png');
+            try {
+                const logoUrl = await logoRef.getDownloadURL();
+                const logoBlob = await fetch(logoUrl).then(res => res.blob());
+                const reader = new FileReader();
+                reader.readAsDataURL(logoBlob);
+                reader.onload = function () {
+                    const imgData = reader.result;
+                    pdf.addImage(imgData, 'PNG', 180, 40, 240, 60);
 
-                pdf.setFontSize(12);
-                pdf.setTextColor('#000000');
-                pdf.setFont('helvetica', 'bold');
-                pdf.text('Farm Details:', 40, 130);
+                    pdf.setFontSize(12);
+                    pdf.setTextColor('#000000');
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text('Farm Details:', 40, 130);
 
-                pdf.setFont('helvetica', 'normal');
-                pdf.text(`Dairy Company: ${formData.get('dairy-company')}`, 40, 150);
-                pdf.text(`Dairy Number: ${formData.get('dairy-number')}`, 40, 165);
-                pdf.text(`Address: ${formData.get('address')}`, 40, 180);
-                pdf.text(`Customer Name: ${formData.get('customer-name')}`, 40, 195);
-                pdf.text(`Region: ${formData.get('region')}`, 40, 210);
-                pdf.text(`Farm Name: ${formData.get('farm-name')}`, 40, 225);
-                pdf.text(`Island: ${formData.get('island')}`, 40, 240);
-                pdf.text(`Visit Date: ${formData.get('visit-date')}`, 40, 255);
-                pdf.text(`Inspection Completed By: ${formData.get('inspection-completed-by')}`, 40, 270);
-                pdf.text(`Call Type: ${formData.get('call-type')}`, 40, 285);
+                    // Adding all farm details from form to the PDF
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.text(`Dairy Company: ${formData.get('dairy-company')}`, 40, 150);
+                    pdf.text(`Dairy Number: ${formData.get('dairy-number')}`, 40, 165);
+                    pdf.text(`Address: ${formData.get('address')}`, 40, 180);
+                    pdf.text(`Customer Name: ${formData.get('customer-name')}`, 40, 195);
+                    pdf.text(`Region: ${formData.get('region')}`, 40, 210);
+                    pdf.text(`Farm Name: ${formData.get('farm-name')}`, 40, 225);
+                    pdf.text(`Island: ${formData.get('island')}`, 40, 240);
+                    pdf.text(`Visit Date: ${formData.get('visit-date')}`, 40, 255);
+                    pdf.text(`Visit Type: ${formData.get('visit-type')}`, 40, 270);
+                    pdf.text(`Inspection Start Time: ${formData.get('inspection-start-time')}`, 40, 285);
+                    pdf.text(`Inspection End Time: ${formData.get('inspection-end-time')}`, 40, 300);
+                    pdf.text(`Inspection Completed By: ${formData.get('inspection-completed-by')}`, 40, 315);
+                    pdf.text(`Call Type: ${formData.get('call-type')}`, 40, 330);
 
-                const checklistItemsDiv = document.getElementById('checklist-items').children;
-                const checklistTable = [];
-                const photos = [];
+                    // Checklist Items Section
+                    const checklistItemsDiv = document.getElementById('checklist-items').children;
+                    const checklistTable = [];
+                    const photos = [];
 
-                for (let item of checklistItemsDiv) {
-                    const itemName = item.querySelector('label').textContent;
-                    const status = item.querySelector('select').value;
-                    let comments = item.querySelector('input[type="text"]').value;
-                    const imageFile = item.querySelector('input[type="file"]').files[0];
+                    for (let item of checklistItemsDiv) {
+                        const itemName = item.querySelector('label').textContent;
+                        const status = item.querySelector('select').value;
+                        let comments = item.querySelector('input[type="text"]').value;
+                        const imageFile = item.querySelector('input[type="file"]').files[0];
 
-                    if (status === 'attention-required' && autoFillItems.includes(itemName)) {
-                        comments = "Milk in Vat";
-                    }
-
-                    checklistTable.push([itemName, status, comments]);
-
-                    if (imageFile) {
-                        const imgReader = new FileReader();
-                        imgReader.onload = function (event) {
-                            photos.push({
-                                imageData: event.target.result,
-                                title: itemName
-                            });
-                        };
-                        imgReader.readAsDataURL(imageFile);
-                    }
-                }
-
-                pdf.autoTable({
-                    startY: 350,
-                    head: [['Item', 'Status', 'Comments']],
-                    body: checklistTable,
-                    styles: {
-                        fontSize: 10,
-                        cellPadding: 5,
-                    },
-                    headStyles: {
-                        fillColor: '#002B5C',
-                        textColor: '#FFFFFF'
-                    }
-                });
-
-                let currentY = pdf.lastAutoTable.finalY + 20;
-
-                pdf.setFont('helvetica', 'bold');
-                pdf.text('Temperature Measurements:', 40, currentY);
-                currentY += 20;
-
-                pdf.setFont('helvetica', 'normal');
-                pdf.text(`Hot Water Temp: ${formData.get('hot-water-temp')} °C`, 40, currentY);
-                currentY += 15;
-                pdf.text(`Time Taken: ${formData.get('hot-water-time')}`, 40, currentY);
-                currentY += 20;
-
-                pdf.text(`Milk Temp: ${formData.get('milk-temp')} °C`, 40, currentY);
-                currentY += 15;
-                pdf.text(`Time Taken: ${formData.get('milk-time')}`, 40, currentY);
-                currentY += 20;
-
-                setTimeout(() => {
-                    let photoY = pdf.lastAutoTable.finalY + 120;
-
-                    photos.forEach((photo, index) => {
-                        if (photoY > 700) {
-                            pdf.addPage();
-                            photoY = 60;
+                        // Add note to comments for specific checklist items if 'Not Checked' is selected
+                        const autoFillItems = ["Inlet Valve", "Non-Return Valve", "Spray Ball", "Agitator", "Silo Door", "Manhole Seal", "Vat Outlet", "Walls in Silo"];
+                        if (status === 'not-checked' && autoFillItems.includes(itemName)) {
+                            comments = "Milk In Vat";
                         }
 
-                        pdf.addImage(photo.imageData, 'JPEG', 40, photoY, 250, 200);
-                        pdf.setFontSize(12);
-                        pdf.text(photo.title, 40, photoY - 10);
-                        photoY += 220;
+                        checklistTable.push([itemName, status, comments]);
+
+                        if (imageFile) {
+                            const imgReader = new FileReader();
+                            imgReader.onload = function (event) {
+                                photos.push({
+                                    imageData: event.target.result,
+                                    title: itemName
+                                });
+                            };
+                            imgReader.readAsDataURL(imageFile);
+                        }
+                    }
+
+                    // Generate checklist items table
+                    pdf.autoTable({
+                        startY: 350,
+                        head: [['Item', 'Status', 'Comments']],
+                        body: checklistTable,
+                        styles: {
+                            fontSize: 10,
+                            cellPadding: 5,
+                        },
+                        headStyles: {
+                            fillColor: '#002B5C',
+                            textColor: '#FFFFFF'
+                        }
                     });
 
-                    pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
-                }, 1000);
-            };
+                    // Add temperature data
+                    let currentY = pdf.lastAutoTable.finalY + 20;
+
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text('Temperature Measurements:', 40, currentY);
+                    currentY += 20;
+
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.text(`Hot Water Temp: ${formData.get('hot-water-temp')} °C`, 40, currentY);
+                    currentY += 15;
+                    pdf.text(`Time Taken: ${formData.get('hot-water-time')}`, 40, currentY);
+                    currentY += 20;
+
+                    pdf.text(`Milk Temp: ${formData.get('milk-temp')} °C`, 40, currentY);
+                    currentY += 15;
+                    pdf.text(`Time Taken: ${formData.get('milk-time')}`, 40, currentY);
+                    currentY += 20;
+
+                    // Add photos after the checklist
+                    setTimeout(() => {
+                        let photoY = pdf.lastAutoTable.finalY + 120; // Start placing photos after the last auto table
+
+                        photos.forEach((photo, index) => {
+                            if (photoY > 700) {
+                                // If we're getting close to the end of the page, add a new page
+                                pdf.addPage();
+                                photoY = 60; // Reset Y position for the new page
+                            }
+
+                            pdf.addImage(photo.imageData, 'JPEG', 40, photoY, 250, 200); // Adjust the size to fit more photos
+                            pdf.setFontSize(12);
+                            pdf.text(photo.title, 40, photoY - 10); // Add the title above the photo
+                            photoY += 220; // Move Y position down for the next photo (image height + spacing)
+                        });
+
+                        // Save PDF and upload to Firebase
+                        const pdfBlob = pdf.output('blob');
+                        const timestamp = new Date().toISOString().split('T')[0];
+                        const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
+                        const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
+
+                        storageRef.put(pdfBlob).then(() => {
+                            console.log('PDF uploaded successfully');
+                        }).catch((error) => {
+                            console.error('Error uploading PDF:', error);
+                        });
+
+                        pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
+                    }, 1000);
+                };
+            } catch (error) {
+                console.error('Error fetching logo:', error);
+            }
         }
 
         document.addEventListener("DOMContentLoaded", () => {
             createChecklistItems();
         });
-
-        const autoFillItems = [
-            "Inlet Valve", "Non-Return Valve", "Spray Ball", "Agitator",
-            "Silo Door", "Manhole Seal", "Vat Outlet", "Walls in Silo"
-        ];
 
         function createChecklistItems() {
             const checklistItems = [
@@ -457,10 +500,12 @@
                         imageUpload.style.display = 'none';
                     }
 
-                    if (autoFillItems.includes(item) && statusSelect.value === 'attention-required') {
-                        commentsInput.value = "Milk in Vat";
+                    if (statusSelect.value === 'not-checked' && autoFillItems.includes(item)) {
+                        commentsInput.value = "Milk In Vat";
                     } else {
-                        commentsInput.value = "";
+                        if (commentsInput.value === "Milk In Vat") {
+                            commentsInput.value = ""; // Clear the field if it was auto-filled by 'Not Checked'
+                        }
                     }
                 });
 
