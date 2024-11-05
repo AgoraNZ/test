@@ -205,7 +205,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 4.7</div>
+        <div class="version">Version 4.5</div>
     </div>
 
     <!-- Records Viewing Page -->
@@ -259,6 +259,7 @@
             }
         }
 
+        // Functionality to create a new farm details record if not found
         async function saveFarmDetails(formData) {
             const dairyNumber = formData.get('dairy-number');
             const farmDetails = {
@@ -286,11 +287,12 @@
             const formData = new FormData(form);
             const dairyNumber = formData.get('dairy-number');
 
-            await saveFarmDetails(formData);
+            await saveFarmDetails(formData); // Save farm details if not found
 
             const { jsPDF } = window.jspdf;
             let pdf = new jsPDF('p', 'pt', 'a4');
 
+            // Add logo centered
             const logoUrl = "https://i.postimg.cc/htZPjx5g/logo-89.png";
             const logo = await fetch(logoUrl).then((res) => res.blob());
             const reader = new FileReader();
@@ -319,8 +321,10 @@
                 pdf.text(`Inspection Completed By: ${formData.get('inspection-completed-by')}`, 40, 315);
                 pdf.text(`Call Type: ${formData.get('call-type')}`, 40, 330);
 
+                // Checklist Items Section
                 const checklistItemsDiv = document.getElementById('checklist-items').children;
                 const checklistTable = [];
+                const imagesToAdd = [];
 
                 for (let item of checklistItemsDiv) {
                     const itemName = item.querySelector('label').textContent;
@@ -338,13 +342,16 @@
                     if (imageFile) {
                         const reader = new FileReader();
                         reader.onload = function (event) {
-                            pdf.addImage(event.target.result, 'JPEG', 40, pdf.lastAutoTable.finalY + 20, 150, 100);
-                            pdf.text(itemName, 200, pdf.lastAutoTable.finalY + 35);
+                            imagesToAdd.push({
+                                imgData: event.target.result,
+                                label: itemName
+                            });
                         };
                         reader.readAsDataURL(imageFile);
                     }
                 }
 
+                // Generate checklist items table
                 pdf.autoTable({
                     startY: 350,
                     head: [['Item', 'Status', 'Comments']],
@@ -359,6 +366,20 @@
                     }
                 });
 
+                // Add images to the PDF
+                let currentY = pdf.lastAutoTable.finalY + 20;
+                imagesToAdd.forEach(image => {
+                    pdf.addImage(image.imgData, 'JPEG', 40, currentY, 180, 120);
+                    pdf.text(image.label, 40, currentY + 135);
+                    currentY += 150;
+
+                    if (currentY > pdf.internal.pageSize.height - 150) {
+                        pdf.addPage();
+                        currentY = 40;
+                    }
+                });
+
+                // Save PDF and upload to Firebase
                 const pdfBlob = pdf.output('blob');
                 const timestamp = new Date().toISOString().split('T')[0];
                 const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
@@ -456,65 +477,4 @@
             try {
                 const folderSnapshot = await storageRef.listAll();
                 folderSnapshot.prefixes.forEach(folderRef => {
-                    const dairyNumber = folderRef.name;
-                    const folderLink = document.createElement('a');
-                    folderLink.textContent = dairyNumber;
-                    folderLink.href = '#';
-                    folderLink.addEventListener('click', () => {
-                        loadRecordFiles(dairyNumber);
-                    });
-                    recordList.appendChild(folderLink);
-                });
-            } catch (error) {
-                console.error('Error fetching records:', error);
-            }
-        }
-
-        async function loadRecordFiles(dairyNumber) {
-            const recordList = document.getElementById('record-list');
-            recordList.innerHTML = '';
-            const storageRef = storage.ref(`customers/${dairyNumber}`);
-
-            try {
-                const fileSnapshot = await storageRef.listAll();
-                fileSnapshot.items.forEach(fileRef => {
-                    const fileName = fileRef.name;
-                    const dateOnly = fileName.match(/(\d{4}-\d{2}-\d{2})/);
-                    const displayName = dateOnly ? dateOnly[0] : fileName;
-
-                    const fileLink = document.createElement('a');
-                    fileLink.textContent = displayName;
-                    fileLink.href = '#';
-                    fileLink.addEventListener('click', async () => {
-                        try {
-                            const url = await fileRef.getDownloadURL();
-                            window.open(url, '_blank');
-                        } catch (error) {
-                            console.error('Error fetching file:', error);
-                        }
-                    });
-                    recordList.appendChild(fileLink);
-                });
-
-                const backButton = document.createElement('button');
-                backButton.textContent = 'Back to Records';
-                backButton.className = 'back-button';
-                backButton.addEventListener('click', goBackToRecords);
-                recordList.appendChild(backButton);
-            } catch (error) {
-                console.error('Error fetching record files:', error);
-            }
-        }
-
-        function goBack() {
-            document.getElementById('form-container').style.display = 'block';
-            document.getElementById('record-container').style.display = 'none';
-        }
-
-        function goBackToRecords() {
-            loadAllRecords();
-        }
-
-    </script>
-</body>
-</html>
+                    const
