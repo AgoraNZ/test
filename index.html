@@ -205,7 +205,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 4.6</div>
+        <div class="version">Version 4.5</div>
     </div>
 
     <!-- Records Viewing Page -->
@@ -324,6 +324,7 @@
                 // Checklist Items Section
                 const checklistItemsDiv = document.getElementById('checklist-items').children;
                 const checklistTable = [];
+                const imagesToAttach = [];
 
                 for (let item of checklistItemsDiv) {
                     const itemName = item.querySelector('label').textContent;
@@ -338,13 +339,18 @@
                     checklistTable.push([itemName, status, comments]);
 
                     if (imageFile) {
-                        const imageReader = new FileReader();
-                        imageReader.onload = function (event) {
-                            pdf.addImage(event.target.result, 'JPEG', 40, pdf.lastAutoTable.finalY + 20, 150, 100);
-                            pdf.text(itemName, 200, pdf.lastAutoTable.finalY + 35);
-                            pdf.setFontSize(10);
+                        const reader = new FileReader();
+                        reader.onload = function (event) {
+                            imagesToAttach.push({
+                                imgData: event.target.result,
+                                label: itemName
+                            });
+
+                            if (imagesToAttach.length === checklistItemsDiv.length) {
+                                addImagesToPDF(pdf, imagesToAttach);
+                            }
                         };
-                        imageReader.readAsDataURL(imageFile);
+                        reader.readAsDataURL(imageFile);
                     }
                 }
 
@@ -363,6 +369,24 @@
                     }
                 });
 
+                // Adding the temperature data
+                let currentY = pdf.lastAutoTable.finalY + 20;
+
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('Temperature Measurements:', 40, currentY);
+                currentY += 20;
+
+                pdf.setFont('helvetica', 'normal');
+                pdf.text(`Hot Water Temp: ${formData.get('hot-water-temp')} °C`, 40, currentY);
+                currentY += 15;
+                pdf.text(`Time Taken: ${formData.get('hot-water-time')}`, 40, currentY);
+                currentY += 20;
+
+                pdf.text(`Milk Temp: ${formData.get('milk-temp')} °C`, 40, currentY);
+                currentY += 15;
+                pdf.text(`Time Taken: ${formData.get('milk-time')}`, 40, currentY);
+                currentY += 20;
+
                 // Save PDF and upload to Firebase
                 const pdfBlob = pdf.output('blob');
                 const timestamp = new Date().toISOString().split('T')[0];
@@ -377,6 +401,33 @@
 
                 pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
             };
+        }
+
+        function addImagesToPDF(pdf, imagesToAttach) {
+            let currentY = pdf.lastAutoTable.finalY + 40;
+
+            for (const imageObj of imagesToAttach) {
+                pdf.setFont('helvetica', 'bold');
+                pdf.text(imageObj.label, 40, currentY);
+                currentY += 15;
+
+                pdf.addImage(imageObj.imgData, 'JPEG', 40, currentY, 200, 70);
+                currentY += 90;
+            }
+
+            // Save or upload the updated PDF
+            const timestamp = new Date().toISOString().split('T')[0];
+            const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
+            const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
+            const pdfBlob = pdf.output('blob');
+
+            storageRef.put(pdfBlob).then(() => {
+                console.log('PDF with images uploaded successfully');
+            }).catch((error) => {
+                console.error('Error uploading PDF with images:', error);
+            });
+
+            pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
         }
 
         document.addEventListener("DOMContentLoaded", () => {
@@ -519,6 +570,7 @@
         function goBackToRecords() {
             loadAllRecords();
         }
+
     </script>
 </body>
 </html>
