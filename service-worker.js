@@ -1,8 +1,8 @@
-const CACHE_NAME = 'dairy-shed-checklist-cache-v4';
-const DATA_CACHE_NAME = 'data-cache-v4';
+const CACHE_NAME = 'dairy-shed-checklist-cache-v5';
+const DATA_CACHE_NAME = 'data-cache-v5';
 const urlsToCache = [
-    '/',
-    '/index.html',
+    '/test/', // The root of your GitHub Pages site (adjust this if necessary)
+    '/test/index.html', // Your main form page
     'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css',
     'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js',
     'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js',
@@ -46,29 +46,26 @@ self.addEventListener('activate', function (event) {
 
 // Fetch handler to serve cached files when offline
 self.addEventListener('fetch', function (event) {
-    if (event.request.url.includes('/farm_details/') || event.request.url.includes('/customers/')) {
-        // Network-first approach for Firebase data
-        event.respondWith(
-            fetch(event.request)
-                .then(function (response) {
-                    if (response && response.status === 200) {
-                        const clonedResponse = response.clone();
-                        caches.open(DATA_CACHE_NAME).then(function (cache) {
-                            cache.put(event.request, clonedResponse);
-                        });
-                    }
-                    return response;
-                })
-                .catch(function () {
-                    return caches.match(event.request);
-                })
-        );
-    } else {
-        // Cache-first approach for static assets
+    if (event.request.mode !== 'navigate') {
+        // For requests that are not navigation requests, use cache-first approach
         event.respondWith(
             caches.match(event.request)
                 .then(function (response) {
-                    return response || fetch(event.request);
+                    return response || fetch(event.request)
+                        .catch(function () {
+                            return new Response('Offline: Resource not available', {
+                                status: 503,
+                                statusText: 'Service Unavailable'
+                            });
+                        });
+                })
+        );
+    } else {
+        // For navigation requests, use network-first approach with fallback to cache
+        event.respondWith(
+            fetch(event.request)
+                .catch(function () {
+                    return caches.match('/test/index.html'); // Serve the cached version of the form when offline
                 })
         );
     }
