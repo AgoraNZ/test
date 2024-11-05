@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dairy-shed-cache-v2';
+const CACHE_NAME = 'dairy-shed-cache-v3';
 const OFFLINE_URLS = [
     '/test/',
     '/test/index.html',
