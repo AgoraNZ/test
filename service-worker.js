@@ -1,5 +1,5 @@
-const CACHE_NAME = 'dairy-shed-checklist-cache-v2';
-const DATA_CACHE_NAME = 'data-cache-v2';
+const CACHE_NAME = 'dairy-shed-checklist-cache-v3';
+const DATA_CACHE_NAME = 'data-cache-v3';
 const urlsToCache = [
     '/',
     '/index.html',
