@@ -225,7 +225,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 5.1</div>
+        <div class="version">Version 5.0</div>
     </div>
 
     <!-- Records Viewing Page -->
@@ -253,6 +253,17 @@
         firebase.initializeApp(firebaseConfig);
         const storage = firebase.storage();
         const firestore = firebase.firestore();
+
+        // Register service worker for offline capability
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/test/service-worker.js')
+                .then(registration => {
+                    console.log('Service Worker registered with scope:', registration.scope);
+                })
+                .catch(error => {
+                    console.error('Service Worker registration failed:', error);
+                });
+        }
 
         async function fetchFarmDetails() {
             const dairyNumber = document.getElementById('dairy-number').value;
@@ -406,14 +417,14 @@
                 // Add photos after the checklist
                 setTimeout(() => {
                     let photoY = pdf.lastAutoTable.finalY + 120; // Start placing photos after the last auto table
-                    
+
                     photos.forEach((photo, index) => {
                         if (photoY > 700) {
                             // If we're getting close to the end of the page, add a new page
                             pdf.addPage();
                             photoY = 60; // Reset Y position for the new page
                         }
-                        
+
                         pdf.addImage(photo.imageData, 'JPEG', 40, photoY, 250, 200); // Adjust the size to fit more photos
                         pdf.setFontSize(12);
                         pdf.text(photo.title, 40, photoY - 10); // Add the title above the photo
@@ -434,18 +445,8 @@
 
                     pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
                 }, 1000);
-            };
-        }
 
-        // Register the service worker for offline use
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/service-worker.js')
-                .then(function (registration) {
-                    console.log('Service Worker registration successful with scope:', registration.scope);
-                })
-                .catch(function (error) {
-                    console.error('Service Worker registration failed:', error);
-                });
+            };
         }
 
         document.addEventListener("DOMContentLoaded", () => {
