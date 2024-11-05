@@ -196,10 +196,45 @@
                 </select>
             </div>
 
+            <!-- Checklist Items Section -->
+            <div class="section mb-4">
+                <h2>Checklist Items</h2>
+                <div id="checklist-items">
+                    <!-- Checklist items will be dynamically added here -->
+                </div>
+            </div>
+
+            <!-- Temperature Measurements Section -->
+            <div class="section mb-4">
+                <h2>Temperature Measurements</h2>
+                <div class="checklist-item">
+                    <label for="hot-water-temp">Hot Water Temp (°C):</label>
+                    <input type="number" class="form-control" id="hot-water-temp" name="hot-water-temp" step="0.1">
+                    <label for="hot-water-time">Time Taken:</label>
+                    <input type="time" class="form-control" id="hot-water-time" name="hot-water-time">
+                </div>
+                <div class="checklist-item">
+                    <label for="milk-temp">Milk Temp (°C):</label>
+                    <input type="number" class="form-control" id="milk-temp" name="milk-temp" step="0.1">
+                    <label for="milk-time">Time Taken:</label>
+                    <input type="time" class="form-control" id="milk-time" name="milk-time">
+                </div>
+            </div>
+
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
         <div class="version">Version 5.0</div>
+    </div>
+
+    <!-- Records Viewing Page -->
+    <div id="record-container" class="record-container" style="display: none;">
+        <h2>All Dairy Shed Hygiene Records</h2>
+        <div class="search-container">
+            <input type="text" id="search-dairy-number" class="form-control" placeholder="Search by Dairy Number" oninput="filterRecords()">
+        </div>
+        <div id="record-list" class="record-list"></div>
+        <button class="back-button" onclick="goBack()">Back to Checklist</button>
     </div>
 
     <script>
@@ -218,7 +253,6 @@
         const storage = firebase.storage();
         const firestore = firebase.firestore();
 
-        // Generate PDF Function
         async function generatePDF() {
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF();
@@ -226,7 +260,12 @@
             pdf.text("Dairy Shed Hygiene Checklist", 20, 20);
             pdf.text("Farm Details:", 20, 40);
             pdf.text("Dairy Company: " + document.getElementById('dairy-company').value, 20, 60);
-            // ... Add more fields as needed
+            pdf.text("Dairy Number: " + document.getElementById('dairy-number').value, 20, 80);
+            pdf.text("Address: " + document.getElementById('address').value, 20, 100);
+            pdf.text("Customer Name: " + document.getElementById('customer-name').value, 20, 120);
+            pdf.text("Region: " + document.getElementById('region').value, 20, 140);
+            pdf.text("Farm Name: " + document.getElementById('farm-name').value, 20, 160);
+            pdf.text("Island: " + document.getElementById('island').value, 20, 180);
 
             // Save PDF Offline
             pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
@@ -264,7 +303,6 @@
             }
         });
 
-        // Load Farm Details
         async function fetchFarmDetails() {
             const dairyNumber = document.getElementById('dairy-number').value;
             if (navigator.onLine && dairyNumber) {
@@ -286,6 +324,45 @@
                 }
             } else {
                 console.log("Offline or no dairy number provided");
+            }
+        }
+
+        // Record viewing functions (for online mode)
+        function viewRecords() {
+            document.getElementById('form-container').style.display = 'none';
+            document.getElementById('record-container').style.display = 'block';
+            loadAllRecords();
+        }
+
+        function goBack() {
+            document.getElementById('form-container').style.display = 'block';
+            document.getElementById('record-container').style.display = 'none';
+        }
+
+        async function loadAllRecords() {
+            const recordList = document.getElementById('record-list');
+            recordList.innerHTML = '';
+            const storageRef = storage.ref('pdfs');
+
+            try {
+                const folderSnapshot = await storageRef.listAll();
+                folderSnapshot.items.forEach(itemRef => {
+                    const fileName = itemRef.name;
+                    const link = document.createElement('a');
+                    link.textContent = fileName;
+                    link.href = '#';
+                    link.addEventListener('click', async () => {
+                        try {
+                            const url = await itemRef.getDownloadURL();
+                            window.open(url, '_blank');
+                        } catch (error) {
+                            console.error('Error fetching file:', error);
+                        }
+                    });
+                    recordList.appendChild(link);
+                });
+            } catch (error) {
+                console.error('Error fetching records:', error);
             }
         }
     </script>
