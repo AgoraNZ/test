@@ -141,6 +141,10 @@
         const storage = firebase.storage();
         const firestore = firebase.firestore();
 
+        document.addEventListener("DOMContentLoaded", () => {
+            createChecklistItems();
+        });
+
         async function fetchFarmDetails() {
             const dairyNumber = document.getElementById('dairy-number').value;
             if (dairyNumber) {
@@ -286,10 +290,6 @@
                 }, 1000);
             };
         }
-
-        document.addEventListener("DOMContentLoaded", () => {
-            createChecklistItems();
-        });
 
         function createChecklistItems() {
             const checklistItems = [
