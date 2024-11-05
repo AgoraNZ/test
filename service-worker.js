@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dairy-shed-cache-v1';
+const CACHE_NAME = 'dairy-shed-cache-v2';
 const urlsToCache = [
   '/test/', // Root page
   '/test/index.html', // HTML page
@@ -17,7 +17,13 @@ self.addEventListener('install', function(event) {
     caches.open(CACHE_NAME)
       .then(function(cache) {
         console.log('Opened cache');
-        return cache.addAll(urlsToCache);
+        return Promise.all(
+          urlsToCache.map(url => {
+            return cache.add(url).catch(err => {
+              console.error('Failed to cache', url, err);
+            });
+          })
+        );
       })
   );
 });
