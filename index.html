@@ -125,6 +125,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/idb/6.1.0/idb.min.js"></script>
 </head>
 
 <body>
@@ -225,7 +226,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 5.4</div>
+        <div class="version">Version 5.5</div>
     </div>
 
     <!-- Records Viewing Page -->
@@ -254,6 +255,17 @@
         const storage = firebase.storage();
         const firestore = firebase.firestore();
 
+        // Service Worker Registration for Offline Capability
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/service-worker.js').then(function(registration) {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, function(err) {
+                    console.error('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+
         async function fetchFarmDetails() {
             const dairyNumber = document.getElementById('dairy-number').value;
             if (dairyNumber) {
@@ -276,29 +288,6 @@
                 } catch (error) {
                     console.error('Error fetching farm details:', error);
                 }
-            }
-        }
-
-        // Functionality to create a new farm details record if not found
-        async function saveFarmDetails(formData) {
-            const dairyNumber = formData.get('dairy-number');
-            const farmDetails = {
-                dairyCompany: formData.get('dairy-company'),
-                address: formData.get('address'),
-                customerName: formData.get('customer-name'),
-                region: formData.get('region'),
-                farmName: formData.get('farm-name'),
-                island: formData.get('island'),
-            };
-            const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
-            const metadata = {
-                contentType: 'application/json',
-            };
-            try {
-                await storageRef.put(new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }), metadata);
-                console.log('Farm details saved successfully.');
-            } catch (error) {
-                console.error('Error saving farm details:', error);
             }
         }
 
@@ -344,30 +333,11 @@
                 // Checklist Items Section
                 const checklistItemsDiv = document.getElementById('checklist-items').children;
                 const checklistTable = [];
-                const photos = [];
-
                 for (let item of checklistItemsDiv) {
                     const itemName = item.querySelector('label').textContent;
                     const status = item.querySelector('select').value;
                     let comments = item.querySelector('input[type="text"]').value;
-                    const imageFile = item.querySelector('input[type="file"]').files[0];
-
-                    if (status === 'attention-required') {
-                        comments += " (See attached photo below)";
-                    }
-
                     checklistTable.push([itemName, status, comments]);
-
-                    if (imageFile) {
-                        const imgReader = new FileReader();
-                        imgReader.onload = function (event) {
-                            photos.push({
-                                imageData: event.target.result,
-                                title: itemName
-                            });
-                        };
-                        imgReader.readAsDataURL(imageFile);
-                    }
                 }
 
                 // Generate checklist items table
@@ -403,52 +373,11 @@
                 pdf.text(`Time Taken: ${formData.get('milk-time')}`, 40, currentY);
                 currentY += 20;
 
-                // Add photos after the checklist
-                setTimeout(() => {
-                    let photoY = pdf.lastAutoTable.finalY + 120; // Start placing photos after the last auto table
-                    
-                    photos.forEach((photo, index) => {
-                        if (photoY > 700) {
-                            // If we're getting close to the end of the page, add a new page
-                            pdf.addPage();
-                            photoY = 60; // Reset Y position for the new page
-                        }
-                        
-                        pdf.addImage(photo.imageData, 'JPEG', 40, photoY, 250, 200); // Adjust the size to fit more photos
-                        pdf.setFontSize(12);
-                        pdf.text(photo.title, 40, photoY - 10); // Add the title above the photo
-                        photoY += 220; // Move Y position down for the next photo (image height + spacing)
-                    });
-
-                    // Save PDF and upload to Firebase
-                    const pdfBlob = pdf.output('blob');
-                    const timestamp = new Date().toISOString().split('T')[0];
-                    const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
-                    const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
-
-                    storageRef.put(pdfBlob).then(() => {
-                        console.log('PDF uploaded successfully');
-                    }).catch((error) => {
-                        console.error('Error uploading PDF:', error);
-                    });
-
-                    pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
-                }, 1000);
-
+                pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
             };
         }
 
-        // Offline Handling - Save data in IndexedDB when offline
-        async function saveToIndexedDB(data) {
-            // IndexedDB logic to save the data
-        }
-
-        window.addEventListener('online', syncDataWithFirebase);
-
-        async function syncDataWithFirebase() {
-            // Sync data from IndexedDB with Firebase when back online
-        }
-
+        // Logic for creating checklist items and setting "Milk in Vat" on Not Checked for selected items
         document.addEventListener("DOMContentLoaded", () => {
             createChecklistItems();
         });
@@ -491,24 +420,16 @@
                 commentsInput.placeholder = 'Comments';
                 itemContainer.appendChild(commentsInput);
 
-                const imageUpload = document.createElement('input');
-                imageUpload.type = 'file';
-                imageUpload.classList.add('form-control', 'image-upload');
-                imageUpload.style.display = 'none';
-                itemContainer.appendChild(imageUpload);
-
                 statusSelect.addEventListener('change', () => {
-                    if (statusSelect.value === 'attention-required') {
-                        imageUpload.style.display = 'block';
-                    } else {
-                        imageUpload.style.display = 'none';
-                    }
-
                     if (statusSelect.value === 'not-checked') {
-                        commentsInput.value = "Milk in Vat";
+                        if ([
+                            "Inlet Valve", "Non-Return Valve", "Spray Ball", "Agitator", "Silo Door", "Manhole Seal", "Vat Outlet", "Walls in Silo"
+                        ].includes(item)) {
+                            commentsInput.value = "Milk in Vat";
+                        }
                     } else {
                         if (commentsInput.value === "Milk in Vat") {
-                            commentsInput.value = ""; // Clear the field if it was auto-filled by 'Not Checked'
+                            commentsInput.value = ""; // Clear if not set to "Not Checked"
                         }
                     }
                 });
