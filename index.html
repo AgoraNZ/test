@@ -291,10 +291,10 @@
             }
         }
 
-        // The remaining JavaScript functions should include:
+        // Complete JavaScript functions will include:
         // - Checklist item creation with conditions for showing/hiding image uploads.
-        // - PDF generation both online and offline.
-        // - IndexedDB to store PDFs and form data when offline.
+        // - Correct saving and fetching of records both online and offline.
+        // - Proper offline PDF generation using IndexedDB.
         // - Functionality to load and view records online and offline.
 
         document.addEventListener("DOMContentLoaded", () => {
@@ -363,19 +363,6 @@
 
                 checklistContainer.appendChild(itemContainer);
             });
-        }
-
-        function viewRecords() {
-            document.getElementById('form-container').style.display = 'none';
-            document.getElementById('record-container').style.display = 'block';
-            loadAllRecords();
-        }
-
-        // Placeholder for functions to load records online/offline
-
-        function goBack() {
-            document.getElementById('form-container').style.display = 'block';
-            document.getElementById('record-container').style.display = 'none';
         }
     </script>
 </body>
