@@ -129,6 +129,7 @@
 
 <body>
     <div class="container" id="form-container">
+        <img src="https://i.postimg.cc/htZPjx5g/logo-89.png" alt="Logo" class="logo">
         <h1>Dairy Shed Hygiene Checklist</h1>
 
         <form id="hygiene-checklist-form">
@@ -240,12 +241,12 @@
     <script>
         // Firebase configuration
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT_ID.appspot.com",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyDr9nA44Kkej*****GUzbMDECI8cTFI",
+            authDomain: "dairy-farm-record-system.firebaseapp.com",
+            projectId: "dairy-farm-record-system",
+            storageBucket: "dairy-farm-record-system.appspot.com",
+            messagingSenderId: "422124188212",
+            appId: "1:422124188212:web:1bd31bee8d6e91e301d061"
         };
 
         // Initialize Firebase
@@ -253,7 +254,85 @@
         const storage = firebase.storage();
         const firestore = firebase.firestore();
 
-        // Checklist items initialization
+        async function fetchFarmDetails() {
+            const dairyNumber = document.getElementById('dairy-number').value;
+            if (navigator.onLine && dairyNumber) {
+                try {
+                    const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
+                    const url = await storageRef.getDownloadURL();
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    if (data) {
+                        document.getElementById('dairy-company').value = data.dairyCompany || '';
+                        document.getElementById('address').value = data.address || '';
+                        document.getElementById('customer-name').value = data.customerName || '';
+                        document.getElementById('region').value = data.region || '';
+                        document.getElementById('farm-name').value = data.farmName || '';
+                        document.getElementById('island').value = data.island || '';
+                    }
+                } catch (error) {
+                    console.error('Error fetching farm details:', error);
+                }
+            } else {
+                console.log("Offline or no dairy number provided");
+            }
+        }
+
+        async function generatePDF() {
+            const form = document.getElementById('hygiene-checklist-form');
+            const formData = new FormData(form);
+            const dairyNumber = formData.get('dairy-number');
+
+            const { jsPDF } = window.jspdf;
+            let pdf = new jsPDF('p', 'pt', 'a4');
+
+            pdf.setFontSize(14);
+            pdf.text("Dairy Shed Hygiene Checklist", 20, 20);
+            pdf.text("Farm Details:", 20, 40);
+            pdf.text("Dairy Company: " + formData.get('dairy-company'), 20, 60);
+            pdf.text("Dairy Number: " + formData.get('dairy-number'), 20, 80);
+            pdf.text("Address: " + formData.get('address'), 20, 100);
+            pdf.text("Customer Name: " + formData.get('customer-name'), 20, 120);
+            pdf.text("Region: " + formData.get('region'), 20, 140);
+            pdf.text("Farm Name: " + formData.get('farm-name'), 20, 160);
+            pdf.text("Island: " + formData.get('island'), 20, 180);
+
+            // Save PDF Offline
+            pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
+
+            // If online, save to Firebase
+            if (navigator.onLine) {
+                const pdfBlob = pdf.output('blob');
+                try {
+                    const storageRef = storage.ref(`pdfs/Dairy_Shed_Hygiene_Checklist_${new Date().toISOString()}.pdf`);
+                    await storageRef.put(pdfBlob);
+                    console.log("PDF uploaded successfully");
+                } catch (error) {
+                    console.error("Failed to upload PDF", error);
+                }
+            } else {
+                localStorage.setItem('pendingPDF', pdf.output('datauristring'));
+                console.log("PDF saved locally for later upload.");
+            }
+        }
+
+        window.addEventListener('online', async () => {
+            const pendingPDF = localStorage.getItem('pendingPDF');
+            if (pendingPDF) {
+                const pdfBlob = await fetch(pendingPDF).then(res => res.blob());
+                try {
+                    const storageRef = storage.ref(`pdfs/Dairy_Shed_Hygiene_Checklist_${new Date().toISOString()}.pdf`);
+                    await storageRef.put(pdfBlob);
+                    console.log("PDF uploaded successfully from local storage");
+                    localStorage.removeItem('pendingPDF');
+                } catch (error) {
+                    console.error("Failed to upload PDF from local storage", error);
+                }
+            }
+        });
+
+        document.addEventListener("DOMContentLoaded", createChecklistItems);
+
         function createChecklistItems() {
             const checklistItems = [
                 "Pulsator Airline", "Long Bend Elbows", "Automatic Cup and Remover", "Diaphragm", "Receiving Can",
@@ -309,7 +388,7 @@
                         commentsInput.value = "Milk in Vat";
                     } else {
                         if (commentsInput.value === "Milk in Vat") {
-                            commentsInput.value = ""; // Clear the field if it was auto-filled by 'Not Checked'
+                            commentsInput.value = "";
                         }
                     }
                 });
@@ -318,96 +397,10 @@
             });
         }
 
-        // Fetch farm details from Firebase when Dairy Number is entered
-        async function fetchFarmDetails() {
-            const dairyNumber = document.getElementById('dairy-number').value;
-            if (navigator.onLine && dairyNumber) {
-                try {
-                    const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
-                    const url = await storageRef.getDownloadURL();
-                    const response = await fetch(url);
-                    const data = await response.json();
-                    if (data) {
-                        document.getElementById('dairy-company').value = data.dairyCompany || '';
-                        document.getElementById('address').value = data.address || '';
-                        document.getElementById('customer-name').value = data.customerName || '';
-                        document.getElementById('region').value = data.region || '';
-                        document.getElementById('farm-name').value = data.farmName || '';
-                        document.getElementById('island').value = data.island || '';
-                    }
-                } catch (error) {
-                    console.error('Error fetching farm details:', error);
-                }
-            } else {
-                console.log("Offline or no dairy number provided");
-            }
-        }
-
-        // Generate PDF function
-        async function generatePDF() {
-            const form = document.getElementById('hygiene-checklist-form');
-            const formData = new FormData(form);
-            const dairyNumber = formData.get('dairy-number');
-
-            const { jsPDF } = window.jspdf;
-            let pdf = new jsPDF('p', 'pt', 'a4');
-
-            pdf.setFontSize(14);
-            pdf.text("Dairy Shed Hygiene Checklist", 20, 20);
-            pdf.text("Farm Details:", 20, 40);
-            pdf.text("Dairy Company: " + formData.get('dairy-company'), 20, 60);
-            pdf.text("Dairy Number: " + formData.get('dairy-number'), 20, 80);
-            pdf.text("Address: " + formData.get('address'), 20, 100);
-            pdf.text("Customer Name: " + formData.get('customer-name'), 20, 120);
-            pdf.text("Region: " + formData.get('region'), 20, 140);
-            pdf.text("Farm Name: " + formData.get('farm-name'), 20, 160);
-            pdf.text("Island: " + formData.get('island'), 20, 180);
-
-            // Save PDF Offline
-            pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
-
-            // If online, save to Firebase
-            if (navigator.onLine) {
-                const pdfBlob = pdf.output('blob');
-                try {
-                    const storageRef = storage.ref(`pdfs/Dairy_Shed_Hygiene_Checklist_${new Date().toISOString()}.pdf`);
-                    await storageRef.put(pdfBlob);
-                    console.log("PDF uploaded successfully");
-                } catch (error) {
-                    console.error("Failed to upload PDF", error);
-                }
-            } else {
-                // Save in localStorage if offline
-                localStorage.setItem('pendingPDF', pdf.output('datauristring'));
-                console.log("PDF saved locally for later upload.");
-            }
-        }
-
-        // Sync PDFs when back online
-        window.addEventListener('online', async () => {
-            const pendingPDF = localStorage.getItem('pendingPDF');
-            if (pendingPDF) {
-                const pdfBlob = await fetch(pendingPDF).then(res => res.blob());
-                try {
-                    const storageRef = storage.ref(`pdfs/Dairy_Shed_Hygiene_Checklist_${new Date().toISOString()}.pdf`);
-                    await storageRef.put(pdfBlob);
-                    console.log("PDF uploaded successfully from local storage");
-                    localStorage.removeItem('pendingPDF');
-                } catch (error) {
-                    console.error("Failed to upload PDF from local storage", error);
-                }
-            }
-        });
-
         function viewRecords() {
             document.getElementById('form-container').style.display = 'none';
             document.getElementById('record-container').style.display = 'block';
             loadAllRecords();
-        }
-
-        function goBack() {
-            document.getElementById('form-container').style.display = 'block';
-            document.getElementById('record-container').style.display = 'none';
         }
 
         async function loadAllRecords() {
@@ -437,7 +430,10 @@
             }
         }
 
-        document.addEventListener("DOMContentLoaded", createChecklistItems);
+        function goBack() {
+            document.getElementById('form-container').style.display = 'block';
+            document.getElementById('record-container').style.display = 'none';
+        }
     </script>
 </body>
 
