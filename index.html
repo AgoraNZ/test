@@ -225,7 +225,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 4.7</div>
+        <div class="version">Version 4.8</div>
     </div>
 
     <!-- Records Viewing Page -->
@@ -407,7 +407,7 @@
                 setTimeout(() => {
                     photos.forEach((photo, index) => {
                         pdf.addPage();
-                        pdf.addImage(photo.imageData, 'JPEG', 40, 60, 300, 200);
+                        pdf.addImage(photo.imageData, 'JPEG', 40, 60, 250, 150);
                         pdf.setFontSize(12);
                         pdf.text(photo.title, 40, 40);
                     });
