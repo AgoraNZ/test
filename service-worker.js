@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dairy-shed-cache-v1';
+const CACHE_NAME = 'dairy-shed-cache-v2';
 const OFFLINE_URL = '/test/index.html';
 
 // List of resources to cache
@@ -6,7 +6,7 @@ const FILES_TO_CACHE = [
   OFFLINE_URL,
   '/test/service-worker.js',
   '/test/index.html',
-  '/test/css/styles.css', // Add other CSS, JS, and image files if needed
+  '/test/css/styles.css', // Include any custom CSS files
   'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js',
