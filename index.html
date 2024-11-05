@@ -133,7 +133,7 @@
         <h1>Dairy Shed Hygiene Checklist</h1>
 
         <form id="hygiene-checklist-form">
-            <!-- Form Fields -->
+            <!-- Farm Details Section -->
             <div class="section mb-4">
                 <h2>Farm Details</h2>
                 <label for="dairy-number">Dairy Number:</label>
@@ -254,17 +254,6 @@
         const storage = firebase.storage();
         const firestore = firebase.firestore();
 
-        const autoFillItems = [
-            "Inlet Valve",
-            "Non-Return Valve",
-            "Spray Ball",
-            "Agitator",
-            "Silo Door",
-            "Manhole Seal",
-            "Vat Outlet",
-            "Walls in Silo"
-        ];
-
         async function fetchFarmDetails() {
             const dairyNumber = document.getElementById('dairy-number').value;
             if (dairyNumber) {
@@ -290,6 +279,7 @@
             }
         }
 
+        // Functionality to create a new farm details record if not found
         async function saveFarmDetails(formData) {
             const dairyNumber = formData.get('dairy-number');
             const farmDetails = {
@@ -317,7 +307,7 @@
             const formData = new FormData(form);
             const dairyNumber = formData.get('dairy-number');
 
-            await saveFarmDetails(formData);
+            await saveFarmDetails(formData); // Save farm details if not found
 
             const { jsPDF } = window.jspdf;
             let pdf = new jsPDF('p', 'pt', 'a4');
@@ -432,17 +422,22 @@
                     photoY += 220;
                 });
 
-                pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
+                const pdfBlob = pdf.output('blob');
 
-                // Store the generated PDF in Firebase storage for later upload
-                savePDFtoFirebase(dairyNumber, pdf.output('blob'));
+                // Attempt to save to Firebase or store for later if offline
+                if (navigator.onLine) {
+                    savePDFtoFirebase(dairyNumber, pdfBlob);
+                } else {
+                    savePDFOffline(dairyNumber, pdfBlob);
+                }
+
             }, 1000);
         }
 
         async function savePDFtoFirebase(dairyNumber, pdfBlob) {
             const timestamp = new Date().toISOString().split('T')[0];
             const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
-            const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
+            const storageRef = firebase.storage().ref(`customers/${dairyNumber}/${fileName}`);
 
             try {
                 await storageRef.put(pdfBlob);
@@ -452,145 +447,16 @@
             }
         }
 
-        document.addEventListener("DOMContentLoaded", () => {
-            createChecklistItems();
-        });
-
-        function createChecklistItems() {
-            const checklistItems = [
-                "Pulsator Airline", "Long Bend Elbows", "Automatic Cup and Remover", "Diaphragm", "Receiving Can",
-                "Sanitary Trap", "Main Milk Line", "Milk Line Seals in Good Condition", "Stainless Droppers", "Long Milk Rubber",
-                "Liner", "Cluster", "Cluster Seal", "Cluster Button", "Non Return Valve at Milk Pump", "Milk Pump",
-                "Filter Housing", "Plate Cooler", "Interceptor", "Receiver Airline", "Flushing Pulsator", "Air Purge Valve",
-                "Vacuum Level", "Main Airline", "Plant Drainage - Milk Pump", "Plant Drainage - Filter/s", "Plant Drainage - Plate Cooler",
-                "Plant Drainage - Vat Entry", "Plant Wash Tap", "Wash Jetters", "Centre Gland", "Test Bucket", "Inlet Valve",
-                "Non-Return Valve", "Spray Ball", "Agitator", "Silo Door", "Manhole Seal", "Vat Outlet", "Walls in Silo"
-            ];
-
-            const checklistContainer = document.getElementById('checklist-items');
-            checklistContainer.innerHTML = '';
-
-            checklistItems.forEach(item => {
-                const itemContainer = document.createElement('div');
-                itemContainer.classList.add('checklist-item');
-
-                const label = document.createElement('label');
-                label.textContent = item;
-                itemContainer.appendChild(label);
-
-                const statusSelect = document.createElement('select');
-                statusSelect.classList.add('form-select');
-                statusSelect.innerHTML = `
-                    <option value="ok">OK</option>
-                    <option value="attention-required">Attention Required</option>
-                    <option value="na">N/A</option>
-                    <option value="not-checked">Not Checked</option>
-                `;
-                itemContainer.appendChild(statusSelect);
-
-                const commentsInput = document.createElement('input');
-                commentsInput.type = 'text';
-                commentsInput.classList.add('form-control');
-                commentsInput.placeholder = 'Comments';
-                itemContainer.appendChild(commentsInput);
-
-                const imageUpload = document.createElement('input');
-                imageUpload.type = 'file';
-                imageUpload.classList.add('form-control', 'image-upload');
-                imageUpload.style.display = 'none';
-                itemContainer.appendChild(imageUpload);
-
-                statusSelect.addEventListener('change', () => {
-                    if (statusSelect.value === 'attention-required') {
-                        imageUpload.style.display = 'block';
-                    } else {
-                        imageUpload.style.display = 'none';
-                    }
-
-                    if (statusSelect.value === 'not-checked' && autoFillItems.includes(item)) {
-                        commentsInput.value = "Milk in Vat";
-                    } else {
-                        if (commentsInput.value === "Milk in Vat") {
-                            commentsInput.value = "";
-                        }
-                    }
-                });
-
-                checklistContainer.appendChild(itemContainer);
+        function savePDFOffline(dairyNumber, pdfBlob) {
+            const timestamp = new Date().toISOString().split('T')[0];
+            navigator.serviceWorker.controller.postMessage({
+                type: 'store-pdf-offline',
+                payload: {
+                    dairyNumber,
+                    pdfBlob,
+                    timestamp
+                }
             });
-        }
-
-        function viewRecords() {
-            document.getElementById('form-container').style.display = 'none';
-            document.getElementById('record-container').style.display = 'block';
-            loadAllRecords();
-        }
-
-        async function loadAllRecords() {
-            const recordList = document.getElementById('record-list');
-            recordList.innerHTML = '';
-            const storageRef = storage.ref('customers');
-
-            try {
-                const folderSnapshot = await storageRef.listAll();
-                folderSnapshot.prefixes.forEach(folderRef => {
-                    const dairyNumber = folderRef.name;
-                    const folderLink = document.createElement('a');
-                    folderLink.textContent = dairyNumber;
-                    folderLink.href = '#';
-                    folderLink.addEventListener('click', () => {
-                        loadRecordFiles(dairyNumber);
-                    });
-                    recordList.appendChild(folderLink);
-                });
-            } catch (error) {
-                console.error('Error fetching records:', error);
-            }
-        }
-
-        async function loadRecordFiles(dairyNumber) {
-            const recordList = document.getElementById('record-list');
-            recordList.innerHTML = '';
-            const storageRef = storage.ref(`customers/${dairyNumber}`);
-
-            try {
-                const fileSnapshot = await storageRef.listAll();
-                fileSnapshot.items.forEach(fileRef => {
-                    const fileName = fileRef.name;
-                    const dateOnly = fileName.match(/(\d{4}-\d{2}-\d{2})/);
-                    const displayName = dateOnly ? dateOnly[0] : fileName;
-
-                    const fileLink = document.createElement('a');
-                    fileLink.textContent = displayName;
-                    fileLink.href = '#';
-                    fileLink.addEventListener('click', async () => {
-                        try {
-                            const url = await fileRef.getDownloadURL();
-                            window.open(url, '_blank');
-                        } catch (error) {
-                            console.error('Error fetching file:', error);
-                        }
-                    });
-                    recordList.appendChild(fileLink);
-                });
-
-                const backButton = document.createElement('button');
-                backButton.textContent = 'Back to Records';
-                backButton.className = 'back-button';
-                backButton.addEventListener('click', goBackToRecords);
-                recordList.appendChild(backButton);
-            } catch (error) {
-                console.error('Error fetching record files:', error);
-            }
-        }
-
-        function goBack() {
-            document.getElementById('form-container').style.display = 'block';
-            document.getElementById('record-container').style.display = 'none';
-        }
-
-        function goBackToRecords() {
-            loadAllRecords();
         }
     </script>
 </body>
