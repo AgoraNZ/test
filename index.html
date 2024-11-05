@@ -205,7 +205,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 4.7</div>
+        <div class="version">Version 4.8</div>
     </div>
 
     <!-- Records Viewing Page -->
@@ -259,34 +259,10 @@
             }
         }
 
-        async function saveFarmDetails(formData) {
-            const dairyNumber = formData.get('dairy-number');
-            const farmDetails = {
-                dairyCompany: formData.get('dairy-company'),
-                address: formData.get('address'),
-                customerName: formData.get('customer-name'),
-                region: formData.get('region'),
-                farmName: formData.get('farm-name'),
-                island: formData.get('island'),
-            };
-            const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
-            const metadata = {
-                contentType: 'application/json',
-            };
-            try {
-                await storageRef.put(new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }), metadata);
-                console.log('Farm details saved successfully.');
-            } catch (error) {
-                console.error('Error saving farm details:', error);
-            }
-        }
-
         async function generatePDF() {
             const form = document.getElementById('hygiene-checklist-form');
             const formData = new FormData(form);
             const dairyNumber = formData.get('dairy-number');
-
-            await saveFarmDetails(formData); // Save farm details if not found
 
             const { jsPDF } = window.jspdf;
             let pdf = new jsPDF('p', 'pt', 'a4');
@@ -323,7 +299,6 @@
                 // Checklist Items Section
                 const checklistItemsDiv = document.getElementById('checklist-items').children;
                 const checklistTable = [];
-                const imagesToAttach = [];
 
                 for (let item of checklistItemsDiv) {
                     const itemName = item.querySelector('label').textContent;
@@ -332,25 +307,20 @@
                     const imageFile = item.querySelector('input[type="file"]').files[0];
 
                     let commentText = comments;
-                    if (status === 'attention-required') {
-                        commentText += " (See attached photo below)";
+                    if (status === 'attention-required' && imageFile) {
+                        commentText += ' (See attached photo below)';
                     }
 
                     checklistTable.push([itemName, status, commentText]);
 
                     if (imageFile) {
-                        const reader = new FileReader();
-                        reader.onload = function (event) {
-                            imagesToAttach.push({
-                                imgData: event.target.result,
-                                title: itemName,
-                            });
-
-                            if (imagesToAttach.length === checklistItemsDiv.length) {
-                                attachImagesToPDF();
-                            }
+                        const imgReader = new FileReader();
+                        imgReader.onload = function (event) {
+                            pdf.addPage();
+                            pdf.addImage(event.target.result, 'JPEG', 40, 40, 180, 120);
+                            pdf.text(itemName, 40, 180);
                         };
-                        reader.readAsDataURL(imageFile);
+                        imgReader.readAsDataURL(imageFile);
                     }
                 }
 
@@ -369,41 +339,19 @@
                     }
                 });
 
-                function attachImagesToPDF() {
-                    let currentY = pdf.lastAutoTable.finalY + 20;
-                    imagesToAttach.forEach(({ imgData, title }) => {
-                        pdf.addImage(imgData, 'JPEG', 40, currentY, 80, 80); // Resized to 1/3 the original size
-                        pdf.text(title, 150, currentY + 20);
-                        currentY += 100;
+                // Save PDF and upload to Firebase
+                const pdfBlob = pdf.output('blob');
+                const timestamp = new Date().toISOString().split('T')[0];
+                const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
+                const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
 
-                        if (currentY > 750) {
-                            pdf.addPage();
-                            currentY = 40;
-                        }
-                    });
+                storageRef.put(pdfBlob).then(() => {
+                    console.log('PDF uploaded successfully');
+                }).catch((error) => {
+                    console.error('Error uploading PDF:', error);
+                });
 
-                    saveAndUploadPDF();
-                }
-
-                function saveAndUploadPDF() {
-                    // Save PDF and upload to Firebase
-                    const pdfBlob = pdf.output('blob');
-                    const timestamp = new Date().toISOString().split('T')[0];
-                    const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
-                    const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
-
-                    storageRef.put(pdfBlob).then(() => {
-                        console.log('PDF uploaded successfully');
-                    }).catch((error) => {
-                        console.error('Error uploading PDF:', error);
-                    });
-
-                    pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
-                }
-
-                if (imagesToAttach.length === 0) {
-                    saveAndUploadPDF();
-                }
+                pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
             };
         }
 
