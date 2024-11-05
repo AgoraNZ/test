@@ -225,7 +225,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 4.6</div>
+        <div class="version">Version 4.7</div>
     </div>
 
     <!-- Records Viewing Page -->
@@ -344,26 +344,27 @@
                 // Checklist Items Section
                 const checklistItemsDiv = document.getElementById('checklist-items').children;
                 const checklistTable = [];
+                const photos = [];
 
                 for (let item of checklistItemsDiv) {
                     const itemName = item.querySelector('label').textContent;
                     const status = item.querySelector('select').value;
-                    const comments = item.querySelector('input[type="text"]').value;
+                    let comments = item.querySelector('input[type="text"]').value;
                     const imageFile = item.querySelector('input[type="file"]').files[0];
 
-                    const row = [itemName, status, comments];
                     if (status === 'attention-required') {
-                        row.push('See attached photo below');
+                        comments += " (See attached photo below)";
                     }
 
-                    checklistTable.push(row);
+                    checklistTable.push([itemName, status, comments]);
 
                     if (imageFile) {
                         const imgReader = new FileReader();
                         imgReader.onload = function (event) {
-                            pdf.addPage(); // Add a new page for each photo if too many
-                            pdf.addImage(event.target.result, 'JPEG', 40, 40, 100, 100);
-                            pdf.text(itemName, 150, 60);
+                            photos.push({
+                                imageData: event.target.result,
+                                title: itemName
+                            });
                         };
                         imgReader.readAsDataURL(imageFile);
                     }
@@ -402,19 +403,29 @@
                 pdf.text(`Time Taken: ${formData.get('milk-time')}`, 40, currentY);
                 currentY += 20;
 
-                // Save PDF and upload to Firebase
-                const pdfBlob = pdf.output('blob');
-                const timestamp = new Date().toISOString().split('T')[0];
-                const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
-                const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
+                // Add photos after the checklist
+                setTimeout(() => {
+                    photos.forEach((photo, index) => {
+                        pdf.addPage();
+                        pdf.addImage(photo.imageData, 'JPEG', 40, 60, 500, 400);
+                        pdf.setFontSize(12);
+                        pdf.text(photo.title, 40, 40);
+                    });
 
-                storageRef.put(pdfBlob).then(() => {
-                    console.log('PDF uploaded successfully');
-                }).catch((error) => {
-                    console.error('Error uploading PDF:', error);
-                });
+                    // Save PDF and upload to Firebase
+                    const pdfBlob = pdf.output('blob');
+                    const timestamp = new Date().toISOString().split('T')[0];
+                    const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
+                    const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
 
-                pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
+                    storageRef.put(pdfBlob).then(() => {
+                        console.log('PDF uploaded successfully');
+                    }).catch((error) => {
+                        console.error('Error uploading PDF:', error);
+                    });
+
+                    pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
+                }, 1000);
             };
         }
 
