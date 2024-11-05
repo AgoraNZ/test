@@ -322,11 +322,11 @@
             const { jsPDF } = window.jspdf;
             let pdf = new jsPDF('p', 'pt', 'a4');
 
+            const logoUrl = "https://storage.googleapis.com/dairy-farm-record-system.appspot.com/Picture3.jpg";
+
             try {
-                const logoRef = storage.ref('logos/Picture3.jpg');
-                const url = await logoRef.getDownloadURL();
                 const img = new Image();
-                img.src = url;
+                img.src = logoUrl;
                 img.onload = function () {
                     pdf.addImage(img, 'JPEG', 20, 20, pdf.internal.pageSize.getWidth() - 40, 80);
                     generatePDFContent(pdf, formData);
@@ -491,7 +491,7 @@
                         imageUpload.style.display = 'none';
                     }
 
-                    if (statusSelect.value === 'not-checked' && autoFillItems.includes(item.textContent)) {
+                    if (statusSelect.value === 'not-checked' && autoFillItems.includes(item)) {
                         commentsInput.value = "Milk in Vat";
                     } else {
                         if (commentsInput.value === "Milk in Vat") {
