@@ -205,7 +205,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 4.6</div>
+        <div class="version">Version 4.7</div>
     </div>
 
     <!-- Records Viewing Page -->
@@ -232,21 +232,70 @@
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const storage = firebase.storage();
+        const firestore = firebase.firestore();
+
+        async function fetchFarmDetails() {
+            const dairyNumber = document.getElementById('dairy-number').value;
+            if (dairyNumber) {
+                const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
+                try {
+                    const url = await storageRef.getDownloadURL();
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch the farm details');
+                    }
+                    const data = await response.json();
+                    if (data) {
+                        document.getElementById('dairy-company').value = data.dairyCompany || '';
+                        document.getElementById('address').value = data.address || '';
+                        document.getElementById('customer-name').value = data.customerName || '';
+                        document.getElementById('region').value = data.region || '';
+                        document.getElementById('farm-name').value = data.farmName || '';
+                        document.getElementById('island').value = data.island || '';
+                    }
+                } catch (error) {
+                    console.error('Error fetching farm details:', error);
+                }
+            }
+        }
+
+        async function saveFarmDetails(formData) {
+            const dairyNumber = formData.get('dairy-number');
+            const farmDetails = {
+                dairyCompany: formData.get('dairy-company'),
+                address: formData.get('address'),
+                customerName: formData.get('customer-name'),
+                region: formData.get('region'),
+                farmName: formData.get('farm-name'),
+                island: formData.get('island'),
+            };
+            const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
+            const metadata = {
+                contentType: 'application/json',
+            };
+            try {
+                await storageRef.put(new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }), metadata);
+                console.log('Farm details saved successfully.');
+            } catch (error) {
+                console.error('Error saving farm details:', error);
+            }
+        }
 
         async function generatePDF() {
             const form = document.getElementById('hygiene-checklist-form');
             const formData = new FormData(form);
             const dairyNumber = formData.get('dairy-number');
 
+            await saveFarmDetails(formData);
+
             const { jsPDF } = window.jspdf;
             let pdf = new jsPDF('p', 'pt', 'a4');
 
-            // Add logo centered
             const logoUrl = "https://i.postimg.cc/htZPjx5g/logo-89.png";
             const logo = await fetch(logoUrl).then((res) => res.blob());
             const reader = new FileReader();
             reader.readAsDataURL(logo);
-            reader.onload = async function () {
+            reader.onload = function () {
                 const imgData = reader.result;
                 pdf.addImage(imgData, 'PNG', 180, 40, 240, 60);
 
@@ -270,10 +319,8 @@
                 pdf.text(`Inspection Completed By: ${formData.get('inspection-completed-by')}`, 40, 315);
                 pdf.text(`Call Type: ${formData.get('call-type')}`, 40, 330);
 
-                // Checklist Items Section
                 const checklistItemsDiv = document.getElementById('checklist-items').children;
                 const checklistTable = [];
-                const imagePromises = []; // Array to store image promises for checklist items
 
                 for (let item of checklistItemsDiv) {
                     const itemName = item.querySelector('label').textContent;
@@ -281,26 +328,23 @@
                     const comments = item.querySelector('input[type="text"]').value;
                     const imageFile = item.querySelector('input[type="file"]').files[0];
 
-                    let commentText = comments;
-                    if (status === 'attention-required' && imageFile) {
-                        commentText += ' (See attached photo below)';
+                    const row = [itemName, status, comments];
+                    if (status === 'attention-required') {
+                        row.push('See attached photo below');
                     }
 
-                    checklistTable.push([itemName, status, commentText]);
+                    checklistTable.push(row);
 
                     if (imageFile) {
-                        const imgReader = new FileReader();
-                        const imgPromise = new Promise((resolve) => {
-                            imgReader.onload = function (event) {
-                                resolve({ imgData: event.target.result, itemName });
-                            };
-                        });
-                        imgReader.readAsDataURL(imageFile);
-                        imagePromises.push(imgPromise);
+                        const reader = new FileReader();
+                        reader.onload = function (event) {
+                            pdf.addImage(event.target.result, 'JPEG', 40, pdf.lastAutoTable.finalY + 20, 150, 100);
+                            pdf.text(itemName, 200, pdf.lastAutoTable.finalY + 35);
+                        };
+                        reader.readAsDataURL(imageFile);
                     }
                 }
 
-                // Generate checklist items table
                 pdf.autoTable({
                     startY: 350,
                     head: [['Item', 'Status', 'Comments']],
@@ -315,23 +359,6 @@
                     }
                 });
 
-                // Wait for all images to load, then add them to the PDF
-                const images = await Promise.all(imagePromises);
-                let currentY = pdf.lastAutoTable.finalY + 20;
-
-                for (const { imgData, itemName } of images) {
-                    pdf.addImage(imgData, 'JPEG', 40, currentY, 120, 80);
-                    pdf.text(itemName, 40, currentY + 90);
-                    currentY += 110;
-
-                    // Add new page if necessary
-                    if (currentY > 700) {
-                        pdf.addPage();
-                        currentY = 40;
-                    }
-                }
-
-                // Save PDF and upload to Firebase
                 const pdfBlob = pdf.output('blob');
                 const timestamp = new Date().toISOString().split('T')[0];
                 const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
@@ -487,6 +514,7 @@
         function goBackToRecords() {
             loadAllRecords();
         }
+
     </script>
 </body>
 </html>
