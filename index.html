@@ -125,7 +125,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/idb/6.1.0/idb.min.js"></script>
 </head>
 
 <body>
@@ -240,19 +239,6 @@
     </div>
 
     <script>
-        // Service Worker Registration for Offline Functionality
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js')
-                    .then(registration => {
-                        console.log('ServiceWorker registration successful:', registration);
-                    })
-                    .catch(error => {
-                        console.error('ServiceWorker registration failed:', error);
-                    });
-            });
-        }
-
         // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDr9nA44Kkej*****GUzbMDECI8cTFI",
@@ -293,38 +279,21 @@
             }
         }
 
-        // Placeholder for saveFarmDetails function (define it here)
-        async function saveFarmDetails(formData) {
-            // Your saveFarmDetails function code here
+        // Service worker registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/test/service-worker.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful:', registration);
+                    })
+                    .catch(error => {
+                        console.error('ServiceWorker registration failed:', error);
+                    });
+            });
         }
 
-        // Placeholder for generatePDF function (define it here)
-        function generatePDF() {
-            // Your generatePDF function code here
-        }
+        // Rest of the functions remain unchanged
 
-        // Placeholder for viewRecords function (define it here)
-        function viewRecords() {
-            // Your viewRecords function code here
-        }
-
-        // Placeholder for createChecklistItems function
-        document.addEventListener("DOMContentLoaded", () => {
-            createChecklistItems();
-        });
-
-        function createChecklistItems() {
-            // Your createChecklistItems function code here
-        }
-
-        function goBack() {
-            document.getElementById('form-container').style.display = 'block';
-            document.getElementById('record-container').style.display = 'none';
-        }
-
-        function goBackToRecords() {
-            loadAllRecords();
-        }
     </script>
 </body>
 
