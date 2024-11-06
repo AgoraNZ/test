@@ -216,14 +216,12 @@
                 <h2>Temperature Measurements</h2>
                 <div class="checklist-item">
                     <label for="hot-water-temp">Hot Water Temp (°C):</label>
-                    <!-- Changed input type from "number" to "text" -->
                     <input type="text" class="form-control" id="hot-water-temp" name="hot-water-temp">
                     <label for="hot-water-time">Time Taken:</label>
                     <input type="time" class="form-control" id="hot-water-time" name="hot-water-time">
                 </div>
                 <div class="checklist-item">
                     <label for="milk-temp">Milk Temp (°C):</label>
-                    <!-- Changed input type from "number" to "text" -->
                     <input type="text" class="form-control" id="milk-temp" name="milk-temp">
                     <label for="milk-time">Time Taken:</label>
                     <input type="time" class="form-control" id="milk-time" name="milk-time">
@@ -556,10 +554,10 @@
         }
 
         function uploadPDF(dairyNumber, pdfBlob) {
-            // [Your existing function code]
+            // Corrected function to upload to 'customers' folder
             const timestamp = new Date().toISOString().split('T')[0];
             const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
-            const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
+            const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`); // Correct folder path
 
             storageRef.put(pdfBlob).then(() => {
                 console.log('PDF uploaded successfully');
