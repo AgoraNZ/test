@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
     <!-- Your existing styles here -->
     <style>
-        /* [Your existing styles here] */
+        /* Existing and new styles */
         body {
             background-color: #002B5C;
             color: #FFFFFF;
@@ -178,6 +178,7 @@
 
                 <label for="dairy-company">Dairy Company:</label>
                 <select id="dairy-company" name="dairy-company" class="form-select">
+                    <option value="">-- Select Company --</option>
                     <option value="fonterra">Fonterra</option>
                     <option value="dairy-goat-coop">Dairy Goat Co-op</option>
                     <option value="green-valley">Green Valley Dairies</option>
@@ -187,12 +188,16 @@
                     <option value="synlait">Synlait Milk LTD</option>
                     <option value="tatua">Tatua</option>
                 </select>
+
                 <label for="address">Address:</label>
                 <input type="text" class="form-control" id="address" name="address">
+
                 <label for="customer-name">Customer Name:</label>
                 <input type="text" class="form-control" id="customer-name" name="customer-name">
+
                 <label for="region">Region:</label>
                 <select id="region" name="region" class="form-select">
+                    <option value="">-- Select Region --</option>
                     <option value="northland">Northland</option>
                     <option value="auckland">Auckland</option>
                     <option value="waikato">Waikato</option>
@@ -209,25 +214,35 @@
                     <option value="otago">Otago</option>
                     <option value="southland">Southland</option>
                 </select>
+
                 <label for="farm-name">Farm Name:</label>
                 <input type="text" class="form-control" id="farm-name" name="farm-name">
+
                 <label for="island">Island:</label>
                 <select id="island" name="island" class="form-select">
+                    <option value="">-- Select Island --</option>
                     <option value="north-island">North Island</option>
                     <option value="south-island">South Island</option>
                 </select>
+
                 <label for="visit-date">Visit Date:</label>
                 <input type="date" class="form-control" id="visit-date" name="visit-date">
+
                 <label for="visit-type">Visit Type:</label>
                 <input type="text" class="form-control" id="visit-type" name="visit-type" value="Milking Plant & Milk Vat Check" readonly>
+
                 <label for="inspection-start-time">Inspection Start Time:</label>
                 <input type="time" class="form-control" id="inspection-start-time" name="inspection-start-time">
+
                 <label for="inspection-end-time">Inspection End Time:</label>
                 <input type="time" class="form-control" id="inspection-end-time" name="inspection-end-time">
+
                 <label for="inspection-completed-by">Inspection Completed By:</label>
                 <input type="text" class="form-control" id="inspection-completed-by" name="inspection-completed-by">
+
                 <label for="call-type">Call Type:</label>
                 <select id="call-type" name="call-type" class="form-select">
+                    <option value="">-- Select Call Type --</option>
                     <option value="alert">Alert</option>
                     <option value="grade-call">Grade Call</option>
                     <option value="regular-scheduled-visit" selected>Regular Scheduled Visit</option>
@@ -315,7 +330,7 @@
 
         // Service Worker Registration
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('service-worker.js')
+            navigator.serviceWorker.register('/service-worker.js')
                 .then(registration => {
                     console.log('Service Worker registered with scope:', registration.scope);
                 })
@@ -564,7 +579,7 @@
                     const photos = [];
 
                     // Load photos from IndexedDB draft if offline
-                    const draftPhotos = navigator.onLine ? [] : (draft ? draft.photos : []);
+                    const draftPhotos = navigator.onLine ? [] : (await db.drafts.where('dairyNumber').equals(dairyNumber).first())?.photos || [];
 
                     for (let i = 0; i < checklistItemsDiv.length; i++) {
                         const item = checklistItemsDiv[i];
