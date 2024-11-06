@@ -123,8 +123,15 @@
             margin-bottom: 20px;
         }
 
-        /* New styles for image preview */
+        /* New styles for image previews */
         .image-preview {
+            max-width: 100px;
+            display: block;
+            margin-top: 10px;
+        }
+
+        /* Styles for dual image previews */
+        .image-preview-2 {
             max-width: 100px;
             display: block;
             margin-top: 10px;
@@ -420,46 +427,68 @@
                         const status = item.querySelector('select').value;
                         let comments = item.querySelector('input[type="text"]').value;
 
-                        // Get the image data from the file input or from saved photos
-                        const imageInput = item.querySelector('input[type="file"]');
-                        let imageFile = imageInput.files[0];
-                        let imageDataUrl = null;
+                        // Get the image data from the file inputs or from saved photos
+                        const imageInput1 = item.querySelector('input.image-upload-1');
+                        const imageFile1 = imageInput1.files[0];
+                        const imageInput2 = item.querySelector('input.image-upload-2');
+                        const imageFile2 = imageInput2.files[0];
+                        let imageDataUrls = [];
 
-                        if (imageFile) {
-                            // Read image from file input
-                            imageDataUrl = await readFileAsDataURL(imageFile);
+                        if (imageFile1) {
+                            // Read image from first file input
+                            const dataUrl1 = await readFileAsDataURL(imageFile1);
+                            imageDataUrls.push(dataUrl1);
                         } else if (savedPhotos && savedPhotos.length > 0) {
-                            // Find the saved photo for this item
-                            const photoData = savedPhotos.find(photo => photo.itemIndex === i);
-                            if (photoData) {
-                                const blob = new Blob([photoData.imageData], { type: photoData.imageType });
-                                imageDataUrl = await readBlobAsDataURL(blob);
+                            // Find the saved photo with photoIndex 0 for this item
+                            const photoData1 = savedPhotos.find(photo => photo.itemIndex === i && photo.photoIndex === 0);
+                            if (photoData1) {
+                                const blob1 = new Blob([photoData1.imageData], { type: photoData1.imageType });
+                                const dataUrl1 = await readBlobAsDataURL(blob1);
+                                imageDataUrls.push(dataUrl1);
+                            }
+                        }
+
+                        if (imageFile2) {
+                            // Read image from second file input
+                            const dataUrl2 = await readFileAsDataURL(imageFile2);
+                            imageDataUrls.push(dataUrl2);
+                        } else if (savedPhotos && savedPhotos.length > 0) {
+                            // Find the saved photo with photoIndex 1 for this item
+                            const photoData2 = savedPhotos.find(photo => photo.itemIndex === i && photo.photoIndex === 1);
+                            if (photoData2) {
+                                const blob2 = new Blob([photoData2.imageData], { type: photoData2.imageType });
+                                const dataUrl2 = await readBlobAsDataURL(blob2);
+                                imageDataUrls.push(dataUrl2);
                             }
                         }
 
                         if (status === 'attention-required') {
-                            if (imageDataUrl) {
-                                comments += " (See attached photo below)";
+                            if (imageDataUrls.length > 0) {
+                                comments += " (See attached photo(s) below)";
                             }
                         }
 
                         checklistTable.push([itemName, status, comments]);
 
-                        if (imageDataUrl) {
-                            // Determine the image type
-                            let imageType = imageDataUrl.substring(5, imageDataUrl.indexOf(';'));
-                            if (imageType === 'image/jpeg' || imageType === 'image/jpg') {
-                                imageType = 'JPEG';
-                            } else if (imageType === 'image/png') {
-                                imageType = 'PNG';
-                            } else {
-                                imageType = 'JPEG'; // Default to JPEG
-                            }
+                        if (imageDataUrls.length > 0) {
+                            // Determine the image types and prepare for PDF
+                            imageDataUrls.forEach((dataUrl, index) => {
+                                let imageType = dataUrl.substring(5, dataUrl.indexOf(';'));
+                                if (imageType === 'image/jpeg' || imageType === 'image/jpg') {
+                                    imageType = 'JPEG';
+                                } else if (imageType === 'image/png') {
+                                    imageType = 'PNG';
+                                } else {
+                                    imageType = 'JPEG'; // Default to JPEG
+                                }
 
-                            photos.push({
-                                imageData: imageDataUrl,
-                                title: itemName,
-                                imageType: imageType
+                                photos.push({
+                                    itemIndex: i,
+                                    photoIndex: index,
+                                    imageData: dataUrl,
+                                    imageType: imageType,
+                                    title: itemName
+                                });
                             });
                         }
                     }
@@ -509,20 +538,60 @@
                     // Add photos after the temperature data
                     let photoY = tempY + 20; // Adjust as needed
 
-                    for (let photo of photos) {
-                        if (photoY > pdf.internal.pageSize.getHeight() - 220) {
-                            // If we're getting close to the end of the page, add a new page
-                            pdf.addPage();
-                            photoY = 60; // Reset Y position for the new page
+                    // Group photos by checklist item
+                    const photosByItem = {};
+                    photos.forEach(photo => {
+                        if (!photosByItem[photo.itemIndex]) {
+                            photosByItem[photo.itemIndex] = [];
                         }
+                        photosByItem[photo.itemIndex].push(photo);
+                    });
 
-                        try {
-                            pdf.addImage(photo.imageData, photo.imageType, 40, photoY, 250, 200); // Adjust the size to fit more photos
-                            pdf.setFontSize(12);
-                            pdf.text(photo.title, 40, photoY - 10); // Add the title above the photo
-                            photoY += 220; // Move Y position down for the next photo (image height + spacing)
-                        } catch (error) {
-                            console.error('Error adding image to PDF:', error);
+                    for (let i = 0; i < checklistItemsDiv.length; i++) {
+                        const itemPhotos = photosByItem[i];
+                        if (itemPhotos && itemPhotos.length > 0) {
+                            // Determine if there are two photos
+                            if (itemPhotos.length === 1) {
+                                const photo = itemPhotos[0];
+                                if (photoY > pdf.internal.pageSize.getHeight() - 220) {
+                                    // If we're getting close to the end of the page, add a new page
+                                    pdf.addPage();
+                                    photoY = 60; // Reset Y position for the new page
+                                }
+
+                                try {
+                                    pdf.addImage(photo.imageData, photo.imageType, 40, photoY, 250, 200); // Adjust the size to fit more photos
+                                    pdf.setFontSize(12);
+                                    pdf.text(photo.title, 40, photoY - 10); // Add the title above the photo
+                                    photoY += 220; // Move Y position down for the next photo (image height + spacing)
+                                } catch (error) {
+                                    console.error('Error adding image to PDF:', error);
+                                }
+                            } else if (itemPhotos.length === 2) {
+                                const photo1 = itemPhotos[0];
+                                const photo2 = itemPhotos[1];
+
+                                if (photoY > pdf.internal.pageSize.getHeight() - 220) {
+                                    // If we're getting close to the end of the page, add a new page
+                                    pdf.addPage();
+                                    photoY = 60; // Reset Y position for the new page
+                                }
+
+                                try {
+                                    // Add first image
+                                    pdf.addImage(photo1.imageData, photo1.imageType, 40, photoY, 250, 200);
+                                    pdf.setFontSize(12);
+                                    pdf.text(photo1.title, 40, photoY - 10); // Add the title above the first photo
+
+                                    // Add second image to the right of the first
+                                    pdf.addImage(photo2.imageData, photo2.imageType, 310, photoY, 250, 200);
+                                    pdf.text(photo2.title, 310, photoY - 10); // Add the title above the second photo
+
+                                    photoY += 220; // Move Y position down for the next set of photos
+                                } catch (error) {
+                                    console.error('Error adding images to PDF:', error);
+                                }
+                            }
                         }
                     }
 
@@ -626,23 +695,43 @@
                 commentsInput.placeholder = 'Comments';
                 itemContainer.appendChild(commentsInput);
 
-                const imageUpload = document.createElement('input');
-                imageUpload.type = 'file';
-                imageUpload.classList.add('form-control', 'image-upload');
-                imageUpload.style.display = 'none';
-                itemContainer.appendChild(imageUpload);
+                // First Image Upload
+                const imageUpload1 = document.createElement('input');
+                imageUpload1.type = 'file';
+                imageUpload1.classList.add('form-control', 'image-upload-1');
+                imageUpload1.style.display = 'none';
+                itemContainer.appendChild(imageUpload1);
 
-                // Add image preview element
-                const imagePreview = document.createElement('img');
-                imagePreview.classList.add('image-preview');
-                imagePreview.style.display = 'none'; // Initially hidden
-                itemContainer.appendChild(imagePreview);
+                // First Image Preview
+                const imagePreview1 = document.createElement('img');
+                imagePreview1.classList.add('image-preview', 'image-preview-1');
+                imagePreview1.style.display = 'none'; // Initially hidden
+                itemContainer.appendChild(imagePreview1);
+
+                // Second Image Upload
+                const imageUpload2 = document.createElement('input');
+                imageUpload2.type = 'file';
+                imageUpload2.classList.add('form-control', 'image-upload-2');
+                imageUpload2.style.display = 'none';
+                itemContainer.appendChild(imageUpload2);
+
+                // Second Image Preview
+                const imagePreview2 = document.createElement('img');
+                imagePreview2.classList.add('image-preview', 'image-preview-2');
+                imagePreview2.style.display = 'none'; // Initially hidden
+                itemContainer.appendChild(imagePreview2);
 
                 statusSelect.addEventListener('change', () => {
                     if (statusSelect.value === 'attention-required') {
-                        imageUpload.style.display = 'block';
+                        imageUpload1.style.display = 'block';
+                        imageUpload2.style.display = 'block';
                     } else {
-                        imageUpload.style.display = 'none';
+                        imageUpload1.style.display = 'none';
+                        imageUpload2.style.display = 'none';
+                        imageUpload1.value = '';
+                        imageUpload2.value = '';
+                        imagePreview1.style.display = 'none';
+                        imagePreview2.style.display = 'none';
                     }
 
                     if (statusSelect.value === 'not-checked' && itemsToAutoFill.includes(item)) {
@@ -657,14 +746,28 @@
                 statusSelect.addEventListener('change', saveFormData);
                 commentsInput.addEventListener('input', saveFormData);
 
-                imageUpload.addEventListener('change', (event) => {
+                // Event listener for first image upload
+                imageUpload1.addEventListener('change', (event) => {
                     const file = event.target.files[0];
                     if (file) {
                         const imageUrl = URL.createObjectURL(file);
-                        imagePreview.src = imageUrl;
-                        imagePreview.style.display = 'block';
+                        imagePreview1.src = imageUrl;
+                        imagePreview1.style.display = 'block';
                     } else {
-                        imagePreview.style.display = 'none';
+                        imagePreview1.style.display = 'none';
+                    }
+                    saveFormData();
+                });
+
+                // Event listener for second image upload
+                imageUpload2.addEventListener('change', (event) => {
+                    const file = event.target.files[0];
+                    if (file) {
+                        const imageUrl = URL.createObjectURL(file);
+                        imagePreview2.src = imageUrl;
+                        imagePreview2.style.display = 'block';
+                    } else {
+                        imagePreview2.style.display = 'none';
                     }
                     saveFormData();
                 });
@@ -785,19 +888,33 @@
                 const itemName = item.querySelector('label').textContent;
                 const status = item.querySelector('select').value;
                 const comments = item.querySelector('input[type="text"]').value;
-                const imageInput = item.querySelector('input[type="file"]');
-                const imageFile = imageInput.files[0];
+                const imageInput1 = item.querySelector('input.image-upload-1');
+                const imageFile1 = imageInput1.files[0];
+                const imageInput2 = item.querySelector('input.image-upload-2');
+                const imageFile2 = imageInput2.files[0];
 
-                let imageData = null;
+                let imageData1 = null;
+                let imageData2 = null;
 
-                if (imageFile) {
-                    // Read the image file as ArrayBuffer to store in IndexedDB
-                    imageData = await readFileAsArrayBuffer(imageFile);
+                if (imageFile1) {
+                    // Read the first image file as ArrayBuffer to store in IndexedDB
+                    imageData1 = await readFileAsArrayBuffer(imageFile1);
                     photos.push({
                         itemIndex: i,
-                        itemName: itemName,
-                        imageData: imageData,
-                        imageType: imageFile.type
+                        photoIndex: 0,
+                        imageData: imageData1,
+                        imageType: imageFile1.type
+                    });
+                }
+
+                if (imageFile2) {
+                    // Read the second image file as ArrayBuffer to store in IndexedDB
+                    imageData2 = await readFileAsArrayBuffer(imageFile2);
+                    photos.push({
+                        itemIndex: i,
+                        photoIndex: 1,
+                        imageData: imageData2,
+                        imageType: imageFile2.type
                     });
                 }
 
@@ -805,7 +922,8 @@
                     itemName: itemName,
                     status: status,
                     comments: comments,
-                    hasImage: !!imageFile
+                    hasImage1: !!imageFile1,
+                    hasImage2: !!imageFile2
                 });
             }
 
@@ -846,23 +964,38 @@
 
                     const statusSelect = item.querySelector('select');
                     const commentsInput = item.querySelector('input[type="text"]');
-                    const imageInput = item.querySelector('input[type="file"]');
-                    const imagePreview = item.querySelector('.image-preview');
+                    const imageInput1 = item.querySelector('input.image-upload-1');
+                    const imagePreview1 = item.querySelector('.image-preview-1');
+                    const imageInput2 = item.querySelector('input.image-upload-2');
+                    const imagePreview2 = item.querySelector('.image-preview-2');
 
                     if (statusSelect && commentsInput && checklistItemData) {
                         statusSelect.value = checklistItemData.status;
                         commentsInput.value = checklistItemData.comments;
 
-                        if (checklistItemData.hasImage) {
-                            const photoData = data.photos.find(photo => photo.itemIndex === i);
-                            if (photoData) {
+                        if (checklistItemData.hasImage1) {
+                            const photoData1 = data.photos.find(photo => photo.itemIndex === i && photo.photoIndex === 0);
+                            if (photoData1) {
                                 // Create a Blob from the ArrayBuffer
-                                const blob = new Blob([photoData.imageData], { type: photoData.imageType });
-                                const imageUrl = URL.createObjectURL(blob);
+                                const blob1 = new Blob([photoData1.imageData], { type: photoData1.imageType });
+                                const imageUrl1 = URL.createObjectURL(blob1);
 
                                 // Display the image preview
-                                imagePreview.src = imageUrl;
-                                imagePreview.style.display = 'block';
+                                imagePreview1.src = imageUrl1;
+                                imagePreview1.style.display = 'block';
+                            }
+                        }
+
+                        if (checklistItemData.hasImage2) {
+                            const photoData2 = data.photos.find(photo => photo.itemIndex === i && photo.photoIndex === 1);
+                            if (photoData2) {
+                                // Create a Blob from the ArrayBuffer
+                                const blob2 = new Blob([photoData2.imageData], { type: photoData2.imageType });
+                                const imageUrl2 = URL.createObjectURL(blob2);
+
+                                // Display the image preview
+                                imagePreview2.src = imageUrl2;
+                                imagePreview2.style.display = 'block';
                             }
                         }
                     }
