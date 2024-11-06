@@ -262,7 +262,7 @@
 
         // Firebase configuration
         const firebaseConfig = {
-            apiKey: "AIzaSyDr9nA44Kkej*****GUzbMDECI8cTFI",
+            apiKey: "YOUR_API_KEY",
             authDomain: "dairy-farm-record-system.firebaseapp.com",
             projectId: "dairy-farm-record-system",
             storageBucket: "dairy-farm-record-system.appspot.com",
@@ -445,9 +445,20 @@
                         checklistTable.push([itemName, status, comments]);
 
                         if (imageDataUrl) {
+                            // Determine the image type
+                            let imageType = imageDataUrl.substring(5, imageDataUrl.indexOf(';'));
+                            if (imageType === 'image/jpeg' || imageType === 'image/jpg') {
+                                imageType = 'JPEG';
+                            } else if (imageType === 'image/png') {
+                                imageType = 'PNG';
+                            } else {
+                                imageType = 'JPEG'; // Default to JPEG
+                            }
+
                             photos.push({
                                 imageData: imageDataUrl,
-                                title: itemName
+                                title: itemName,
+                                imageType: imageType
                             });
                         }
                     }
@@ -492,18 +503,22 @@
                     // Add photos after the temperature data
                     let photoY = tempY + 20; // Adjust as needed
 
-                    photos.forEach((photo, index) => {
+                    for (let photo of photos) {
                         if (photoY > pdf.internal.pageSize.getHeight() - 220) {
                             // If we're getting close to the end of the page, add a new page
                             pdf.addPage();
                             photoY = 60; // Reset Y position for the new page
                         }
 
-                        pdf.addImage(photo.imageData, 'JPEG', 40, photoY, 250, 200); // Adjust the size to fit more photos
-                        pdf.setFontSize(12);
-                        pdf.text(photo.title, 40, photoY - 10); // Add the title above the photo
-                        photoY += 220; // Move Y position down for the next photo (image height + spacing)
-                    });
+                        try {
+                            pdf.addImage(photo.imageData, photo.imageType, 40, photoY, 250, 200); // Adjust the size to fit more photos
+                            pdf.setFontSize(12);
+                            pdf.text(photo.title, 40, photoY - 10); // Add the title above the photo
+                            photoY += 220; // Move Y position down for the next photo (image height + spacing)
+                        } catch (error) {
+                            console.error('Error adding image to PDF:', error);
+                        }
+                    }
 
                     // Save PDF and upload to Firebase
                     const pdfBlob = pdf.output('blob');
@@ -882,6 +897,20 @@
                     reject(error);
                 };
                 reader.readAsDataURL(blob);
+            });
+        }
+
+        // Add the missing helper function
+        function readFileAsDataURL(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    resolve(event.target.result);
+                };
+                reader.onerror = function (error) {
+                    reject(error);
+                };
+                reader.readAsDataURL(file);
             });
         }
 
