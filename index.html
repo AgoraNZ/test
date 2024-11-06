@@ -216,13 +216,15 @@
                 <h2>Temperature Measurements</h2>
                 <div class="checklist-item">
                     <label for="hot-water-temp">Hot Water Temp (°C):</label>
-                    <input type="number" class="form-control" id="hot-water-temp" name="hot-water-temp" step="0.1">
+                    <!-- Changed input type from "number" to "text" -->
+                    <input type="text" class="form-control" id="hot-water-temp" name="hot-water-temp">
                     <label for="hot-water-time">Time Taken:</label>
                     <input type="time" class="form-control" id="hot-water-time" name="hot-water-time">
                 </div>
                 <div class="checklist-item">
                     <label for="milk-temp">Milk Temp (°C):</label>
-                    <input type="number" class="form-control" id="milk-temp" name="milk-temp" step="0.1">
+                    <!-- Changed input type from "number" to "text" -->
+                    <input type="text" class="form-control" id="milk-temp" name="milk-temp">
                     <label for="milk-time">Time Taken:</label>
                     <input type="time" class="form-control" id="milk-time" name="milk-time">
                 </div>
@@ -491,16 +493,14 @@
                     tempY += 20;
 
                     pdf.setFont('helvetica', 'normal');
-                    const hotWaterTempValue = formData.get('hot-water-temp');
-                    const hotWaterTemp = hotWaterTempValue ? hotWaterTempValue.replace(',', '.') : '';
+                    const hotWaterTemp = formData.get('hot-water-temp') || '';
                     const hotWaterTime = formData.get('hot-water-time') || '';
                     pdf.text(`Hot Water Temp: ${hotWaterTemp} °C`, 40, tempY);
                     tempY += 15;
                     pdf.text(`Time Taken: ${hotWaterTime}`, 40, tempY);
                     tempY += 20;
 
-                    const milkTempValue = formData.get('milk-temp');
-                    const milkTemp = milkTempValue ? milkTempValue.replace(',', '.') : '';
+                    const milkTemp = formData.get('milk-temp') || '';
                     const milkTime = formData.get('milk-time') || '';
                     pdf.text(`Milk Temp: ${milkTemp} °C`, 40, tempY);
                     tempY += 15;
