@@ -122,6 +122,13 @@
         .search-container {
             margin-bottom: 20px;
         }
+
+        /* New styles for image preview */
+        .image-preview {
+            max-width: 100px;
+            display: block;
+            margin-top: 10px;
+        }
     </style>
 </head>
 
@@ -270,8 +277,9 @@
 
         // Initialize IndexedDB using Dexie
         const db = new Dexie("OfflineData");
-        db.version(1).stores({
-            forms: "++id, dairyNumber, formData, pdfBlob"
+        db.version(2).stores({
+            forms: "++id, dairyNumber, formData, pdfBlob",
+            drafts: "++id, dairyNumber, formData, photos, timestamp"
         });
 
         // Service Worker Registration
@@ -352,7 +360,7 @@
                 const logo = await fetch(logoUrl).then((res) => res.blob());
                 const reader = new FileReader();
                 reader.readAsDataURL(logo);
-                reader.onload = function () {
+                reader.onload = async function () {
                     const imgData = reader.result;
                     const pageWidth = pdf.internal.pageSize.getWidth();
                     const imgProps = pdf.getImageProperties(imgData);
@@ -401,120 +409,124 @@
                     const checklistTable = [];
                     const photos = [];
 
-                    let pendingImages = 0;
+                    // Load photos from IndexedDB draft
+                    const draft = await db.drafts.where('dairyNumber').equals(dairyNumber).first();
+                    const savedPhotos = draft ? draft.photos : [];
 
-                    for (let item of checklistItemsDiv) {
+                    for (let i = 0; i < checklistItemsDiv.length; i++) {
+                        const item = checklistItemsDiv[i];
                         const itemName = item.querySelector('label').textContent;
                         const status = item.querySelector('select').value;
                         let comments = item.querySelector('input[type="text"]').value;
-                        const imageFile = item.querySelector('input[type="file"]').files[0];
+
+                        // Get the image data from the file input or from saved photos
+                        const imageInput = item.querySelector('input[type="file"]');
+                        let imageFile = imageInput.files[0];
+                        let imageDataUrl = null;
+
+                        if (imageFile) {
+                            // Read image from file input
+                            imageDataUrl = await readFileAsDataURL(imageFile);
+                        } else if (savedPhotos && savedPhotos.length > 0) {
+                            // Find the saved photo for this item
+                            const photoData = savedPhotos.find(photo => photo.itemIndex === i);
+                            if (photoData) {
+                                const blob = new Blob([photoData.imageData], { type: photoData.imageType });
+                                imageDataUrl = await readBlobAsDataURL(blob);
+                            }
+                        }
 
                         if (status === 'attention-required') {
-                            if (imageFile) {
+                            if (imageDataUrl) {
                                 comments += " (See attached photo below)";
                             }
                         }
 
                         checklistTable.push([itemName, status, comments]);
 
-                        if (imageFile) {
-                            pendingImages++;
-                            const imgReader = new FileReader();
-                            imgReader.onload = function (event) {
-                                photos.push({
-                                    imageData: event.target.result,
-                                    title: itemName
-                                });
-                                pendingImages--;
-                                if (pendingImages === 0) {
-                                    finalizePDF();
-                                }
-                            };
-                            imgReader.readAsDataURL(imageFile);
-                        }
-                    }
-
-                    if (pendingImages === 0) {
-                        finalizePDF();
-                    }
-
-                    function finalizePDF() {
-                        // Generate checklist items table
-                        pdf.autoTable({
-                            startY: currentY,
-                            head: [['Item', 'Status', 'Comments']],
-                            body: checklistTable,
-                            styles: {
-                                fontSize: 10,
-                                cellPadding: 5,
-                            },
-                            headStyles: {
-                                fillColor: '#002B5C',
-                                textColor: '#FFFFFF'
-                            }
-                        });
-
-                        // Add temperature data
-                        let tempY = pdf.lastAutoTable.finalY + 20;
-
-                        pdf.setFont('helvetica', 'bold');
-                        pdf.text('Temperature Measurements:', 40, tempY);
-                        tempY += 20;
-
-                        pdf.setFont('helvetica', 'normal');
-                        const hotWaterTemp = document.getElementById('hot-water-temp').value;
-                        const hotWaterTime = document.getElementById('hot-water-time').value;
-                        pdf.text(`Hot Water Temp: ${hotWaterTemp} °C`, 40, tempY);
-                        tempY += 15;
-                        pdf.text(`Time Taken: ${hotWaterTime}`, 40, tempY);
-                        tempY += 20;
-
-                        const milkTemp = document.getElementById('milk-temp').value;
-                        const milkTime = document.getElementById('milk-time').value;
-                        pdf.text(`Milk Temp: ${milkTemp} °C`, 40, tempY);
-                        tempY += 15;
-                        pdf.text(`Time Taken: ${milkTime}`, 40, tempY);
-                        tempY += 20;
-
-                        // Add photos after the checklist
-                        let photoY = tempY + 20; // Adjust as needed
-
-                        photos.forEach((photo, index) => {
-                            if (photoY > pdf.internal.pageSize.getHeight() - 220) {
-                                // If we're getting close to the end of the page, add a new page
-                                pdf.addPage();
-                                photoY = 60; // Reset Y position for the new page
-                            }
-
-                            pdf.addImage(photo.imageData, 'JPEG', 40, photoY, 250, 200); // Adjust the size to fit more photos
-                            pdf.setFontSize(12);
-                            pdf.text(photo.title, 40, photoY - 10); // Add the title above the photo
-                            photoY += 220; // Move Y position down for the next photo (image height + spacing)
-                        });
-
-                        // Save PDF and upload to Firebase
-                        const pdfBlob = pdf.output('blob');
-
-                        if (navigator.onLine) {
-                            uploadPDF(dairyNumber, pdfBlob);
-                        } else {
-                            // Save data to IndexedDB
-                            db.forms.add({
-                                dairyNumber: dairyNumber,
-                                formData: Object.fromEntries(formData.entries()),
-                                pdfBlob: pdfBlob
-                            }).then(() => {
-                                console.log('Data saved locally. Will sync when back online.');
-                            }).catch((error) => {
-                                console.error('Error saving data locally:', error);
+                        if (imageDataUrl) {
+                            photos.push({
+                                imageData: imageDataUrl,
+                                title: itemName
                             });
                         }
-
-                        pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
-
-                        // Clear the saved form data after submission
-                        localStorage.removeItem('draftFormData');
                     }
+
+                    // Generate checklist items table
+                    pdf.autoTable({
+                        startY: currentY,
+                        head: [['Item', 'Status', 'Comments']],
+                        body: checklistTable,
+                        styles: {
+                            fontSize: 10,
+                            cellPadding: 5,
+                        },
+                        headStyles: {
+                            fillColor: '#002B5C',
+                            textColor: '#FFFFFF'
+                        }
+                    });
+
+                    // Add temperature data
+                    let tempY = pdf.lastAutoTable.finalY + 20;
+
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text('Temperature Measurements:', 40, tempY);
+                    tempY += 20;
+
+                    pdf.setFont('helvetica', 'normal');
+                    const hotWaterTemp = document.getElementById('hot-water-temp').value;
+                    const hotWaterTime = document.getElementById('hot-water-time').value;
+                    pdf.text(`Hot Water Temp: ${hotWaterTemp} °C`, 40, tempY);
+                    tempY += 15;
+                    pdf.text(`Time Taken: ${hotWaterTime}`, 40, tempY);
+                    tempY += 20;
+
+                    const milkTemp = document.getElementById('milk-temp').value;
+                    const milkTime = document.getElementById('milk-time').value;
+                    pdf.text(`Milk Temp: ${milkTemp} °C`, 40, tempY);
+                    tempY += 15;
+                    pdf.text(`Time Taken: ${milkTime}`, 40, tempY);
+                    tempY += 20;
+
+                    // Add photos after the temperature data
+                    let photoY = tempY + 20; // Adjust as needed
+
+                    photos.forEach((photo, index) => {
+                        if (photoY > pdf.internal.pageSize.getHeight() - 220) {
+                            // If we're getting close to the end of the page, add a new page
+                            pdf.addPage();
+                            photoY = 60; // Reset Y position for the new page
+                        }
+
+                        pdf.addImage(photo.imageData, 'JPEG', 40, photoY, 250, 200); // Adjust the size to fit more photos
+                        pdf.setFontSize(12);
+                        pdf.text(photo.title, 40, photoY - 10); // Add the title above the photo
+                        photoY += 220; // Move Y position down for the next photo (image height + spacing)
+                    });
+
+                    // Save PDF and upload to Firebase
+                    const pdfBlob = pdf.output('blob');
+
+                    if (navigator.onLine) {
+                        uploadPDF(dairyNumber, pdfBlob);
+                    } else {
+                        // Save data to IndexedDB
+                        db.forms.add({
+                            dairyNumber: dairyNumber,
+                            formData: Object.fromEntries(formData.entries()),
+                            pdfBlob: pdfBlob
+                        }).then(() => {
+                            console.log('Data saved locally. Will sync when back online.');
+                        }).catch((error) => {
+                            console.error('Error saving data locally:', error);
+                        });
+                    }
+
+                    pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
+
+                    // Clear the saved form data after submission
+                    await db.drafts.where('dairyNumber').equals(dairyNumber).delete();
                 };
             } catch (error) {
                 console.error('Error fetching logo:', error);
@@ -578,7 +590,7 @@
             const checklistContainer = document.getElementById('checklist-items');
             checklistContainer.innerHTML = '';
 
-            checklistItems.forEach(item => {
+            checklistItems.forEach((item, index) => {
                 const itemContainer = document.createElement('div');
                 itemContainer.classList.add('checklist-item');
 
@@ -608,6 +620,12 @@
                 imageUpload.style.display = 'none';
                 itemContainer.appendChild(imageUpload);
 
+                // Add image preview element
+                const imagePreview = document.createElement('img');
+                imagePreview.classList.add('image-preview');
+                imagePreview.style.display = 'none'; // Initially hidden
+                itemContainer.appendChild(imagePreview);
+
                 statusSelect.addEventListener('change', () => {
                     if (statusSelect.value === 'attention-required') {
                         imageUpload.style.display = 'block';
@@ -620,11 +638,24 @@
                     } else if (commentsInput.value === "Milk in Vat") {
                         commentsInput.value = ""; // Clear the field if it was auto-filled
                     }
+                    saveFormData();
                 });
 
-                // Add event listeners to inputs for saving form data
+                // Event listeners for saving data
                 statusSelect.addEventListener('change', saveFormData);
                 commentsInput.addEventListener('input', saveFormData);
+
+                imageUpload.addEventListener('change', (event) => {
+                    const file = event.target.files[0];
+                    if (file) {
+                        const imageUrl = URL.createObjectURL(file);
+                        imagePreview.src = imageUrl;
+                        imagePreview.style.display = 'block';
+                    } else {
+                        imagePreview.style.display = 'none';
+                    }
+                    saveFormData();
+                });
 
                 checklistContainer.appendChild(itemContainer);
             });
@@ -721,8 +752,8 @@
             }
         }
 
-        // Function to save form data to localStorage
-        function saveFormData() {
+        // Function to save form data to IndexedDB
+        async function saveFormData() {
             const form = document.getElementById('hygiene-checklist-form');
             const formData = new FormData(form);
             const formObject = {};
@@ -732,34 +763,60 @@
                 formObject[key] = value;
             }
 
-            // Save checklist items
+            // Save checklist items and photos
             const checklistItemsDiv = document.getElementById('checklist-items').children;
             const checklistData = [];
+            const photos = [];
 
-            for (let item of checklistItemsDiv) {
+            for (let i = 0; i < checklistItemsDiv.length; i++) {
+                const item = checklistItemsDiv[i];
                 const itemName = item.querySelector('label').textContent;
                 const status = item.querySelector('select').value;
                 const comments = item.querySelector('input[type="text"]').value;
+                const imageInput = item.querySelector('input[type="file"]');
+                const imageFile = imageInput.files[0];
+
+                let imageData = null;
+
+                if (imageFile) {
+                    // Read the image file as ArrayBuffer to store in IndexedDB
+                    imageData = await readFileAsArrayBuffer(imageFile);
+                    photos.push({
+                        itemIndex: i,
+                        itemName: itemName,
+                        imageData: imageData,
+                        imageType: imageFile.type
+                    });
+                }
 
                 checklistData.push({
                     itemName: itemName,
                     status: status,
-                    comments: comments
+                    comments: comments,
+                    hasImage: !!imageFile
                 });
             }
 
             formObject['checklistData'] = checklistData;
 
-            localStorage.setItem('draftFormData', JSON.stringify(formObject));
+            const dairyNumber = formObject['dairy-number'] || 'unknown';
+
+            // Save the form data and photos to IndexedDB
+            await db.drafts.put({
+                dairyNumber: dairyNumber,
+                formData: formObject,
+                photos: photos,
+                timestamp: new Date().getTime()
+            });
         }
 
         // Function to populate form with saved data
-        function populateForm(data) {
+        async function populateForm(data) {
             const form = document.getElementById('hygiene-checklist-form');
 
             // Populate standard form fields
-            for (const [key, value] of Object.entries(data)) {
-                if (key !== 'checklistData') { // Exclude checklistData
+            for (const [key, value] of Object.entries(data.formData)) {
+                if (key !== 'checklistData') {
                     const field = form.elements[key];
                     if (field) {
                         field.value = value;
@@ -768,42 +825,84 @@
             }
 
             // Populate checklist items
-            if (data.checklistData) {
+            if (data.formData.checklistData) {
                 const checklistItemsDiv = document.getElementById('checklist-items').children;
 
                 for (let i = 0; i < checklistItemsDiv.length; i++) {
                     const item = checklistItemsDiv[i];
-                    const checklistItemData = data.checklistData[i];
+                    const checklistItemData = data.formData.checklistData[i];
 
                     const statusSelect = item.querySelector('select');
                     const commentsInput = item.querySelector('input[type="text"]');
+                    const imageInput = item.querySelector('input[type="file"]');
+                    const imagePreview = item.querySelector('.image-preview');
 
                     if (statusSelect && commentsInput && checklistItemData) {
                         statusSelect.value = checklistItemData.status;
                         commentsInput.value = checklistItemData.comments;
+
+                        if (checklistItemData.hasImage) {
+                            const photoData = data.photos.find(photo => photo.itemIndex === i);
+                            if (photoData) {
+                                // Create a Blob from the ArrayBuffer
+                                const blob = new Blob([photoData.imageData], { type: photoData.imageType });
+                                const imageUrl = URL.createObjectURL(blob);
+
+                                // Display the image preview
+                                imagePreview.src = imageUrl;
+                                imagePreview.style.display = 'block';
+                            }
+                        }
                     }
                 }
             }
         }
 
-        document.addEventListener("DOMContentLoaded", () => {
+        // Helper functions to read files
+        function readFileAsArrayBuffer(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    resolve(event.target.result);
+                };
+                reader.onerror = function (error) {
+                    reject(error);
+                };
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        function readBlobAsDataURL(blob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    resolve(event.target.result);
+                };
+                reader.onerror = function (error) {
+                    reject(error);
+                };
+                reader.readAsDataURL(blob);
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", async () => {
             createChecklistItems();
             // Other initialization code
 
-            const savedFormData = localStorage.getItem('draftFormData');
-            if (savedFormData) {
+            const drafts = await db.drafts.toArray();
+            if (drafts.length > 0) {
+                const recentDraft = drafts[drafts.length - 1];
                 const resume = confirm('You have an unsaved checklist. Would you like to resume?');
                 if (resume) {
-                    populateForm(JSON.parse(savedFormData));
+                    await populateForm(recentDraft);
                 } else {
-                    localStorage.removeItem('draftFormData');
+                    await db.drafts.delete(recentDraft.id);
                 }
             }
         });
 
         // Add event listeners to save form data on input
         document.getElementById('hygiene-checklist-form').addEventListener('input', saveFormData);
-
     </script>
 </body>
 
