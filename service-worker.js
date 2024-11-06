@@ -1,94 +1,85 @@
-// service-worker.js
-
-const CACHE_NAME = 'dairy-shed-cache-v2';
+const CACHE_NAME = 'dairy-shed-hygiene-cache-v1';
 const urlsToCache = [
-    '/', // Cache the root
-    '/index.html', // Cache the main HTML file
-    '/assets/css/bootstrap.min.css',
-    '/assets/css/styles.css',
-    '/assets/js/bootstrap.bundle.min.js',
-    '/assets/js/dexie.min.js',
-    '/assets/js/jspdf.umd.min.js',
-    '/assets/js/jspdf.plugin.autotable.min.js',
-    '/assets/js/script.js',
-    '/assets/images/logo-89.png',
-    '/assets/images/Picture3.jpg',
-    '/fallback.html' // Fallback page
+    '/',
+    '/index.html',
+    '/service-worker.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css',
+    'https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js',
+    'https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js',
+    'https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/dexie/3.0.3/dexie.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js',
+    'https://i.postimg.cc/htZPjx5g/logo-89.png',
+    // Add other assets like images, icons, etc. if needed
 ];
 
-// Install event - cache essential assets
-self.addEventListener('install', function(event) {
+// Install event: Cache necessary files
+self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(CACHE_NAME)
-            .then(function(cache) {
+            .then(cache => {
                 console.log('Opened cache');
                 return cache.addAll(urlsToCache);
             })
-            .catch(function(error) {
-                console.error('Failed to cache resources during install:', error);
-            })
     );
 });
 
-// Fetch event - network first, then cache
-self.addEventListener('fetch', function(event) {
-    if (event.request.method !== 'GET') {
-        // Only handle GET requests
-        return;
-    }
+// Activate event: Clean up old caches
+self.addEventListener('activate', event => {
+    event.waitUntil(
+        caches.keys().then(cacheNames => {
+            return Promise.all(
+                cacheNames.filter(cacheName => {
+                    // Return true if you want to remove this cache
+                    return cacheName !== CACHE_NAME;
+                }).map(cacheName => {
+                    return caches.delete(cacheName);
+                })
+            );
+        })
+    );
+});
+
+// Fetch event: Serve cached content when offline
+self.addEventListener('fetch', event => {
+    // Only handle GET requests
+    if (event.request.method !== 'GET') return;
 
     event.respondWith(
-        fetch(event.request)
-            .then(function(response) {
-                // Check if response is valid
-                if (!response || response.status !== 200 || response.type !== 'basic') {
+        caches.match(event.request)
+            .then(response => {
+                if (response) {
+                    // Cache hit - return the response
                     return response;
                 }
 
-                // Clone the response
-                const responseToCache = response.clone();
+                // Clone the request as it's a stream and can only be consumed once
+                const fetchRequest = event.request.clone();
 
-                // Open the cache and store the response
-                caches.open(CACHE_NAME)
-                    .then(function(cache) {
-                        cache.put(event.request, responseToCache);
-                    })
-                    .catch(function(error) {
-                        console.error('Failed to cache the response:', error);
-                    });
+                return fetch(fetchRequest).then(
+                    networkResponse => {
+                        // Check if we received a valid response
+                        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+                            return networkResponse;
+                        }
 
-                return response;
-            })
-            .catch(function() {
-                // If network request fails, try to serve from cache
-                return caches.match(event.request)
-                    .then(function(response) {
-                        if (response) {
-                            return response;
-                        }
-                        // Optionally, return a fallback page or image
-                        if (event.request.destination === 'document') {
-                            return caches.match('/fallback.html');
-                        }
-                    });
-            })
-    );
-});
+                        // Clone the response as it's a stream and can only be consumed once
+                        const responseToCache = networkResponse.clone();
 
-// Activate event - clean up old caches
-self.addEventListener('activate', function(event) {
-    const cacheWhitelist = [CACHE_NAME];
-    event.waitUntil(
-        caches.keys()
-            .then(function(cacheNames) {
-                return Promise.all(
-                    cacheNames.map(function(cacheName) {
-                        if (!cacheWhitelist.includes(cacheName)) {
-                            console.log('Deleting old cache:', cacheName);
-                            return caches.delete(cacheName);
-                        }
-                    })
-                );
+                        caches.open(CACHE_NAME)
+                            .then(cache => {
+                                cache.put(event.request, responseToCache);
+                            });
+
+                        return networkResponse;
+                    }
+                ).catch(() => {
+                    // Fallback content if fetch fails (optional)
+                    if (event.request.destination === 'document') {
+                        return caches.match('/index.html');
+                    }
+                });
             })
     );
 });
