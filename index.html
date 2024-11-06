@@ -354,10 +354,10 @@
         // Function definitions
 
         async function fetchFarmDetails() {
-            const dairyNumber = document.getElementById('dairy-number').value;
+            const dairyNumber = document.getElementById('dairy-number').value.trim();
             if (dairyNumber) {
                 if (navigator.onLine) {
-                    // Online: Fetch from Firebase Storage
+                    // Online: Attempt to fetch from Firebase Storage
                     const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
                     try {
                         const url = await storageRef.getDownloadURL();
@@ -367,6 +367,7 @@
                         }
                         const data = await response.json();
                         if (data) {
+                            // Populate form fields with fetched data
                             document.getElementById('dairy-company').value = data.dairyCompany || '';
                             document.getElementById('address').value = data.address || '';
                             document.getElementById('customer-name').value = data.customerName || '';
@@ -389,10 +390,11 @@
                         }
                     } catch (error) {
                         console.error('Error fetching farm details:', error);
-                        alert('Unable to fetch farm details online. Please check your connection.');
+                        // If dairy number does not exist, allow user to enter new data without alert
+                        clearFarmDetails();
                     }
                 } else {
-                    // Offline: Fetch from IndexedDB
+                    // Offline: Attempt to fetch from IndexedDB
                     try {
                         const formRecord = await db.forms.where('dairyNumber').equals(dairyNumber).first();
                         if (formRecord && formRecord.formData) {
@@ -404,18 +406,37 @@
                             document.getElementById('farm-name').value = data['farm-name'] || '';
                             document.getElementById('island').value = data['island'] || '';
                         } else {
-                            alert('No farm details available offline for the entered Dairy Number.');
+                            // No existing data: Allow user to enter new farm details
+                            clearFarmDetails();
                         }
                     } catch (error) {
                         console.error('Error fetching farm details offline:', error);
                         alert('Unable to fetch farm details offline.');
                     }
                 }
+            } else {
+                // If dairy number is empty, clear the form fields
+                clearFarmDetails();
             }
         }
 
+        // Function to clear farm details fields
+        function clearFarmDetails() {
+            document.getElementById('dairy-company').value = '';
+            document.getElementById('address').value = '';
+            document.getElementById('customer-name').value = '';
+            document.getElementById('region').value = '';
+            document.getElementById('farm-name').value = '';
+            document.getElementById('island').value = '';
+        }
+
         async function saveFarmDetails(formData) {
-            const dairyNumber = formData.get('dairy-number');
+            const dairyNumber = formData.get('dairy-number').trim();
+            if (!dairyNumber) {
+                alert('Please enter the Dairy Number.');
+                return;
+            }
+
             const farmDetails = {
                 dairyCompany: formData.get('dairy-company'),
                 address: formData.get('address'),
@@ -424,17 +445,21 @@
                 farmName: formData.get('farm-name'),
                 island: formData.get('island'),
             };
+
             const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
             const metadata = {
                 contentType: 'application/json',
             };
+
             try {
+                // Save to Firebase Storage
                 await storageRef.put(
                     new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }),
                     metadata
                 );
-                console.log('Farm details saved successfully.');
-                // Also save to IndexedDB for offline access
+                console.log('Farm details saved successfully to Firebase.');
+
+                // Save to IndexedDB for offline access
                 await db.forms.put({
                     dairyNumber: dairyNumber,
                     formData: farmDetails,
@@ -442,21 +467,23 @@
                 });
             } catch (error) {
                 console.error('Error saving farm details:', error);
+                alert('Error saving farm details. Please try again.');
             }
         }
 
         async function generatePDF() {
             const form = document.getElementById('hygiene-checklist-form');
             const formData = new FormData(form);
-            const dairyNumber = formData.get('dairy-number');
+            const dairyNumber = formData.get('dairy-number').trim();
 
             if (!dairyNumber) {
                 alert('Please enter the Dairy Number.');
                 return;
             }
 
+            // Save farm details if online
             if (navigator.onLine) {
-                await saveFarmDetails(formData); // Save farm details if online
+                await saveFarmDetails(formData);
             }
 
             let formObject = {};
@@ -484,9 +511,9 @@
             const logoStorageRef = storage.ref('Picture3.jpg');
             try {
                 const logoUrl = await logoStorageRef.getDownloadURL();
-                const logo = await fetch(logoUrl).then((res) => res.blob());
+                const logoBlob = await fetch(logoUrl).then(res => res.blob());
                 const reader = new FileReader();
-                reader.readAsDataURL(logo);
+                reader.readAsDataURL(logoBlob);
                 reader.onload = async function () {
                     const imgData = reader.result;
                     const pageWidth = pdf.internal.pageSize.getWidth();
@@ -536,7 +563,7 @@
                     const checklistTable = [];
                     const photos = [];
 
-                    // Load photos from IndexedDB draft
+                    // Load photos from IndexedDB draft if offline
                     const draftPhotos = navigator.onLine ? [] : (draft ? draft.photos : []);
 
                     for (let i = 0; i < checklistItemsDiv.length; i++) {
@@ -1142,6 +1169,10 @@
                         } else {
                             imageInput1.style.display = 'none';
                             imageInput2.style.display = 'none';
+                            imageInput1.value = '';
+                            imageInput2.value = '';
+                            imagePreview1.style.display = 'none';
+                            imagePreview2.style.display = 'none';
                         }
 
                         if (checklistItemData.hasImage1) {
