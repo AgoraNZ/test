@@ -337,7 +337,10 @@
                 contentType: 'application/json',
             };
             try {
-                await storageRef.put(new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }), metadata);
+                await storageRef.put(
+                    new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }),
+                    metadata
+                );
                 console.log('Farm details saved successfully.');
             } catch (error) {
                 console.error('Error saving farm details:', error);
@@ -528,20 +531,8 @@
                     // Save PDF and upload to Firebase
                     const pdfBlob = pdf.output('blob');
 
-                    if (navigator.onLine) {
-                        uploadPDF(dairyNumber, pdfBlob);
-                    } else {
-                        // Save data to IndexedDB
-                        db.forms.add({
-                            dairyNumber: dairyNumber,
-                            formData: Object.fromEntries(formData.entries()),
-                            pdfBlob: pdfBlob
-                        }).then(() => {
-                            console.log('Data saved locally. Will sync when back online.');
-                        }).catch((error) => {
-                            console.error('Error saving data locally:', error);
-                        });
-                    }
+                    // Always attempt to upload the PDF
+                    uploadPDF(dairyNumber, pdfBlob);
 
                     pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
 
@@ -554,10 +545,13 @@
         }
 
         function uploadPDF(dairyNumber, pdfBlob) {
-            // Corrected function to upload to 'customers' folder
+            console.log('uploadPDF function called with dairyNumber:', dairyNumber); // Debugging statement
+
             const timestamp = new Date().toISOString().split('T')[0];
             const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
-            const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`); // Correct folder path
+            const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
+
+            console.log('Uploading PDF to path:', `customers/${dairyNumber}/${fileName}`); // Debugging statement
 
             storageRef.put(pdfBlob).then(() => {
                 console.log('PDF uploaded successfully');
