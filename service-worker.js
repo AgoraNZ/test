@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dairy-shed-hygiene-cache-v1';
+const CACHE_NAME = 'dairy-shed-hygiene-cache-v2';
 const urlsToCache = [
     '/',
     '/index.html',
