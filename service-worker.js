@@ -1,17 +1,12 @@
 const CACHE_NAME = 'dairy-shed-hygiene-cache-v2';
 const urlsToCache = [
     '/',
-    '/index.html',
-    '/service-worker.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css',
-    'https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js',
-    'https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js',
-    'https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/dexie/3.0.3/dexie.min.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js',
-    'https://i.postimg.cc/htZPjx5g/logo-89.png',
-    // Add other assets like images, icons, etc. if needed
+    '/test/index.html', // Updated to include /test/ prefix
+    '/test/service-worker.js', // Updated to include /test/ prefix
+    '/test/assets/css/bootstrap.min.css', // Updated paths for assets
+    '/test/assets/images/logo-89.png',
+    // Remove or adjust external URLs to avoid CORS issues
+    // Consider hosting essential assets locally within /test/ if possible
 ];
 
 // Install event: Cache necessary files
@@ -34,7 +29,7 @@ self.addEventListener('activate', event => {
         caches.keys().then(cacheNames => {
             return Promise.all(
                 cacheNames.filter(cacheName => {
-                    // Return true if you want to remove this cache
+                    // Remove old caches
                     return cacheName !== CACHE_NAME;
                 }).map(cacheName => {
                     console.log('Deleting old cache:', cacheName);
@@ -84,7 +79,7 @@ self.addEventListener('fetch', event => {
                 ).catch(() => {
                     // Fallback content if fetch fails (optional)
                     if (event.request.destination === 'document') {
-                        return caches.match('/index.html');
+                        return caches.match('/test/index.html'); // Updated to include /test/ prefix
                     }
                 });
             })
