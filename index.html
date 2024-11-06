@@ -462,18 +462,22 @@
                         tempY += 20;
 
                         pdf.setFont('helvetica', 'normal');
-                        pdf.text(`Hot Water Temp: ${formData.get('hot-water-temp')} °C`, 40, tempY);
+                        const hotWaterTemp = document.getElementById('hot-water-temp').value;
+                        const hotWaterTime = document.getElementById('hot-water-time').value;
+                        pdf.text(`Hot Water Temp: ${hotWaterTemp} °C`, 40, tempY);
                         tempY += 15;
-                        pdf.text(`Time Taken: ${formData.get('hot-water-time')}`, 40, tempY);
+                        pdf.text(`Time Taken: ${hotWaterTime}`, 40, tempY);
                         tempY += 20;
 
-                        pdf.text(`Milk Temp: ${formData.get('milk-temp')} °C`, 40, tempY);
+                        const milkTemp = document.getElementById('milk-temp').value;
+                        const milkTime = document.getElementById('milk-time').value;
+                        pdf.text(`Milk Temp: ${milkTemp} °C`, 40, tempY);
                         tempY += 15;
-                        pdf.text(`Time Taken: ${formData.get('milk-time')}`, 40, tempY);
+                        pdf.text(`Time Taken: ${milkTime}`, 40, tempY);
                         tempY += 20;
 
                         // Add photos after the checklist
-                        let photoY = pdf.lastAutoTable.finalY + 120; // Start placing photos after the last auto table
+                        let photoY = tempY + 20; // Adjust as needed
 
                         photos.forEach((photo, index) => {
                             if (photoY > pdf.internal.pageSize.getHeight() - 220) {
@@ -507,6 +511,9 @@
                         }
 
                         pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
+
+                        // Clear the saved form data after submission
+                        localStorage.removeItem('draftFormData');
                     }
                 };
             } catch (error) {
@@ -615,6 +622,10 @@
                     }
                 });
 
+                // Add event listeners to inputs for saving form data
+                statusSelect.addEventListener('change', saveFormData);
+                commentsInput.addEventListener('input', saveFormData);
+
                 checklistContainer.appendChild(itemContainer);
             });
         }
@@ -710,10 +721,88 @@
             }
         }
 
+        // Function to save form data to localStorage
+        function saveFormData() {
+            const form = document.getElementById('hygiene-checklist-form');
+            const formData = new FormData(form);
+            const formObject = {};
+
+            // Save standard form fields
+            for (const [key, value] of formData.entries()) {
+                formObject[key] = value;
+            }
+
+            // Save checklist items
+            const checklistItemsDiv = document.getElementById('checklist-items').children;
+            const checklistData = [];
+
+            for (let item of checklistItemsDiv) {
+                const itemName = item.querySelector('label').textContent;
+                const status = item.querySelector('select').value;
+                const comments = item.querySelector('input[type="text"]').value;
+
+                checklistData.push({
+                    itemName: itemName,
+                    status: status,
+                    comments: comments
+                });
+            }
+
+            formObject['checklistData'] = checklistData;
+
+            localStorage.setItem('draftFormData', JSON.stringify(formObject));
+        }
+
+        // Function to populate form with saved data
+        function populateForm(data) {
+            const form = document.getElementById('hygiene-checklist-form');
+
+            // Populate standard form fields
+            for (const [key, value] of Object.entries(data)) {
+                if (key !== 'checklistData') { // Exclude checklistData
+                    const field = form.elements[key];
+                    if (field) {
+                        field.value = value;
+                    }
+                }
+            }
+
+            // Populate checklist items
+            if (data.checklistData) {
+                const checklistItemsDiv = document.getElementById('checklist-items').children;
+
+                for (let i = 0; i < checklistItemsDiv.length; i++) {
+                    const item = checklistItemsDiv[i];
+                    const checklistItemData = data.checklistData[i];
+
+                    const statusSelect = item.querySelector('select');
+                    const commentsInput = item.querySelector('input[type="text"]');
+
+                    if (statusSelect && commentsInput && checklistItemData) {
+                        statusSelect.value = checklistItemData.status;
+                        commentsInput.value = checklistItemData.comments;
+                    }
+                }
+            }
+        }
+
         document.addEventListener("DOMContentLoaded", () => {
             createChecklistItems();
             // Other initialization code
+
+            const savedFormData = localStorage.getItem('draftFormData');
+            if (savedFormData) {
+                const resume = confirm('You have an unsaved checklist. Would you like to resume?');
+                if (resume) {
+                    populateForm(JSON.parse(savedFormData));
+                } else {
+                    localStorage.removeItem('draftFormData');
+                }
+            }
         });
+
+        // Add event listeners to save form data on input
+        document.getElementById('hygiene-checklist-form').addEventListener('input', saveFormData);
 
     </script>
 </body>
