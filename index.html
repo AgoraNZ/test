@@ -2,115 +2,79 @@
 <html lang="en">
 
 <head>
-    <!-- Head content here (same as in your provided code) -->
+    <!-- ... [Same as before up to the script tags] ... -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dairy Shed Hygiene Checklist</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <!-- [Your existing styles here] -->
+    <style>
+        /* [Your existing styles here] */
+    </style>
 </head>
 
 <body>
-    <!-- Body content here (same as in your provided code) -->
+    <!-- [Your existing HTML content here] -->
 
+    <!-- Include scripts at the end of the body for better performance -->
+    <!-- Include Firebase scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
+
+    <!-- Include external libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dexie/3.0.3/dexie.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
+    <!-- Your main script -->
     <script>
-        // Firebase initialization and configuration (same as in your provided code)
+        // Ensure that jsPDF is properly initialized
+        const { jsPDF } = window.jspdf;
 
-        async function generatePDF() {
-            const form = document.getElementById('hygiene-checklist-form');
-            const formData = new FormData(form);
-            const dairyNumber = formData.get('dairy-number');
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "dairy-farm-record-system.firebaseapp.com",
+            projectId: "dairy-farm-record-system",
+            storageBucket: "dairy-farm-record-system.appspot.com",
+            messagingSenderId: "422124188212",
+            appId: "1:422124188212:web:1bd31bee8d6e91e301d061"
+        };
 
-            await saveFarmDetails(formData); // Save farm details if not found
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const storage = firebase.storage();
+        const firestore = firebase.firestore();
 
-            const { jsPDF } = window.jspdf;
-            let pdf = new jsPDF('p', 'pt', 'a4');
+        // Initialize IndexedDB using Dexie
+        const db = new Dexie("OfflineData");
+        db.version(1).stores({
+            forms: "++id, dairyNumber, formData, pdfBlob"
+        });
 
-            // Add logo at full width
-            const logoUrl = "gs://dairy-farm-record-system.appspot.com/Picture3.jpg";
-            const logo = await fetch(logoUrl).then((res) => res.blob());
-            const reader = new FileReader();
-            reader.readAsDataURL(logo);
-            reader.onload = function () {
-                const imgData = reader.result;
-                pdf.addImage(imgData, 'JPEG', 0, 40, pdf.internal.pageSize.width, 60); // Full-width logo
-
-                // Additional PDF content generation (same as in your provided code)
-            };
-        }
-
-        function createChecklistItems() {
-            const checklistItems = [
-                "Pulsator Airline", "Long Bend Elbows", "Automatic Cup and Remover", "Diaphragm", "Receiving Can",
-                // ... other items
-                "Inlet Valve", "Non-Return Valve", "Spray Ball", "Agitator", "Silo Door", "Manhole Seal", "Vat Outlet", "Walls in Silo"
-            ];
-
-            const autoFillItems = new Set([
-                "Inlet Valve", "Non-Return Valve", "Spray Ball", "Agitator",
-                "Silo Door", "Manhole Seal", "Vat Outlet", "Walls in Silo"
-            ]);
-
-            // Checklist generation and event handling
-            checklistItems.forEach(item => {
-                const itemContainer = document.createElement('div');
-                itemContainer.classList.add('checklist-item');
-                const label = document.createElement('label');
-                label.textContent = item;
-                itemContainer.appendChild(label);
-
-                const statusSelect = document.createElement('select');
-                statusSelect.classList.add('form-select');
-                statusSelect.innerHTML = `
-                    <option value="ok">OK</option>
-                    <option value="attention-required">Attention Required</option>
-                    <option value="na">N/A</option>
-                    <option value="not-checked">Not Checked</option>
-                `;
-                itemContainer.appendChild(statusSelect);
-
-                const commentsInput = document.createElement('input');
-                commentsInput.type = 'text';
-                commentsInput.classList.add('form-control');
-                commentsInput.placeholder = 'Comments';
-                itemContainer.appendChild(commentsInput);
-
-                const imageUpload = document.createElement('input');
-                imageUpload.type = 'file';
-                imageUpload.classList.add('form-control', 'image-upload');
-                imageUpload.style.display = 'none';
-                itemContainer.appendChild(imageUpload);
-
-                statusSelect.addEventListener('change', () => {
-                    if (statusSelect.value === 'attention-required') {
-                        imageUpload.style.display = 'block';
-                    } else {
-                        imageUpload.style.display = 'none';
-                    }
-
-                    // Conditional auto-fill for specified items
-                    if (statusSelect.value === 'not-checked' && autoFillItems.has(item)) {
-                        commentsInput.value = "Milk in Vat";
-                    } else if (commentsInput.value === "Milk in Vat") {
-                        commentsInput.value = ""; // Clear if previously auto-filled
-                    }
-                });
-
-                checklistContainer.appendChild(itemContainer);
-            });
-        }
-
-        // Offline Caching and Sync
+        // Service Worker Registration
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('https://madkiwi98.github.io/test/service-worker.js')
-                .then(() => console.log("Service Worker Registered"))
-                .catch(error => console.error("Service Worker Registration Failed:", error));
+            navigator.serviceWorker.register('service-worker.js')
+                .then(registration => {
+                    console.log('Service Worker registered with scope:', registration.scope);
+                })
+                .catch(err => {
+                    console.error('Service Worker registration failed:', err);
+                });
         }
 
-        async function syncDataWithFirebase() {
-            // Offline syncing logic
-        }
+        // [Your existing JavaScript code]
+        // Make sure all your functions and event listeners are correctly placed
 
-        window.addEventListener('online', syncDataWithFirebase);
-
+        // Example: Ensuring DOM is fully loaded before running scripts
         document.addEventListener("DOMContentLoaded", () => {
             createChecklistItems();
+            // Other initialization code
         });
+
+        // [Rest of your JavaScript code, including functions like generatePDF(), etc.]
+
     </script>
 </body>
 
