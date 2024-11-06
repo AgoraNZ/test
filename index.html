@@ -595,17 +595,37 @@
                         }
                     }
 
-                    // Save PDF and upload to Firebase
+                    // Save PDF and handle upload based on connectivity
                     const pdfBlob = pdf.output('blob');
 
-                    // Always attempt to upload the PDF
-                    uploadPDF(dairyNumber, pdfBlob);
+                    if (navigator.onLine) {
+                        // Online Mode
+                        // Upload to Firebase
+                        uploadPDF(dairyNumber, pdfBlob);
 
-                    pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
+                        // Display PDF to user
+                        pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
 
-                    // Option A: Delete All Drafts After Submission
-                    await db.drafts.clear();
-                    console.log('All drafts have been cleared after submission.');
+                        // Option A: Delete All Drafts After Submission
+                        await db.drafts.clear();
+                        console.log('All drafts have been cleared after submission.');
+                    } else {
+                        // Offline Mode
+                        // Save PDF and form data to 'forms' store
+                        await db.forms.put({
+                            dairyNumber: dairyNumber,
+                            formData: formObject,
+                            pdfBlob: pdfBlob,
+                            timestamp: new Date().getTime()
+                        });
+                        console.log('Form data and PDF saved locally for later upload.');
+
+                        // Display PDF to user in a new tab
+                        const pdfUrl = URL.createObjectURL(pdfBlob);
+                        window.open(pdfUrl, '_blank');
+
+                        // Do not clear drafts
+                    }
                 };
             } catch (error) {
                 console.error('Error fetching logo:', error);
@@ -631,6 +651,27 @@
         window.addEventListener('online', syncDataWithFirebase);
 
         async function syncDataWithFirebase() {
+            console.log('Device is online. Syncing data with Firebase.');
+
+            // Sync drafts
+            const drafts = await db.drafts.toArray();
+            for (const draft of drafts) {
+                const dairyNumber = draft.dairyNumber;
+                const pdfBlob = draft.pdfBlob; // Assuming pdfBlob is stored in drafts
+
+                if (pdfBlob) {
+                    // Upload the PDF
+                    uploadPDF(dairyNumber, pdfBlob);
+                }
+
+                // You can add more upload logic here if needed
+
+                // Remove the draft after uploading
+                await db.drafts.delete(draft.id);
+                console.log(`Draft with ID ${draft.id} uploaded and deleted.`);
+            }
+
+            // Sync forms (offline-generated PDFs)
             const offlineForms = await db.forms.toArray();
 
             for (const record of offlineForms) {
@@ -640,7 +681,8 @@
                 uploadPDF(dairyNumber, pdfBlob);
 
                 // Remove the record from IndexedDB after uploading
-                db.forms.delete(record.id);
+                await db.forms.delete(record.id);
+                console.log(`Offline form with ID ${record.id} uploaded and deleted.`);
             }
 
             console.log('All offline data has been synced with Firebase.');
