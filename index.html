@@ -6,7 +6,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dairy Shed Hygiene Checklist</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <!-- Host Bootstrap Locally -->
+    <link rel="stylesheet" href="assets/css/bootstrap.min.css">
     <!-- Your existing styles here -->
     <style>
         /* Existing and new styles */
@@ -165,7 +166,8 @@
     <div id="status-indicator" class="status-indicator online">Online</div>
 
     <div class="container" id="form-container">
-        <img src="https://i.postimg.cc/htZPjx5g/logo-89.png" alt="Logo" class="logo">
+        <!-- Host Logo Locally -->
+        <img src="assets/images/logo-89.png" alt="Logo" class="logo">
         <h1>Dairy Shed Hygiene Checklist</h1>
 
         <form id="hygiene-checklist-form">
@@ -291,15 +293,13 @@
     </div>
 
     <!-- Include scripts at the end of the body for better performance -->
-    <!-- Include Firebase scripts -->
-    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
-
-    <!-- Include external libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dexie/3.0.3/dexie.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <!-- Host Firebase and Other Scripts Locally -->
+    <script src="assets/js/firebase-app-compat.js"></script>
+    <script src="assets/js/firebase-storage-compat.js"></script>
+    <script src="assets/js/firebase-firestore-compat.js"></script>
+    <script src="assets/js/dexie.min.js"></script>
+    <script src="assets/js/jspdf.umd.min.js"></script>
+    <script src="assets/js/jspdf.plugin.autotable.min.js"></script>
 
     <!-- Your main script -->
     <script>
@@ -330,7 +330,7 @@
 
         // Service Worker Registration
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/service-worker.js')
+            navigator.serviceWorker.register('service-worker.js') // Updated to relative path
                 .then(registration => {
                     console.log('Service Worker registered with scope:', registration.scope);
                 })
@@ -523,10 +523,10 @@
             const pdf = new jsPDF('p', 'pt', 'a4');
 
             // Add logo centered
-            const logoStorageRef = storage.ref('Picture3.jpg');
+            const logoUrl = 'assets/images/logo-89.png'; // Relative path to the local logo
             try {
-                const logoUrl = await logoStorageRef.getDownloadURL();
-                const logoBlob = await fetch(logoUrl).then(res => res.blob());
+                const response = await fetch(logoUrl);
+                const logoBlob = await response.blob();
                 const reader = new FileReader();
                 reader.readAsDataURL(logoBlob);
                 reader.onload = async function () {
@@ -536,7 +536,7 @@
                     const imgWidth = pageWidth - 80; // Leave some margins
                     const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
                     const x = (pageWidth - imgWidth) / 2; // Center the image
-                    pdf.addImage(imgData, 'JPEG', x, 40, imgWidth, imgHeight);
+                    pdf.addImage(imgData, 'PNG', x, 40, imgWidth, imgHeight); // Adjust the format if necessary
 
                     pdf.setFontSize(12);
                     pdf.setTextColor('#000000');
