@@ -22,6 +22,9 @@ self.addEventListener('install', event => {
                 console.log('Opened cache');
                 return cache.addAll(urlsToCache);
             })
+            .catch(error => {
+                console.error('Failed to cache during install:', error);
+            })
     );
 });
 
@@ -34,6 +37,7 @@ self.addEventListener('activate', event => {
                     // Return true if you want to remove this cache
                     return cacheName !== CACHE_NAME;
                 }).map(cacheName => {
+                    console.log('Deleting old cache:', cacheName);
                     return caches.delete(cacheName);
                 })
             );
@@ -70,6 +74,9 @@ self.addEventListener('fetch', event => {
                         caches.open(CACHE_NAME)
                             .then(cache => {
                                 cache.put(event.request, responseToCache);
+                            })
+                            .catch(error => {
+                                console.error('Failed to cache after fetch:', error);
                             });
 
                         return networkResponse;
