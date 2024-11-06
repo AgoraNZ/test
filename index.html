@@ -486,15 +486,17 @@
                     tempY += 20;
 
                     pdf.setFont('helvetica', 'normal');
-                    const hotWaterTemp = document.getElementById('hot-water-temp').value.replace(',', '.');
-                    const hotWaterTime = document.getElementById('hot-water-time').value;
+                    const hotWaterTempValue = formData.get('hot-water-temp');
+                    const hotWaterTemp = hotWaterTempValue ? hotWaterTempValue.replace(',', '.') : '';
+                    const hotWaterTime = formData.get('hot-water-time') || '';
                     pdf.text(`Hot Water Temp: ${hotWaterTemp} °C`, 40, tempY);
                     tempY += 15;
                     pdf.text(`Time Taken: ${hotWaterTime}`, 40, tempY);
                     tempY += 20;
 
-                    const milkTemp = document.getElementById('milk-temp').value.replace(',', '.');
-                    const milkTime = document.getElementById('milk-time').value;
+                    const milkTempValue = formData.get('milk-temp');
+                    const milkTemp = milkTempValue ? milkTempValue.replace(',', '.') : '';
+                    const milkTime = formData.get('milk-time') || '';
                     pdf.text(`Milk Temp: ${milkTemp} °C`, 40, tempY);
                     tempY += 15;
                     pdf.text(`Time Taken: ${milkTime}`, 40, tempY);
