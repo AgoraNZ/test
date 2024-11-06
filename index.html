@@ -133,15 +133,67 @@
         <form id="hygiene-checklist-form">
             <!-- Form Fields -->
             <!-- Farm Details Section -->
-            <!-- [Same as before] -->
             <div class="section mb-4">
                 <h2>Farm Details</h2>
-                <!-- [Your existing input fields] -->
-                <!-- ... (All farm detail fields as before) ... -->
-                <!-- [Include all the input fields for farm details here] -->
                 <label for="dairy-number">Dairy Number:</label>
                 <input type="text" class="form-control" id="dairy-number" name="dairy-number" onblur="fetchFarmDetails()">
-                <!-- ... (Rest of the farm detail fields) ... -->
+
+                <label for="dairy-company">Dairy Company:</label>
+                <select id="dairy-company" name="dairy-company" class="form-select">
+                    <option value="fonterra">Fonterra</option>
+                    <option value="dairy-goat-coop">Dairy Goat Co-op</option>
+                    <option value="green-valley">Green Valley Dairies</option>
+                    <option value="maui-milk">Maui Milk</option>
+                    <option value="oceania">Oceania</option>
+                    <option value="ofi">OFI</option>
+                    <option value="synlait">Synlait Milk LTD</option>
+                    <option value="tatua">Tatua</option>
+                </select>
+                <label for="address">Address:</label>
+                <input type="text" class="form-control" id="address" name="address">
+                <label for="customer-name">Customer Name:</label>
+                <input type="text" class="form-control" id="customer-name" name="customer-name">
+                <label for="region">Region:</label>
+                <select id="region" name="region" class="form-select">
+                    <option value="northland">Northland</option>
+                    <option value="auckland">Auckland</option>
+                    <option value="waikato">Waikato</option>
+                    <option value="bay-of-plenty">Bay of Plenty</option>
+                    <option value="gisborne">Gisborne</option>
+                    <option value="hawkes-bay">Hawke's Bay</option>
+                    <option value="taranaki">Taranaki</option>
+                    <option value="manawatu-wanganui">Manawatu-Wanganui</option>
+                    <option value="wellington">Wellington</option>
+                    <option value="nelson">Nelson</option>
+                    <option value="marlborough">Marlborough</option>
+                    <option value="west-coast">West Coast</option>
+                    <option value="canterbury">Canterbury</option>
+                    <option value="otago">Otago</option>
+                    <option value="southland">Southland</option>
+                </select>
+                <label for="farm-name">Farm Name:</label>
+                <input type="text" class="form-control" id="farm-name" name="farm-name">
+                <label for="island">Island:</label>
+                <select id="island" name="island" class="form-select">
+                    <option value="north-island">North Island</option>
+                    <option value="south-island">South Island</option>
+                </select>
+                <label for="visit-date">Visit Date:</label>
+                <input type="date" class="form-control" id="visit-date" name="visit-date">
+                <label for="visit-type">Visit Type:</label>
+                <input type="text" class="form-control" id="visit-type" name="visit-type" value="Milking Plant & Milk Vat Check" readonly>
+                <label for="inspection-start-time">Inspection Start Time:</label>
+                <input type="time" class="form-control" id="inspection-start-time" name="inspection-start-time">
+                <label for="inspection-end-time">Inspection End Time:</label>
+                <input type="time" class="form-control" id="inspection-end-time" name="inspection-end-time">
+                <label for="inspection-completed-by">Inspection Completed By:</label>
+                <input type="text" class="form-control" id="inspection-completed-by" name="inspection-completed-by">
+                <label for="call-type">Call Type:</label>
+                <select id="call-type" name="call-type" class="form-select">
+                    <option value="alert">Alert</option>
+                    <option value="grade-call">Grade Call</option>
+                    <option value="regular-scheduled-visit" selected>Regular Scheduled Visit</option>
+                </select>
             </div>
 
             <!-- Checklist Items Section -->
@@ -153,11 +205,8 @@
             </div>
 
             <!-- Temperature Measurements Section -->
-            <!-- [Same as before] -->
             <div class="section mb-4">
                 <h2>Temperature Measurements</h2>
-                <!-- [Your existing temperature input fields] -->
-                <!-- ... -->
                 <div class="checklist-item">
                     <label for="hot-water-temp">Hot Water Temp (°C):</label>
                     <input type="number" class="form-control" id="hot-water-temp" name="hot-water-temp" step="0.1">
@@ -239,32 +288,77 @@
         // Function definitions
 
         async function fetchFarmDetails() {
-            // [Same as before]
+            // [Your existing function code]
+            const dairyNumber = document.getElementById('dairy-number').value;
+            if (dairyNumber) {
+                const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
+                try {
+                    const url = await storageRef.getDownloadURL();
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch the farm details');
+                    }
+                    const data = await response.json();
+                    if (data) {
+                        document.getElementById('dairy-company').value = data.dairyCompany || '';
+                        document.getElementById('address').value = data.address || '';
+                        document.getElementById('customer-name').value = data.customerName || '';
+                        document.getElementById('region').value = data.region || '';
+                        document.getElementById('farm-name').value = data.farmName || '';
+                        document.getElementById('island').value = data.island || '';
+                    }
+                } catch (error) {
+                    console.error('Error fetching farm details:', error);
+                }
+            }
         }
 
         async function saveFarmDetails(formData) {
-            // [Same as before]
+            // [Your existing function code]
+            const dairyNumber = formData.get('dairy-number');
+            const farmDetails = {
+                dairyCompany: formData.get('dairy-company'),
+                address: formData.get('address'),
+                customerName: formData.get('customer-name'),
+                region: formData.get('region'),
+                farmName: formData.get('farm-name'),
+                island: formData.get('island'),
+            };
+            const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
+            const metadata = {
+                contentType: 'application/json',
+            };
+            try {
+                await storageRef.put(new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }), metadata);
+                console.log('Farm details saved successfully.');
+            } catch (error) {
+                console.error('Error saving farm details:', error);
+            }
         }
 
         async function generatePDF() {
-            // [Same as before]
+            // [Your existing function code]
+            // No changes made to this function
         }
 
         function uploadPDF(dairyNumber, pdfBlob) {
-            // [Same as before]
+            // [Your existing function code]
+            // No changes made to this function
         }
 
         window.addEventListener('online', syncDataWithFirebase);
 
         async function syncDataWithFirebase() {
-            // [Same as before]
+            // [Your existing function code]
+            // No changes made to this function
         }
 
         function createChecklistItems() {
-            // [Same as before]
+            // [Your existing function code]
+            // No changes made to this function
         }
 
-        // Records Functions
+        // View Records Functions
 
         function viewRecords() {
             document.getElementById('form-container').style.display = 'none';
@@ -341,16 +435,18 @@
 
         function filterRecords() {
             const searchInput = document.getElementById('search-dairy-number').value.toLowerCase();
-            const links = document.querySelectorAll('#record-list a');
+            const recordList = document.getElementById('record-list');
+            const records = recordList.getElementsByTagName('a');
 
-            links.forEach(link => {
-                const text = link.textContent.toLowerCase();
-                if (text.includes(searchInput)) {
-                    link.style.display = '';
+            for (let i = 0; i < records.length; i++) {
+                const record = records[i];
+                const textValue = record.textContent || record.innerText;
+                if (textValue.toLowerCase().indexOf(searchInput) > -1) {
+                    record.style.display = "";
                 } else {
-                    link.style.display = 'none';
+                    record.style.display = "none";
                 }
-            });
+            }
         }
 
         document.addEventListener("DOMContentLoaded", () => {
