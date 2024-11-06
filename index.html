@@ -296,7 +296,6 @@
         // Function definitions
 
         async function fetchFarmDetails() {
-            // [Your existing function code]
             const dairyNumber = document.getElementById('dairy-number').value;
             if (dairyNumber) {
                 const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
@@ -322,7 +321,6 @@
         }
 
         async function saveFarmDetails(formData) {
-            // [Your existing function code]
             const dairyNumber = formData.get('dairy-number');
             const farmDetails = {
                 dairyCompany: formData.get('dairy-company'),
@@ -536,8 +534,9 @@
 
                     pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
 
-                    // Clear the saved form data after submission
-                    await db.drafts.where('dairyNumber').equals(dairyNumber).delete();
+                    // Option A: Delete All Drafts After Submission
+                    await db.drafts.clear();
+                    console.log('All drafts have been cleared after submission.');
                 };
             } catch (error) {
                 console.error('Error fetching logo:', error);
@@ -563,7 +562,6 @@
         window.addEventListener('online', syncDataWithFirebase);
 
         async function syncDataWithFirebase() {
-            // [Your existing function code]
             const offlineForms = await db.forms.toArray();
 
             for (const record of offlineForms) {
@@ -917,7 +915,26 @@
             createChecklistItems();
             // Other initialization code
 
-            const drafts = await db.drafts.toArray();
+            // Get all drafts from IndexedDB
+            let drafts = await db.drafts.toArray();
+
+            // Get the current time in milliseconds
+            const now = new Date().getTime();
+
+            // Define the time limit (2 hours in milliseconds)
+            const twoHoursInMillis = 2 * 60 * 60 * 1000;
+
+            // Delete drafts older than 2 hours
+            for (const draft of drafts) {
+                if (now - draft.timestamp > twoHoursInMillis) {
+                    await db.drafts.delete(draft.id);
+                    console.log(`Deleted draft with ID ${draft.id} due to expiration.`);
+                }
+            }
+
+            // Reload the drafts after deletion
+            drafts = await db.drafts.toArray();
+
             if (drafts.length > 0) {
                 const recentDraft = drafts[drafts.length - 1];
                 const resume = confirm('You have an unsaved checklist. Would you like to resume?');
@@ -925,6 +942,7 @@
                     await populateForm(recentDraft);
                 } else {
                     await db.drafts.delete(recentDraft.id);
+                    console.log('Draft deleted as per user choice.');
                 }
             }
         });
