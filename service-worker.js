@@ -1,12 +1,19 @@
+// service-worker.js
+
 const CACHE_NAME = 'dairy-shed-cache-v2';
 const urlsToCache = [
     '/', // Cache the root
     '/index.html', // Cache the main HTML file
-    // Add any other local assets or URLs that need to be cached
-    '/styles.css', // Example: Add your custom CSS file
-    '/script.js', // Example: Add your custom JS file
-    '/logo-89.png', // Example: Host the logo locally for caching
-    // Include any other static assets like images, fonts, etc.
+    '/assets/css/bootstrap.min.css',
+    '/assets/css/styles.css',
+    '/assets/js/bootstrap.bundle.min.js',
+    '/assets/js/dexie.min.js',
+    '/assets/js/jspdf.umd.min.js',
+    '/assets/js/jspdf.plugin.autotable.min.js',
+    '/assets/js/script.js',
+    '/assets/images/logo-89.png',
+    '/assets/images/Picture3.jpg',
+    '/fallback.html' // Fallback page
 ];
 
 // Install event - cache essential assets
@@ -60,7 +67,9 @@ self.addEventListener('fetch', function(event) {
                             return response;
                         }
                         // Optionally, return a fallback page or image
-                        return caches.match('/fallback.html'); // Ensure you have a fallback.html
+                        if (event.request.destination === 'document') {
+                            return caches.match('/fallback.html');
+                        }
                     });
             })
     );
