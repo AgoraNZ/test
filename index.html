@@ -463,23 +463,28 @@
                         }
                     }
 
-                    // Generate checklist items table
-                    pdf.autoTable({
-                        startY: currentY,
-                        head: [['Item', 'Status', 'Comments']],
-                        body: checklistTable,
-                        styles: {
-                            fontSize: 10,
-                            cellPadding: 5,
-                        },
-                        headStyles: {
-                            fillColor: '#002B5C',
-                            textColor: '#FFFFFF'
-                        }
-                    });
+                    // Generate checklist items table if not empty
+                    if (checklistTable.length > 0) {
+                        pdf.autoTable({
+                            startY: currentY,
+                            head: [['Item', 'Status', 'Comments']],
+                            body: checklistTable,
+                            styles: {
+                                fontSize: 10,
+                                cellPadding: 5,
+                            },
+                            headStyles: {
+                                fillColor: '#002B5C',
+                                textColor: '#FFFFFF'
+                            }
+                        });
+                        currentY = pdf.lastAutoTable.finalY + 20;
+                    } else {
+                        currentY += 20;
+                    }
 
                     // Add temperature data
-                    let tempY = pdf.lastAutoTable.finalY + 20;
+                    let tempY = currentY;
 
                     pdf.setFont('helvetica', 'bold');
                     pdf.text('Temperature Measurements:', 40, tempY);
