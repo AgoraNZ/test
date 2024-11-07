@@ -319,9 +319,38 @@
                         document.getElementById('region').value = data.region || '';
                         document.getElementById('farm-name').value = data.farmName || '';
                         document.getElementById('island').value = data.island || '';
+
+                        // Save fetched farm details to IndexedDB for offline use
+                        await db.forms.put({
+                            dairyNumber: dairyNumber,
+                            formData: {
+                                'dairy-company': data.dairyCompany || '',
+                                'address': data.address || '',
+                                'customer-name': data.customerName || '',
+                                'region': data.region || '',
+                                'farm-name': data.farmName || '',
+                                'island': data.island || ''
+                            },
+                            pdfBlob: null,
+                            timestamp: new Date().getTime()
+                        });
                     }
                 } catch (error) {
                     console.error('Error fetching farm details:', error);
+                    // Attempt to load farm details from IndexedDB
+                    const offlineData = await db.forms.where('dairyNumber').equals(dairyNumber).first();
+                    if (offlineData && offlineData.formData) {
+                        const data = offlineData.formData;
+                        document.getElementById('dairy-company').value = data['dairy-company'] || '';
+                        document.getElementById('address').value = data['address'] || '';
+                        document.getElementById('customer-name').value = data['customer-name'] || '';
+                        document.getElementById('region').value = data['region'] || '';
+                        document.getElementById('farm-name').value = data['farm-name'] || '';
+                        document.getElementById('island').value = data['island'] || '';
+                        console.log('Loaded farm details from IndexedDB.');
+                    } else {
+                        console.warn('No offline farm details available.');
+                    }
                 }
             }
         }
@@ -346,6 +375,14 @@
                     metadata
                 );
                 console.log('Farm details saved successfully.');
+
+                // Also save to IndexedDB
+                await db.forms.put({
+                    dairyNumber: dairyNumber,
+                    formData: farmDetails,
+                    pdfBlob: null,
+                    timestamp: new Date().getTime()
+                });
             } catch (error) {
                 console.error('Error saving farm details:', error);
             }
@@ -611,6 +648,11 @@
                     } else {
                         // Offline Mode
                         // Save PDF and form data to 'forms' store
+                        const formObject = {};
+                        for (const [key, value] of formData.entries()) {
+                            formObject[key] = value;
+                        }
+
                         await db.forms.put({
                             dairyNumber: dairyNumber,
                             formData: formObject,
