@@ -28,10 +28,15 @@
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
             max-width: 800px;
             width: 100%;
+            overflow-y: auto; /* Ensures scrolling if content exceeds view height */
         }
 
-        h1,
-        h2 {
+        #checklist-items {
+            overflow-y: auto; /* Enables scrolling within checklist section */
+            max-height: 50vh; /* Limits height of checklist to fit on mobile */
+        }
+
+        h1, h2 {
             color: #a7ab01;
             text-align: center;
         }
@@ -135,21 +140,32 @@
             display: block;
             margin-top: 10px;
         }
-@media (max-width: 768px) {
-    .container {
-        padding: 15px;
-        width: 90%;
-    }
-    .image-preview, .image-preview-2 {
-        max-width: 70px; /* Reduce preview size for mobile */
-    }
-    h1, h2 {
-        font-size: 1.5em;
-    }
-}
 
+        /* Mobile responsive styles */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+                width: 100%; /* Expand to full width on mobile */
+                max-width: none; /* Allow full use of mobile width */
+            }
+            #checklist-items {
+                max-height: 40vh; /* Further reduce height of checklist items for mobile */
+            }
+            .image-preview, .image-preview-2 {
+                max-width: 70px; /* Reduce preview size for mobile */
+            }
+            h1, h2 {
+                font-size: 1.5em;
+            }
+            img.logo {
+                width: 80%; /* Reduce logo size on mobile */
+                display: block;
+                margin: 0 auto 20px;
+            }
+        }
     </style>
 </head>
+
 
 <body>
     <div class="container" id="form-container">
