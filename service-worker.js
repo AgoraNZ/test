@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dairy-shed-cache-v5';
+const CACHE_NAME = 'dairy-shed-cache-v6';
 const CACHE_FILES = [
     './index.html',
     './service-worker.js',
@@ -12,6 +12,10 @@ const CACHE_FILES = [
     'https://i.postimg.cc/htZPjx5g/logo-89.png'
 ];
 
+// Additional cache for dynamic content
+const DYNAMIC_CACHE = 'dairy-shed-dynamic-cache-v1';
+
+// Install Event - Caching Static Assets
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
@@ -25,12 +29,13 @@ self.addEventListener('install', (event) => {
     self.skipWaiting();
 });
 
+// Activate Event - Cleaning up old caches
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((cacheName) => {
-                    if (cacheName !== CACHE_NAME) {
+                    if (cacheName !== CACHE_NAME && cacheName !== DYNAMIC_CACHE) {
                         return caches.delete(cacheName);
                     }
                 })
@@ -40,7 +45,60 @@ self.addEventListener('activate', (event) => {
     self.clients.claim();
 });
 
+// Fetch Event - Handling Network Requests
 self.addEventListener('fetch', (event) => {
+    const requestUrl = new URL(event.request.url);
+
+    // Handle API requests differently if needed
+    // For example, farm_details/*.json can be cached dynamically
+    if (requestUrl.pathname.startsWith('/test/farm_details/')) {
+        event.respondWith(
+            caches.open(DYNAMIC_CACHE).then((cache) => {
+                return cache.match(event.request).then((response) => {
+                    if (response) {
+                        return response;
+                    }
+                    return fetch(event.request).then((networkResponse) => {
+                        if (networkResponse.ok) {
+                            cache.put(event.request, networkResponse.clone());
+                        }
+                        return networkResponse;
+                    }).catch(() => {
+                        // Optionally, return a fallback JSON or handle offline scenario
+                        return new Response(JSON.stringify({}), {
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+                    });
+                });
+            })
+        );
+        return;
+    }
+
+    // Handle image requests from Firebase Storage
+    if (requestUrl.origin === 'https://firebasestorage.googleapis.com') {
+        event.respondWith(
+            caches.open(DYNAMIC_CACHE).then((cache) => {
+                return cache.match(event.request).then((response) => {
+                    if (response) {
+                        return response;
+                    }
+                    return fetch(event.request).then((networkResponse) => {
+                        if (networkResponse.ok) {
+                            cache.put(event.request, networkResponse.clone());
+                        }
+                        return networkResponse;
+                    }).catch(() => {
+                        // Optionally, return a fallback image
+                        return caches.match('https://i.postimg.cc/htZPjx5g/logo-89.png');
+                    });
+                });
+            })
+        );
+        return;
+    }
+
+    // For all other requests, use cache-first strategy
     event.respondWith(
         caches.match(event.request)
             .then((cachedResponse) => {
@@ -49,7 +107,7 @@ self.addEventListener('fetch', (event) => {
                 }
                 return fetch(event.request).then((networkResponse) => {
                     if (networkResponse.ok) {
-                        return caches.open(CACHE_NAME).then((cache) => {
+                        return caches.open(DYNAMIC_CACHE).then((cache) => {
                             cache.put(event.request, networkResponse.clone());
                             return networkResponse;
                         });
