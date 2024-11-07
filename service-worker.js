@@ -47,25 +47,26 @@ self.addEventListener('activate', (event) => {
 
 // Fetch Event - Handling Network Requests
 self.addEventListener('fetch', (event) => {
-    const requestUrl = new URL(event.request.url);
+    const request = event.request;
+    const url = new URL(request.url);
 
-    // Ignore non-HTTP(S) requests to prevent errors (e.g., chrome-extension://)
-    if (!['http:', 'https:'].includes(requestUrl.protocol)) {
+    // **Ignore non-HTTP(S) requests to prevent errors (e.g., chrome-extension://)**
+    if (!['http:', 'https:'].includes(url.protocol)) {
         return; // Do not handle this request
     }
 
-    // Handle API requests differently if needed
+    // **Handle API requests differently if needed**
     // For example, farm_details/*.json can be cached dynamically
-    if (requestUrl.pathname.startsWith('/test/farm_details/')) {
+    if (url.pathname.startsWith('/test/farm_details/')) {
         event.respondWith(
             caches.open(DYNAMIC_CACHE).then((cache) => {
-                return cache.match(event.request).then((response) => {
+                return cache.match(request).then((response) => {
                     if (response) {
                         return response;
                     }
-                    return fetch(event.request).then((networkResponse) => {
+                    return fetch(request).then((networkResponse) => {
                         if (networkResponse.ok) {
-                            cache.put(event.request, networkResponse.clone());
+                            cache.put(request, networkResponse.clone());
                         }
                         return networkResponse;
                     }).catch(() => {
@@ -80,17 +81,17 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Handle image requests from Firebase Storage
-    if (requestUrl.origin === 'https://firebasestorage.googleapis.com') {
+    // **Handle image requests from Firebase Storage**
+    if (url.origin === 'https://firebasestorage.googleapis.com') {
         event.respondWith(
             caches.open(DYNAMIC_CACHE).then((cache) => {
-                return cache.match(event.request).then((response) => {
+                return cache.match(request).then((response) => {
                     if (response) {
                         return response;
                     }
-                    return fetch(event.request).then((networkResponse) => {
+                    return fetch(request).then((networkResponse) => {
                         if (networkResponse.ok) {
-                            cache.put(event.request, networkResponse.clone());
+                            cache.put(request, networkResponse.clone());
                         }
                         return networkResponse;
                     }).catch(() => {
@@ -103,17 +104,17 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // For all other requests, use cache-first strategy
+    // **For all other requests, use cache-first strategy**
     event.respondWith(
-        caches.match(event.request)
+        caches.match(request)
             .then((cachedResponse) => {
                 if (cachedResponse) {
                     return cachedResponse;
                 }
-                return fetch(event.request).then((networkResponse) => {
+                return fetch(request).then((networkResponse) => {
                     if (networkResponse.ok) {
                         return caches.open(DYNAMIC_CACHE).then((cache) => {
-                            cache.put(event.request, networkResponse.clone());
+                            cache.put(request, networkResponse.clone());
                             return networkResponse;
                         });
                     }
