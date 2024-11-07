@@ -1,108 +1,112 @@
-// Define a cache name. Update the version to force cache updates.
-const CACHE_NAME = 'dairy-shed-hygiene-cache-v1';
+// Name and version for the cache
+const CACHE_NAME = 'dairy-shed-cache-v1';
 
-// List of assets to cache during the installation of the Service Worker.
-// Ensure all paths are correct relative to the Service Worker's location.
-const urlsToCache = [
-    '/test/index.html',
-    '/test/service-worker.js',
-    '/test/assets/css/bootstrap.min.css',
-    '/test/assets/js/firebase-app-compat.js',
-    '/test/assets/js/firebase-storage-compat.js',
-    '/test/assets/js/firebase-firestore-compat.js',
-    '/test/assets/js/dexie.min.js',
-    '/test/assets/js/jspdf.umd.min.js',
-    '/test/assets/js/jspdf.plugin.autotable.min.js',
-    '/test/assets/images/logo-89.png',
-    // Add any additional assets you want to cache here
+// Files to be cached
+const CACHE_FILES = [
+    '/',
+    '/index.html', // Make sure this points to your main HTML file
+    '/css/styles.css', // Update with your CSS path
+    'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css',
+    '/js/app.js', // Update with your JavaScript path if applicable
+    'https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js',
+    'https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js',
+    'https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/dexie/3.0.3/dexie.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js',
+    'https://i.postimg.cc/htZPjx5g/logo-89.png' // Update if using other resources
 ];
 
-// Install Event - Cache essential assets
-self.addEventListener('install', event => {
-    console.log('[Service Worker] Install Event');
+// Install Service Worker
+self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
-            .then(cache => {
-                console.log('[Service Worker] Caching all assets');
-                return cache.addAll(urlsToCache);
-            })
-            .catch(error => {
-                console.error('[Service Worker] Failed to cache assets during install:', error);
+            .then((cache) => {
+                console.log('Opened cache');
+                return cache.addAll(CACHE_FILES);
             })
     );
 });
 
-// Activate Event - Clean up old caches
-self.addEventListener('activate', event => {
-    console.log('[Service Worker] Activate Event');
-    event.waitUntil(
-        caches.keys()
-            .then(cacheNames => {
-                return Promise.all(
-                    cacheNames.map(cache => {
-                        if (cache !== CACHE_NAME) {
-                            console.log('[Service Worker] Deleting old cache:', cache);
-                            return caches.delete(cache);
-                        }
-                    })
-                );
-            })
-            .catch(error => {
-                console.error('[Service Worker] Failed to delete old caches during activate:', error);
-            })
-    );
-});
-
-// Fetch Event - Serve cached assets when offline
-self.addEventListener('fetch', event => {
-    // Only handle GET requests
-    if (event.request.method !== 'GET') return;
-
+// Fetch Cached Content
+self.addEventListener('fetch', (event) => {
     event.respondWith(
         caches.match(event.request)
-            .then(response => {
+            .then((response) => {
+                // If a cached response is found, return it
                 if (response) {
-                    // Asset found in cache, return it
                     return response;
                 }
-
-                // Clone the request as it's a stream and can only be consumed once
-                const fetchRequest = event.request.clone();
-
-                return fetch(fetchRequest)
-                    .then(networkResponse => {
-                        // Check for a valid response
-                        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-                            return networkResponse;
-                        }
-
-                        // Clone the response as it's a stream
-                        const responseToCache = networkResponse.clone();
-
-                        caches.open(CACHE_NAME)
-                            .then(cache => {
-                                cache.put(event.request, responseToCache);
-                                console.log('[Service Worker] New asset cached:', event.request.url);
-                            })
-                            .catch(error => {
-                                console.error('[Service Worker] Failed to cache new asset:', error);
+                // If not, fetch the request from the network
+                return fetch(event.request)
+                    .then((networkResponse) => {
+                        // Cache the fetched resource for future requests
+                        if (!event.request.url.startsWith('chrome-extension://')) {
+                            return caches.open(CACHE_NAME).then((cache) => {
+                                cache.put(event.request, networkResponse.clone());
+                                return networkResponse;
                             });
-
-                        return networkResponse;
-                    })
-                    .catch(() => {
-                        // Optional: Fallback page if both cache and network are unavailable
-                        if (event.request.destination === 'document') {
-                            return caches.match('/test/index.html');
+                        } else {
+                            return networkResponse;
                         }
                     });
             })
+            .catch(() => {
+                // Handle errors
+                return caches.match('/offline.html'); // Optional: create an offline page
+            })
     );
 });
 
-// Listen for messages from the client (optional)
-self.addEventListener('message', event => {
-    if (event.data && event.data.type === 'SKIP_WAITING') {
-        self.skipWaiting();
+// Activate the Service Worker
+self.addEventListener('activate', (event) => {
+    event.waitUntil(
+        caches.keys().then((cacheNames) => {
+            return Promise.all(
+                cacheNames.map((cacheName) => {
+                    if (cacheName !== CACHE_NAME) {
+                        console.log('Deleting old cache:', cacheName);
+                        return caches.delete(cacheName);
+                    }
+                })
+            );
+        })
+    );
+});
+
+// Sync the form data and PDFs when the device is back online
+self.addEventListener('sync', async (event) => {
+    if (event.tag === 'sync-forms') {
+        event.waitUntil(syncFormDataWithFirebase());
     }
 });
+
+// Function to sync form data and PDFs with Firebase
+async function syncFormDataWithFirebase() {
+    const db = new Dexie("OfflineData");
+    db.version(2).stores({
+        forms: "++id, dairyNumber, formData, pdfBlob",
+        drafts: "++id, dairyNumber, formData, photos, timestamp"
+    });
+
+    try {
+        const offlineForms = await db.forms.toArray();
+        for (const record of offlineForms) {
+            const dairyNumber = record.dairyNumber;
+            const pdfBlob = record.pdfBlob;
+
+            // Upload the PDF to Firebase
+            const timestamp = new Date().toISOString().split('T')[0];
+            const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
+            const storageRef = firebase.storage().ref(`customers/${dairyNumber}/${fileName}`);
+
+            await storageRef.put(pdfBlob);
+            console.log(`Form with dairyNumber ${dairyNumber} synced with Firebase`);
+
+            // Remove the synced record from IndexedDB
+            await db.forms.delete(record.id);
+        }
+    } catch (error) {
+        console.error('Error syncing data with Firebase:', error);
+    }
+}
