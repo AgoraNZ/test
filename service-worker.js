@@ -49,6 +49,11 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     const requestUrl = new URL(event.request.url);
 
+    // Ignore non-HTTP(S) requests to prevent errors (e.g., chrome-extension://)
+    if (!['http:', 'https:'].includes(requestUrl.protocol)) {
+        return; // Do not handle this request
+    }
+
     // Handle API requests differently if needed
     // For example, farm_details/*.json can be cached dynamically
     if (requestUrl.pathname.startsWith('/test/farm_details/')) {
