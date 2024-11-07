@@ -369,22 +369,38 @@
             const metadata = {
                 contentType: 'application/json',
             };
-            try {
-                await storageRef.put(
-                    new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }),
-                    metadata
-                );
-                console.log('Farm details saved successfully.');
 
-                // Also save to IndexedDB
-                await db.forms.put({
-                    dairyNumber: dairyNumber,
-                    formData: farmDetails,
-                    pdfBlob: null,
-                    timestamp: new Date().getTime()
-                });
-            } catch (error) {
-                console.error('Error saving farm details:', error);
+            if (navigator.onLine) {
+                try {
+                    await storageRef.put(
+                        new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }),
+                        metadata
+                    );
+                    console.log('Farm details saved successfully.');
+
+                    // Also save to IndexedDB
+                    await db.forms.put({
+                        dairyNumber: dairyNumber,
+                        formData: farmDetails,
+                        pdfBlob: null,
+                        timestamp: new Date().getTime()
+                    });
+                } catch (error) {
+                    console.error('Error saving farm details:', error);
+                }
+            } else {
+                // Offline: Save farm details to IndexedDB without uploading
+                try {
+                    await db.forms.put({
+                        dairyNumber: dairyNumber,
+                        formData: farmDetails,
+                        pdfBlob: null,
+                        timestamp: new Date().getTime()
+                    });
+                    console.log('Farm details saved locally for later upload.');
+                } catch (error) {
+                    console.error('Error saving farm details locally:', error);
+                }
             }
         }
 
@@ -398,12 +414,15 @@
             const pdf = new jsPDF('p', 'pt', 'a4');
 
             // Add logo centered
-            const logoStorageRef = storage.ref('Picture3.jpg');
+            const logoUrl = 'https://i.postimg.cc/htZPjx5g/logo-89.png'; // Use cached logo URL
             try {
-                const logoUrl = await logoStorageRef.getDownloadURL();
-                const logo = await fetch(logoUrl).then((res) => res.blob());
+                const response = await fetch(logoUrl);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch the logo');
+                }
+                const logoBlob = await response.blob();
                 const reader = new FileReader();
-                reader.readAsDataURL(logo);
+                reader.readAsDataURL(logoBlob);
                 reader.onload = async function () {
                     const imgData = reader.result;
                     const pageWidth = pdf.internal.pageSize.getWidth();
