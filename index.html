@@ -13,6 +13,10 @@
             background-color: #002B5C;
             color: #FFFFFF;
             font-family: Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             padding: 20px;
             margin: 0;
         }
@@ -24,7 +28,6 @@
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
             max-width: 800px;
             width: 100%;
-            margin: 0 auto;
             overflow-y: auto; /* Ensures scrolling if content exceeds view height */
         }
 
@@ -33,8 +36,7 @@
             max-height: 50vh; /* Limits height of checklist to fit on mobile */
         }
 
-        h1,
-        h2 {
+        h1, h2 {
             color: #a7ab01;
             text-align: center;
         }
@@ -146,21 +148,15 @@
                 width: 100%; /* Expand to full width on mobile */
                 max-width: none; /* Allow full use of mobile width */
             }
-
             #checklist-items {
                 max-height: 40vh; /* Further reduce height of checklist items for mobile */
             }
-
-            .image-preview,
-            .image-preview-2 {
+            .image-preview, .image-preview-2 {
                 max-width: 70px; /* Reduce preview size for mobile */
             }
-
-            h1,
-            h2 {
+            h1, h2 {
                 font-size: 1.5em;
             }
-
             img.logo {
                 width: 80%; /* Reduce logo size on mobile */
                 display: block;
@@ -170,16 +166,15 @@
     </style>
 </head>
 
+
 <body>
     <div class="container" id="form-container">
-        <div id="network-status"
-            style="position: fixed; top: 10px; right: 10px; background-color: #FF4136; color: #FFFFFF; padding: 5px 10px; border-radius: 5px; display: none;">
-            Offline
-        </div>
+<div id="network-status" style="position: fixed; top: 10px; right: 10px; background-color: #FF4136; color: #FFFFFF; padding: 5px 10px; border-radius: 5px; display: none;">
+    Offline
+</div>
 
         <!-- Embedded Logo as Base64 Data URL -->
-        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADICAMAAACahl6sAAAAA1BMVEWZmZnGjxkGAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH5AQDCB8AyXmk4wAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAABYSURBVHja7cEBAQAAAIIg/69uEcgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFgBjEAAEUW6GoAAAAASUVORK5CYII="
-            alt="Logo" class="logo">
+        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADICAMAAACahl6sAAAAA1BMVEWZmZnGjxkGAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH5AQDCB8AyXmk4wAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAABYSURBVHja7cEBAQAAAIIg/69uEcgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFgBjEAAEUW6GoAAAAASUVORK5CYII=" alt="Logo" class="logo">
         <h1>Dairy Shed Hygiene Checklist</h1>
 
         <form id="hygiene-checklist-form">
@@ -188,8 +183,7 @@
             <div class="section mb-4">
                 <h2>Farm Details</h2>
                 <label for="dairy-number">Dairy Number:</label>
-                <input type="text" class="form-control" id="dairy-number" name="dairy-number"
-                    onblur="fetchFarmDetails()">
+                <input type="text" class="form-control" id="dairy-number" name="dairy-number" onblur="fetchFarmDetails()">
 
                 <label for="dairy-company">Dairy Company:</label>
                 <select id="dairy-company" name="dairy-company" class="form-select">
@@ -234,8 +228,7 @@
                 <label for="visit-date">Visit Date:</label>
                 <input type="date" class="form-control" id="visit-date" name="visit-date">
                 <label for="visit-type">Visit Type:</label>
-                <input type="text" class="form-control" id="visit-type" name="visit-type"
-                    value="Milking Plant & Milk Vat Check" readonly>
+                <input type="text" class="form-control" id="visit-type" name="visit-type" value="Milking Plant & Milk Vat Check" readonly>
                 <label for="inspection-start-time">Inspection Start Time:</label>
                 <input type="time" class="form-control" id="inspection-start-time" name="inspection-start-time">
                 <label for="inspection-end-time">Inspection End Time:</label>
@@ -285,8 +278,7 @@
     <div id="record-container" class="record-container" style="display: none;">
         <h2>All Dairy Shed Hygiene Records</h2>
         <div class="search-container">
-            <input type="text" id="search-dairy-number" class="form-control" placeholder="Search by Dairy Number"
-                oninput="filterRecords()">
+            <input type="text" id="search-dairy-number" class="form-control" placeholder="Search by Dairy Number" oninput="filterRecords()">
         </div>
         <div id="record-list" class="record-list"></div>
         <button class="back-button" onclick="goBack()">Back to Checklist</button>
@@ -307,21 +299,18 @@
     <script>
         // Ensure that jsPDF is properly initialized
         const { jsPDF } = window.jspdf;
+function updateNetworkStatus() {
+    const networkStatus = document.getElementById('network-status');
+    if (!navigator.onLine) {
+        networkStatus.style.display = 'block';
+    } else {
+        networkStatus.style.display = 'none';
+    }
+}
 
-        // Function to update network status
-        function updateNetworkStatus() {
-            const networkStatus = document.getElementById('network-status');
-            if (!navigator.onLine) {
-                networkStatus.style.display = 'block';
-            } else {
-                networkStatus.style.display = 'none';
-            }
-            console.log('Network status updated:', navigator.onLine ? 'Online' : 'Offline');
-        }
-
-        window.addEventListener('offline', updateNetworkStatus);
-        window.addEventListener('online', updateNetworkStatus);
-        document.addEventListener('DOMContentLoaded', updateNetworkStatus);
+window.addEventListener('offline', updateNetworkStatus);
+window.addEventListener('online', updateNetworkStatus);
+document.addEventListener('DOMContentLoaded', updateNetworkStatus);
 
         // Firebase configuration
         const firebaseConfig = {
@@ -338,13 +327,14 @@
         const storage = firebase.storage();
         const firestore = firebase.firestore();
 
-        // Initialize IndexedDB with Dexie
-        const db = new Dexie("OfflineData");
-        db.version(2).stores({
-            forms: "++id, dairyNumber, formData, pdfBlob",
-            drafts: "++id, dairyNumber, formData, photos, timestamp",
-            farmDetails: "++id, dairyNumber, details"
-        });
+       // Initialize IndexedDB with a separate store for farm details
+const db = new Dexie("OfflineData");
+db.version(2).stores({
+    forms: "++id, dairyNumber, formData, pdfBlob",
+    drafts: "++id, dairyNumber, formData, photos, timestamp",
+    farmDetails: "++id, dairyNumber, details"
+});
+
 
         // Service Worker Registration
         if ('serviceWorker' in navigator) {
@@ -361,12 +351,10 @@
 
         async function fetchFarmDetails() {
             const dairyNumber = document.getElementById('dairy-number').value;
-            console.log('Fetching farm details for Dairy Number:', dairyNumber);
             if (dairyNumber) {
-                const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
+                const storageRef = storage.ref(farm_details/${dairyNumber}.json);
                 try {
                     if (navigator.onLine) { // Only attempt to fetch from Firebase if online
-                        console.log('Online: Attempting to fetch farm details from Firebase.');
                         const url = await storageRef.getDownloadURL();
                         const response = await fetch(url);
                         if (!response.ok) {
@@ -380,8 +368,6 @@
                             document.getElementById('region').value = data.region || '';
                             document.getElementById('farm-name').value = data.farmName || '';
                             document.getElementById('island').value = data.island || '';
-
-                            console.log('Farm details fetched successfully from Firebase:', data);
 
                             // Save fetched farm details to IndexedDB for offline use
                             await db.forms.put({
@@ -397,7 +383,6 @@
                                 pdfBlob: null,
                                 timestamp: new Date().getTime()
                             });
-                            console.log('Farm details saved to IndexedDB.');
                         }
                     } else {
                         console.log('Offline: Attempting to load farm details from IndexedDB.');
@@ -411,7 +396,7 @@
                             document.getElementById('region').value = data['region'] || '';
                             document.getElementById('farm-name').value = data['farm-name'] || '';
                             document.getElementById('island').value = data['island'] || '';
-                            console.log('Loaded farm details from IndexedDB:', data);
+                            console.log('Loaded farm details from IndexedDB.');
                         } else {
                             console.warn('No offline farm details available.');
                         }
@@ -428,7 +413,7 @@
                         document.getElementById('region').value = data['region'] || '';
                         document.getElementById('farm-name').value = data['farm-name'] || '';
                         document.getElementById('island').value = data['island'] || '';
-                        console.log('Loaded farm details from IndexedDB after error:', data);
+                        console.log('Loaded farm details from IndexedDB after error.');
                     } else {
                         console.warn('No offline farm details available after error.');
                     }
@@ -436,46 +421,43 @@
             }
         }
 
-        async function saveFarmDetails(formData) {
-            const dairyNumber = formData.get('dairy-number');
-            const farmDetails = {
-                dairyCompany: formData.get('dairy-company'),
-                address: formData.get('address'),
-                customerName: formData.get('customer-name'),
-                region: formData.get('region'),
-                farmName: formData.get('farm-name'),
-                island: formData.get('island'),
-            };
+async function saveFarmDetails(formData) {
+    const dairyNumber = formData.get('dairy-number');
+    const farmDetails = {
+        dairyCompany: formData.get('dairy-company'),
+        address: formData.get('address'),
+        customerName: formData.get('customer-name'),
+        region: formData.get('region'),
+        farmName: formData.get('farm-name'),
+        island: formData.get('island'),
+    };
 
-            const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
-            const metadata = { contentType: 'application/json' };
+    const storageRef = storage.ref(farm_details/${dairyNumber}.json);
+    const metadata = { contentType: 'application/json' };
 
-            try {
-                if (navigator.onLine) {
-                    console.log('Online: Saving farm details to Firebase.');
-                    await storageRef.put(new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }), metadata);
-                    console.log('Farm details saved successfully to Firebase.');
-                } else {
-                    console.log('Offline: Saving farm details to IndexedDB.');
-                    // Save offline in IndexedDB in case of connectivity issues
-                    await db.farmDetails.put({ dairyNumber, details: farmDetails });
-                    console.log('Farm details saved locally to IndexedDB.');
-                }
-            } catch (error) {
-                console.error('Error saving farm details:', error);
-                if (!navigator.onLine) {
-                    console.log('Offline: Saving farm details to IndexedDB due to error.');
-                    await db.farmDetails.put({ dairyNumber, details: farmDetails });
-                }
-            }
+    try {
+        if (navigator.onLine) {
+            await storageRef.put(new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }), metadata);
+            console.log('Farm details saved successfully to Firebase.');
+        } else {
+            // Save offline in IndexedDB in case of connectivity issues
+            await db.farmDetails.put({ dairyNumber, details: farmDetails });
+            console.log('Farm details saved locally to IndexedDB.');
         }
+    } catch (error) {
+        console.error('Error saving farm details:', error);
+        if (!navigator.onLine) {
+            await db.farmDetails.put({ dairyNumber, details: farmDetails });
+        }
+    }
+}
+
+}
 
         async function generatePDF() {
             const form = document.getElementById('hygiene-checklist-form');
             const formData = new FormData(form);
             const dairyNumber = formData.get('dairy-number');
-
-            console.log('Generating PDF for Dairy Number:', dairyNumber);
 
             await saveFarmDetails(formData); // Save farm details if not found
 
@@ -492,7 +474,6 @@
                 const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
                 const x = (pageWidth - imgWidth) / 2; // Center the image
                 pdf.addImage(embeddedLogo, 'PNG', x, 40, imgWidth, imgHeight);
-                console.log('Logo added to PDF.');
 
                 pdf.setFontSize(12);
                 pdf.setTextColor('#000000');
@@ -502,31 +483,31 @@
                 let currentY = imgHeight + 80;
 
                 pdf.setFont('helvetica', 'normal');
-                pdf.text(`Dairy Company: ${formData.get('dairy-company')}`, 40, currentY);
+                pdf.text(Dairy Company: ${formData.get('dairy-company')}, 40, currentY);
                 currentY += 15;
-                pdf.text(`Dairy Number: ${formData.get('dairy-number')}`, 40, currentY);
+                pdf.text(Dairy Number: ${formData.get('dairy-number')}, 40, currentY);
                 currentY += 15;
-                pdf.text(`Address: ${formData.get('address')}`, 40, currentY);
+                pdf.text(Address: ${formData.get('address')}, 40, currentY);
                 currentY += 15;
-                pdf.text(`Customer Name: ${formData.get('customer-name')}`, 40, currentY);
+                pdf.text(Customer Name: ${formData.get('customer-name')}, 40, currentY);
                 currentY += 15;
-                pdf.text(`Region: ${formData.get('region')}`, 40, currentY);
+                pdf.text(Region: ${formData.get('region')}, 40, currentY);
                 currentY += 15;
-                pdf.text(`Farm Name: ${formData.get('farm-name')}`, 40, currentY);
+                pdf.text(Farm Name: ${formData.get('farm-name')}, 40, currentY);
                 currentY += 15;
-                pdf.text(`Island: ${formData.get('island')}`, 40, currentY);
+                pdf.text(Island: ${formData.get('island')}, 40, currentY);
                 currentY += 15;
-                pdf.text(`Visit Date: ${formData.get('visit-date')}`, 40, currentY);
+                pdf.text(Visit Date: ${formData.get('visit-date')}, 40, currentY);
                 currentY += 15;
-                pdf.text(`Visit Type: ${formData.get('visit-type')}`, 40, currentY);
+                pdf.text(Visit Type: ${formData.get('visit-type')}, 40, currentY);
                 currentY += 15;
-                pdf.text(`Inspection Start Time: ${formData.get('inspection-start-time')}`, 40, currentY);
+                pdf.text(Inspection Start Time: ${formData.get('inspection-start-time')}, 40, currentY);
                 currentY += 15;
-                pdf.text(`Inspection End Time: ${formData.get('inspection-end-time')}`, 40, currentY);
+                pdf.text(Inspection End Time: ${formData.get('inspection-end-time')}, 40, currentY);
                 currentY += 15;
-                pdf.text(`Inspection Completed By: ${formData.get('inspection-completed-by')}`, 40, currentY);
+                pdf.text(Inspection Completed By: ${formData.get('inspection-completed-by')}, 40, currentY);
                 currentY += 15;
-                pdf.text(`Call Type: ${formData.get('call-type')}`, 40, currentY);
+                pdf.text(Call Type: ${formData.get('call-type')}, 40, currentY);
                 currentY += 30;
 
                 // Checklist Items Section
@@ -546,9 +527,9 @@
 
                     // Get the image data from the file inputs or from saved photos
                     const imageInput1 = item.querySelector('input.image-upload-1');
-                    const imageFile1 = imageInput1 ? imageInput1.files[0] : null;
+                    const imageFile1 = imageInput1.files[0];
                     const imageInput2 = item.querySelector('input.image-upload-2');
-                    const imageFile2 = imageInput2 ? imageInput2.files[0] : null;
+                    const imageFile2 = imageInput2.files[0];
                     let imageDataUrls = [];
 
                     if (imageFile1) {
@@ -625,7 +606,6 @@
                             textColor: '#FFFFFF'
                         }
                     });
-                    console.log('Checklist table added to PDF.');
                     currentY = pdf.lastAutoTable.finalY + 20;
                 } else {
                     currentY += 20;
@@ -641,16 +621,16 @@
                 pdf.setFont('helvetica', 'normal');
                 const hotWaterTemp = formData.get('hot-water-temp') || '';
                 const hotWaterTime = formData.get('hot-water-time') || '';
-                pdf.text(`Hot Water Temp: ${hotWaterTemp} °C`, 40, tempY);
+                pdf.text(Hot Water Temp: ${hotWaterTemp} °C, 40, tempY);
                 tempY += 15;
-                pdf.text(`Time Taken: ${hotWaterTime}`, 40, tempY);
+                pdf.text(Time Taken: ${hotWaterTime}, 40, tempY);
                 tempY += 20;
 
                 const milkTemp = formData.get('milk-temp') || '';
                 const milkTime = formData.get('milk-time') || '';
-                pdf.text(`Milk Temp: ${milkTemp} °C`, 40, tempY);
+                pdf.text(Milk Temp: ${milkTemp} °C, 40, tempY);
                 tempY += 15;
-                pdf.text(`Time Taken: ${milkTime}`, 40, tempY);
+                pdf.text(Time Taken: ${milkTime}, 40, tempY);
                 tempY += 20;
 
                 // Add photos after the temperature data
@@ -682,7 +662,6 @@
                                 pdf.setFontSize(12);
                                 pdf.text(photo.title, 40, photoY - 10); // Add the title above the photo
                                 photoY += 220; // Move Y position down for the next photo (image height + spacing)
-                                console.log(`Added one photo for item ${i}: ${photo.title}`);
                             } catch (error) {
                                 console.error('Error adding image to PDF:', error);
                             }
@@ -707,7 +686,6 @@
                                 pdf.text(photo2.title, 310, photoY - 10); // Add the title above the second photo
 
                                 photoY += 220; // Move Y position down for the next set of photos
-                                console.log(`Added two photos for item ${i}: ${photo1.title} and ${photo2.title}`);
                             } catch (error) {
                                 console.error('Error adding images to PDF:', error);
                             }
@@ -720,7 +698,6 @@
 
                 if (navigator.onLine) {
                     // Online Mode
-                    console.log('Online: Uploading PDF to Firebase.');
                     // Upload to Firebase
                     uploadPDF(dairyNumber, pdfBlob);
 
@@ -732,7 +709,6 @@
                     console.log('All drafts have been cleared after submission.');
                 } else {
                     // Offline Mode
-                    console.log('Offline: Saving PDF and form data to IndexedDB.');
                     // Save PDF and form data to 'forms' store
                     const formObject = {};
                     for (const [key, value] of formData.entries()) {
@@ -759,10 +735,10 @@
                 console.log('uploadPDF function called with dairyNumber:', dairyNumber); // Debugging statement
 
                 const timestamp = new Date().toISOString().split('T')[0];
-                const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
-                const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
+                const fileName = ${dairyNumber}-form-${timestamp}.pdf;
+                const storageRef = storage.ref(customers/${dairyNumber}/${fileName});
 
-                console.log(`Uploading PDF to path: customers/${dairyNumber}/${fileName}`); // Debugging statement
+                console.log(Uploading PDF to path: customers/${dairyNumber}/${fileName}); // Debugging statement
 
                 storageRef.put(pdfBlob).then(() => {
                     console.log('PDF uploaded successfully');
@@ -773,54 +749,55 @@
 
             window.addEventListener('online', syncDataWithFirebase);
 
-            async function syncDataWithFirebase() {
-                console.log('Device is online. Syncing data with Firebase.');
+async function syncDataWithFirebase() {
+    console.log('Device is online. Syncing data with Firebase.');
 
-                // Sync drafts
-                const drafts = await db.drafts.toArray();
-                for (const draft of drafts) {
-                    const dairyNumber = draft.dairyNumber;
-                    const pdfBlob = draft.pdfBlob;
+    // Sync drafts
+    const drafts = await db.drafts.toArray();
+    for (const draft of drafts) {
+        const dairyNumber = draft.dairyNumber;
+        const pdfBlob = draft.pdfBlob;
 
-                    if (pdfBlob) {
-                        // Upload the PDF
-                        uploadPDF(dairyNumber, pdfBlob);
-                    }
-                    await db.drafts.delete(draft.id);
-                }
+        if (pdfBlob) {
+            // Upload the PDF
+            uploadPDF(dairyNumber, pdfBlob);
+        }
+        await db.drafts.delete(draft.id);
+    }
 
-                // Sync forms (offline-generated PDFs)
-                const offlineForms = await db.forms.toArray();
-                for (const record of offlineForms) {
-                    const dairyNumber = record.dairyNumber;
-                    const pdfBlob = record.pdfBlob;
+    // Sync forms (offline-generated PDFs)
+    const offlineForms = await db.forms.toArray();
+    for (const record of offlineForms) {
+        const dairyNumber = record.dairyNumber;
+        const pdfBlob = record.pdfBlob;
 
-                    uploadPDF(dairyNumber, pdfBlob);
-                    await db.forms.delete(record.id);
-                }
+        uploadPDF(dairyNumber, pdfBlob);
+        await db.forms.delete(record.id);
+    }
 
-                // Sync farm details specifically
-                const offlineFarmDetails = await db.farmDetails.toArray();
-                for (const detail of offlineFarmDetails) {
-                    const dairyNumber = detail.dairyNumber;
-                    const farmDetails = detail.details;
+    // Sync farm details specifically
+    const offlineFarmDetails = await db.farmDetails.toArray();
+    for (const detail of offlineFarmDetails) {
+        const dairyNumber = detail.dairyNumber;
+        const farmDetails = detail.details;
+        
+        const storageRef = storage.ref(farm_details/${dairyNumber}.json);
+        const metadata = { contentType: 'application/json' };
 
-                    const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
-                    const metadata = { contentType: 'application/json' };
+        try {
+            await storageRef.put(new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }), metadata);
+            console.log(Farm details for dairy number ${dairyNumber} uploaded successfully.);
+            await db.farmDetails.delete(detail.id);
+        } catch (error) {
+            console.error(Error uploading farm details for dairy number ${dairyNumber}:, error);
+        }
+    }
+    console.log('All offline data has been synced with Firebase.');
+}
 
-                    try {
-                        await storageRef.put(new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }), metadata);
-                        console.log(`Farm details for dairy number ${dairyNumber} uploaded successfully.`);
-                        await db.farmDetails.delete(detail.id);
-                    } catch (error) {
-                        console.error(`Error uploading farm details for dairy number ${dairyNumber}:`, error);
-                    }
-                }
-                console.log('All offline data has been synced with Firebase.');
-            }
+
 
             function createChecklistItems() {
-                console.log('Creating checklist items...');
                 const checklistItems = [
                     "Pulsator Airline", "Long Bend Elbows", "Automatic Cup and Remover", "Diaphragm", "Receiving Can",
                     "Sanitary Trap", "Main Milk Line", "Milk Line Seals in Good Condition", "Stainless Droppers", "Long Milk Rubber",
@@ -843,10 +820,9 @@
                 ];
 
                 const checklistContainer = document.getElementById('checklist-items');
-                checklistContainer.innerHTML = ''; // Clear existing items
+                checklistContainer.innerHTML = '';
 
                 checklistItems.forEach((item, index) => {
-                    console.log(`Creating checklist item: ${item}`);
                     const itemContainer = document.createElement('div');
                     itemContainer.classList.add('checklist-item');
 
@@ -856,17 +832,17 @@
 
                     const statusSelect = document.createElement('select');
                     statusSelect.classList.add('form-select');
-                    statusSelect.innerHTML = `
+                    statusSelect.innerHTML = 
                         <option value="ok">OK</option>
                         <option value="attention-required">Attention Required</option>
                         <option value="na">N/A</option>
                         <option value="not-checked">Not Checked</option>
-                    `;
+                    ;
                     itemContainer.appendChild(statusSelect);
 
                     const commentsInput = document.createElement('input');
                     commentsInput.type = 'text';
-                    commentsInput.classList.add('form-control', 'mt-2');
+                    commentsInput.classList.add('form-control');
                     commentsInput.placeholder = 'Comments';
                     itemContainer.appendChild(commentsInput);
 
@@ -896,7 +872,6 @@
                     imagePreview2.style.display = 'none'; // Initially hidden
                     itemContainer.appendChild(imagePreview2);
 
-                    // Event listener for status change
                     statusSelect.addEventListener('change', () => {
                         if (statusSelect.value === 'attention-required') {
                             imageUpload1.style.display = 'block';
@@ -916,7 +891,6 @@
                             commentsInput.value = ""; // Clear the field if it was auto-filled
                         }
                         saveFormData();
-                        console.log(`Status changed for item "${item}" to "${statusSelect.value}"`);
                     });
 
                     // Event listeners for saving data
@@ -930,7 +904,6 @@
                             const imageUrl = URL.createObjectURL(file);
                             imagePreview1.src = imageUrl;
                             imagePreview1.style.display = 'block';
-                            console.log(`Image 1 uploaded for item "${item}"`);
                         } else {
                             imagePreview1.style.display = 'none';
                         }
@@ -944,7 +917,6 @@
                             const imageUrl = URL.createObjectURL(file);
                             imagePreview2.src = imageUrl;
                             imagePreview2.style.display = 'block';
-                            console.log(`Image 2 uploaded for item "${item}"`);
                         } else {
                             imagePreview2.style.display = 'none';
                         }
@@ -953,14 +925,11 @@
 
                     checklistContainer.appendChild(itemContainer);
                 });
-
-                console.log('All checklist items have been created.');
             }
 
             // View Records Functions
 
             function viewRecords() {
-                console.log('Viewing all records.');
                 document.getElementById('form-container').style.display = 'none';
                 document.getElementById('record-container').style.display = 'block';
                 loadAllRecords();
@@ -973,7 +942,6 @@
 
                 try {
                     if (navigator.onLine) {
-                        console.log('Online: Loading records from Firebase.');
                         const folderSnapshot = await storageRef.listAll();
                         folderSnapshot.prefixes.forEach(folderRef => {
                             const dairyNumber = folderRef.name;
@@ -991,7 +959,7 @@
                         const dairyNumbers = [...new Set(offlineForms.map(record => record.dairyNumber))];
                         dairyNumbers.forEach(dairyNumber => {
                             const fileLink = document.createElement('a');
-                            fileLink.textContent = `${dairyNumber} (Offline)`;
+                            fileLink.textContent = ${dairyNumber} (Offline);
                             fileLink.href = '#';
                             fileLink.addEventListener('click', () => {
                                 displayOfflineRecords(dairyNumber);
@@ -1008,7 +976,7 @@
                         const dairyNumbers = [...new Set(offlineForms.map(record => record.dairyNumber))];
                         dairyNumbers.forEach(dairyNumber => {
                             const fileLink = document.createElement('a');
-                            fileLink.textContent = `${dairyNumber} (Offline)`;
+                            fileLink.textContent = ${dairyNumber} (Offline);
                             fileLink.href = '#';
                             fileLink.addEventListener('click', () => {
                                 displayOfflineRecords(dairyNumber);
@@ -1017,17 +985,15 @@
                         });
                     }
                 }
-                console.log('All records loaded.');
             }
 
             async function loadRecordFiles(dairyNumber) {
                 const recordList = document.getElementById('record-list');
                 recordList.innerHTML = '';
-                const storageRef = storage.ref(`customers/${dairyNumber}`);
+                const storageRef = storage.ref(customers/${dairyNumber});
 
                 try {
                     if (navigator.onLine) {
-                        console.log(`Online: Loading records for Dairy Number: ${dairyNumber} from Firebase.`);
                         const fileSnapshot = await storageRef.listAll();
                         fileSnapshot.items.forEach(fileRef => {
                             const fileName = fileRef.name;
@@ -1048,7 +1014,7 @@
                             recordList.appendChild(fileLink);
                         });
                     } else {
-                        console.log(`Offline: Loading records for Dairy Number: ${dairyNumber} from IndexedDB.`);
+                        console.log('Offline: Loading records from IndexedDB.');
                         displayOfflineRecords(dairyNumber);
                     }
 
@@ -1061,20 +1027,18 @@
                     console.error('Error fetching record files:', error);
                     // Optionally, load records from IndexedDB when offline
                     if (!navigator.onLine) {
-                        console.log(`Offline: Loading records for Dairy Number: ${dairyNumber} from IndexedDB.`);
+                        console.log('Offline: Loading records from IndexedDB.');
                         displayOfflineRecords(dairyNumber);
                     }
                 }
             }
 
             function goBack() {
-                console.log('Returning to checklist form.');
                 document.getElementById('form-container').style.display = 'block';
                 document.getElementById('record-container').style.display = 'none';
             }
 
             function goBackToRecords() {
-                console.log('Returning to records list.');
                 loadAllRecords();
             }
 
@@ -1092,12 +1056,10 @@
                         record.style.display = "none";
                     }
                 }
-                console.log(`Filtered records with search input: "${searchInput}"`);
             }
 
             // Function to save form data to IndexedDB
             async function saveFormData() {
-                console.log('Saving form data to IndexedDB.');
                 const form = document.getElementById('hygiene-checklist-form');
                 const formData = new FormData(form);
                 const formObject = {};
@@ -1118,43 +1080,33 @@
                     const status = item.querySelector('select').value;
                     const comments = item.querySelector('input[type="text"]').value;
                     const imageInput1 = item.querySelector('input.image-upload-1');
-                    const imageFile1 = imageInput1 ? imageInput1.files[0] : null;
+                    const imageFile1 = imageInput1.files[0];
                     const imageInput2 = item.querySelector('input.image-upload-2');
-                    const imageFile2 = imageInput2 ? imageInput2.files[0] : null;
+                    const imageFile2 = imageInput2.files[0];
 
                     let imageData1 = null;
                     let imageData2 = null;
 
                     if (imageFile1) {
                         // Read the first image file as ArrayBuffer to store in IndexedDB
-                        try {
-                            imageData1 = await readFileAsArrayBuffer(imageFile1);
-                            photos.push({
-                                itemIndex: i,
-                                photoIndex: 0,
-                                imageData: imageData1,
-                                imageType: imageFile1.type
-                            });
-                            console.log(`Image 1 saved for item "${itemName}".`);
-                        } catch (error) {
-                            console.error(`Error reading Image 1 for item "${itemName}":`, error);
-                        }
+                        imageData1 = await readFileAsArrayBuffer(imageFile1);
+                        photos.push({
+                            itemIndex: i,
+                            photoIndex: 0,
+                            imageData: imageData1,
+                            imageType: imageFile1.type
+                        });
                     }
 
                     if (imageFile2) {
                         // Read the second image file as ArrayBuffer to store in IndexedDB
-                        try {
-                            imageData2 = await readFileAsArrayBuffer(imageFile2);
-                            photos.push({
-                                itemIndex: i,
-                                photoIndex: 1,
-                                imageData: imageData2,
-                                imageType: imageFile2.type
-                            });
-                            console.log(`Image 2 saved for item "${itemName}".`);
-                        } catch (error) {
-                            console.error(`Error reading Image 2 for item "${itemName}":`, error);
-                        }
+                        imageData2 = await readFileAsArrayBuffer(imageFile2);
+                        photos.push({
+                            itemIndex: i,
+                            photoIndex: 1,
+                            imageData: imageData2,
+                            imageType: imageFile2.type
+                        });
                     }
 
                     checklistData.push({
@@ -1171,22 +1123,16 @@
                 const dairyNumber = formObject['dairy-number'] || 'unknown';
 
                 // Save the form data and photos to IndexedDB
-                try {
-                    await db.drafts.put({
-                        dairyNumber: dairyNumber,
-                        formData: formObject,
-                        photos: photos,
-                        timestamp: new Date().getTime()
-                    });
-                    console.log(`Form data saved locally for Dairy Number: ${dairyNumber}`);
-                } catch (error) {
-                    console.error('Error saving form data to IndexedDB:', error);
-                }
+                await db.drafts.put({
+                    dairyNumber: dairyNumber,
+                    formData: formObject,
+                    photos: photos,
+                    timestamp: new Date().getTime()
+                });
             }
 
             // Function to populate form with saved data
             async function populateForm(data) {
-                console.log('Populating form with saved draft.');
                 const form = document.getElementById('hygiene-checklist-form');
 
                 // Populate standard form fields
@@ -1195,7 +1141,6 @@
                         const field = form.elements[key];
                         if (field) {
                             field.value = value;
-                            console.log(`Field "${key}" populated with value: "${value}"`);
                         }
                     }
                 }
@@ -1229,7 +1174,6 @@
                                     // Display the image preview
                                     imagePreview1.src = imageUrl1;
                                     imagePreview1.style.display = 'block';
-                                    console.log(`Image 1 loaded for item "${checklistItemData.itemName}".`);
                                 }
                             }
 
@@ -1243,17 +1187,11 @@
                                     // Display the image preview
                                     imagePreview2.src = imageUrl2;
                                     imagePreview2.style.display = 'block';
-                                    console.log(`Image 2 loaded for item "${checklistItemData.itemName}".`);
                                 }
                             }
-
-                            // Trigger change event to handle image display based on status
-                            const event = new Event('change');
-                            statusSelect.dispatchEvent(event);
                         }
                     }
                 }
-                console.log('Form populated with saved draft.');
             }
 
             // Helper functions to read files
@@ -1298,7 +1236,6 @@
             }
 
             document.addEventListener("DOMContentLoaded", async () => {
-                console.log('Document loaded. Creating checklist items.');
                 createChecklistItems();
                 // Other initialization code
 
@@ -1315,7 +1252,7 @@
                 for (const draft of drafts) {
                     if (now - draft.timestamp > twoHoursInMillis) {
                         await db.drafts.delete(draft.id);
-                        console.log(`Deleted draft with ID ${draft.id} due to expiration.`);
+                        console.log(Deleted draft with ID ${draft.id} due to expiration.);
                     }
                 }
 
@@ -1339,13 +1276,12 @@
 
             // Function to display offline records from IndexedDB
             async function displayOfflineRecords(dairyNumber) {
-                console.log(`Displaying offline records for Dairy Number: ${dairyNumber}`);
                 const recordList = document.getElementById('record-list');
                 recordList.innerHTML = '';
                 const offlineForms = await db.forms.where('dairyNumber').equals(dairyNumber).toArray();
 
                 offlineForms.forEach(record => {
-                    const fileName = `Offline Form - ${new Date(record.timestamp).toLocaleString()}`;
+                    const fileName = Offline Form - ${record.timestamp};
                     const fileLink = document.createElement('a');
                     fileLink.textContent = fileName;
                     fileLink.href = '#';
@@ -1368,12 +1304,11 @@
                     const pdfBlob = record.pdfBlob;
                     const pdfUrl = URL.createObjectURL(pdfBlob);
                     window.open(pdfUrl, '_blank');
-                    console.log('Displayed offline PDF.');
                 } catch (error) {
                     console.error('Error displaying offline PDF:', error);
                 }
             }
-    </script>
-</body>
+        </script>
+    </body>
 
 </html>
