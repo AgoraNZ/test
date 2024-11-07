@@ -546,9 +546,9 @@
 
                     // Get the image data from the file inputs or from saved photos
                     const imageInput1 = item.querySelector('input.image-upload-1');
-                    const imageFile1 = imageInput1.files[0];
+                    const imageFile1 = imageInput1 ? imageInput1.files[0] : null;
                     const imageInput2 = item.querySelector('input.image-upload-2');
-                    const imageFile2 = imageInput2.files[0];
+                    const imageFile2 = imageInput2 ? imageInput2.files[0] : null;
                     let imageDataUrls = [];
 
                     if (imageFile1) {
@@ -820,6 +820,7 @@
             }
 
             function createChecklistItems() {
+                console.log('Creating checklist items...');
                 const checklistItems = [
                     "Pulsator Airline", "Long Bend Elbows", "Automatic Cup and Remover", "Diaphragm", "Receiving Can",
                     "Sanitary Trap", "Main Milk Line", "Milk Line Seals in Good Condition", "Stainless Droppers", "Long Milk Rubber",
@@ -842,9 +843,10 @@
                 ];
 
                 const checklistContainer = document.getElementById('checklist-items');
-                checklistContainer.innerHTML = '';
+                checklistContainer.innerHTML = ''; // Clear existing items
 
                 checklistItems.forEach((item, index) => {
+                    console.log(`Creating checklist item: ${item}`);
                     const itemContainer = document.createElement('div');
                     itemContainer.classList.add('checklist-item');
 
@@ -864,7 +866,7 @@
 
                     const commentsInput = document.createElement('input');
                     commentsInput.type = 'text';
-                    commentsInput.classList.add('form-control');
+                    commentsInput.classList.add('form-control', 'mt-2');
                     commentsInput.placeholder = 'Comments';
                     itemContainer.appendChild(commentsInput);
 
@@ -952,7 +954,7 @@
                     checklistContainer.appendChild(itemContainer);
                 });
 
-                console.log('Checklist items created.');
+                console.log('All checklist items have been created.');
             }
 
             // View Records Functions
@@ -1116,35 +1118,43 @@
                     const status = item.querySelector('select').value;
                     const comments = item.querySelector('input[type="text"]').value;
                     const imageInput1 = item.querySelector('input.image-upload-1');
-                    const imageFile1 = imageInput1.files[0];
+                    const imageFile1 = imageInput1 ? imageInput1.files[0] : null;
                     const imageInput2 = item.querySelector('input.image-upload-2');
-                    const imageFile2 = imageInput2.files[0];
+                    const imageFile2 = imageInput2 ? imageInput2.files[0] : null;
 
                     let imageData1 = null;
                     let imageData2 = null;
 
                     if (imageFile1) {
                         // Read the first image file as ArrayBuffer to store in IndexedDB
-                        imageData1 = await readFileAsArrayBuffer(imageFile1);
-                        photos.push({
-                            itemIndex: i,
-                            photoIndex: 0,
-                            imageData: imageData1,
-                            imageType: imageFile1.type
-                        });
-                        console.log(`Image 1 saved for item "${itemName}".`);
+                        try {
+                            imageData1 = await readFileAsArrayBuffer(imageFile1);
+                            photos.push({
+                                itemIndex: i,
+                                photoIndex: 0,
+                                imageData: imageData1,
+                                imageType: imageFile1.type
+                            });
+                            console.log(`Image 1 saved for item "${itemName}".`);
+                        } catch (error) {
+                            console.error(`Error reading Image 1 for item "${itemName}":`, error);
+                        }
                     }
 
                     if (imageFile2) {
                         // Read the second image file as ArrayBuffer to store in IndexedDB
-                        imageData2 = await readFileAsArrayBuffer(imageFile2);
-                        photos.push({
-                            itemIndex: i,
-                            photoIndex: 1,
-                            imageData: imageData2,
-                            imageType: imageFile2.type
-                        });
-                        console.log(`Image 2 saved for item "${itemName}".`);
+                        try {
+                            imageData2 = await readFileAsArrayBuffer(imageFile2);
+                            photos.push({
+                                itemIndex: i,
+                                photoIndex: 1,
+                                imageData: imageData2,
+                                imageType: imageFile2.type
+                            });
+                            console.log(`Image 2 saved for item "${itemName}".`);
+                        } catch (error) {
+                            console.error(`Error reading Image 2 for item "${itemName}":`, error);
+                        }
                     }
 
                     checklistData.push({
@@ -1161,13 +1171,17 @@
                 const dairyNumber = formObject['dairy-number'] || 'unknown';
 
                 // Save the form data and photos to IndexedDB
-                await db.drafts.put({
-                    dairyNumber: dairyNumber,
-                    formData: formObject,
-                    photos: photos,
-                    timestamp: new Date().getTime()
-                });
-                console.log(`Form data saved locally for Dairy Number: ${dairyNumber}`);
+                try {
+                    await db.drafts.put({
+                        dairyNumber: dairyNumber,
+                        formData: formObject,
+                        photos: photos,
+                        timestamp: new Date().getTime()
+                    });
+                    console.log(`Form data saved locally for Dairy Number: ${dairyNumber}`);
+                } catch (error) {
+                    console.error('Error saving form data to IndexedDB:', error);
+                }
             }
 
             // Function to populate form with saved data
