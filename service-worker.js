@@ -1,11 +1,11 @@
 // Name and version for the cache
-const CACHE_NAME = 'dairy-shed-cache-v1';
+const CACHE_NAME = 'dairy-shed-cache-v2';
 
 // Files to be cached
 const CACHE_FILES = [
     '/',
     '/index.html', // Make sure this points to your main HTML file
-    '/css/styles.css', // Update with your CSS path
+    '/css/styles.css', // Update with your CSS path if any
     'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css',
     '/js/app.js', // Update with your JavaScript path if applicable
     'https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js',
@@ -20,11 +20,21 @@ const CACHE_FILES = [
 // Install Service Worker
 self.addEventListener('install', (event) => {
     event.waitUntil(
-        caches.open(CACHE_NAME)
-            .then((cache) => {
-                console.log('Opened cache');
-                return cache.addAll(CACHE_FILES);
-            })
+        (async () => {
+            const cache = await caches.open(CACHE_NAME);
+            for (const file of CACHE_FILES) {
+                try {
+                    const response = await fetch(file, { mode: 'no-cors' });
+                    if (response.ok || response.type === 'opaque') {
+                        await cache.put(file, response);
+                    } else {
+                        console.warn(`Failed to cache ${file}: Response was not ok.`);
+                    }
+                } catch (error) {
+                    console.error(`Failed to fetch and cache ${file}:`, error);
+                }
+            }
+        })()
     );
 });
 
@@ -32,28 +42,22 @@ self.addEventListener('install', (event) => {
 self.addEventListener('fetch', (event) => {
     event.respondWith(
         caches.match(event.request)
-            .then((response) => {
-                // If a cached response is found, return it
-                if (response) {
-                    return response;
+            .then((cachedResponse) => {
+                if (cachedResponse) {
+                    return cachedResponse;
                 }
-                // If not, fetch the request from the network
-                return fetch(event.request)
-                    .then((networkResponse) => {
-                        // Cache the fetched resource for future requests
-                        if (!event.request.url.startsWith('chrome-extension://')) {
-                            return caches.open(CACHE_NAME).then((cache) => {
-                                cache.put(event.request, networkResponse.clone());
-                                return networkResponse;
-                            });
-                        } else {
+                return fetch(event.request).then((networkResponse) => {
+                    if (networkResponse.ok) {
+                        return caches.open(CACHE_NAME).then((cache) => {
+                            cache.put(event.request, networkResponse.clone());
                             return networkResponse;
-                        }
-                    });
-            })
-            .catch(() => {
-                // Handle errors
-                return caches.match('/offline.html'); // Optional: create an offline page
+                        });
+                    }
+                    return networkResponse;
+                });
+            }).catch((error) => {
+                console.error('Fetch failed; returning offline page instead.', error);
+                return caches.match('/offline.html'); // Optional: fallback page
             })
     );
 });
