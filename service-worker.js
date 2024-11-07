@@ -8,8 +8,8 @@ const CACHE_FILES = [
     'https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js',
     'https://cdnjs.cloudflare.com/ajax/libs/dexie/3.0.3/dexie.min.js',
     'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js',
-    'https://i.postimg.cc/htZPjx5g/logo-89.png' // Cached Logo
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js'
+    // Note: The logo is embedded directly in the HTML as a Base64 data URL, so no need to cache it separately.
 ];
 
 // Additional cache for dynamic content
@@ -57,7 +57,7 @@ self.addEventListener('fetch', (event) => {
 
     // **Handle API requests differently if needed**
     // For example, farm_details/*.json can be cached dynamically
-    if (url.pathname.startsWith('/test/farm_details/')) {
+    if (url.pathname.startsWith('/farm_details/')) { // Adjusted path
         event.respondWith(
             caches.open(DYNAMIC_CACHE).then((cache) => {
                 return cache.match(request).then((response) => {
@@ -95,8 +95,8 @@ self.addEventListener('fetch', (event) => {
                         }
                         return networkResponse;
                     }).catch(() => {
-                        // Optionally, return a fallback image
-                        return caches.match('https://i.postimg.cc/htZPjx5g/logo-89.png');
+                        // Optionally, return a fallback image or nothing
+                        return new Response(null, { status: 404 });
                     });
                 });
             })
