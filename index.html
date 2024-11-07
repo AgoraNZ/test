@@ -726,43 +726,68 @@
 
             window.addEventListener('online', syncDataWithFirebase);
 
-            async function syncDataWithFirebase() {
-                console.log('Device is online. Syncing data with Firebase.');
+async function syncDataWithFirebase() {
+    console.log('Device is online. Syncing data with Firebase.');
 
-                // Sync drafts
-                const drafts = await db.drafts.toArray();
-                for (const draft of drafts) {
-                    const dairyNumber = draft.dairyNumber;
-                    const pdfBlob = draft.pdfBlob; // Assuming pdfBlob is stored in drafts
+    // Sync drafts
+    const drafts = await db.drafts.toArray();
+    for (const draft of drafts) {
+        const dairyNumber = draft.dairyNumber;
+        const pdfBlob = draft.pdfBlob;
 
-                    if (pdfBlob) {
-                        // Upload the PDF
-                        uploadPDF(dairyNumber, pdfBlob);
-                    }
+        if (pdfBlob) {
+            // Upload the PDF
+            uploadPDF(dairyNumber, pdfBlob);
+        }
 
-                    // You can add more upload logic here if needed
+        // Remove the draft after uploading
+        await db.drafts.delete(draft.id);
+        console.log(`Draft with ID ${draft.id} uploaded and deleted.`);
+    }
 
-                    // Remove the draft after uploading
-                    await db.drafts.delete(draft.id);
-                    console.log(`Draft with ID ${draft.id} uploaded and deleted.`);
-                }
+    // Sync forms (offline-generated PDFs)
+    const offlineForms = await db.forms.toArray();
 
-                // Sync forms (offline-generated PDFs)
-                const offlineForms = await db.forms.toArray();
+    for (const record of offlineForms) {
+        const dairyNumber = record.dairyNumber;
+        const pdfBlob = record.pdfBlob;
 
-                for (const record of offlineForms) {
-                    const dairyNumber = record.dairyNumber;
-                    const pdfBlob = record.pdfBlob;
+        uploadPDF(dairyNumber, pdfBlob);
 
-                    uploadPDF(dairyNumber, pdfBlob);
+        // Remove the record from IndexedDB after uploading
+        await db.forms.delete(record.id);
+        console.log(`Offline form with ID ${record.id} uploaded and deleted.`);
+    }
 
-                    // Remove the record from IndexedDB after uploading
-                    await db.forms.delete(record.id);
-                    console.log(`Offline form with ID ${record.id} uploaded and deleted.`);
-                }
+    // Sync farm details
+    const offlineFarmDetails = await db.forms.toArray();
+    for (const detail of offlineFarmDetails) {
+        const dairyNumber = detail.dairyNumber;
+        const farmDetails = detail.formData;
 
-                console.log('All offline data has been synced with Firebase.');
+        if (farmDetails) {
+            const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
+            const metadata = {
+                contentType: 'application/json',
+            };
+            try {
+                await storageRef.put(
+                    new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }),
+                    metadata
+                );
+                console.log(`Farm details for dairy number ${dairyNumber} uploaded successfully.`);
+
+                // Remove the record from IndexedDB after uploading
+                await db.forms.delete(detail.id);
+            } catch (error) {
+                console.error(`Error uploading farm details for dairy number ${dairyNumber}:`, error);
             }
+        }
+    }
+
+    console.log('All offline data has been synced with Firebase.');
+}
+
 
             function createChecklistItems() {
                 const checklistItems = [
