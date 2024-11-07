@@ -9,7 +9,7 @@ const CACHE_FILES = [
     'https://cdnjs.cloudflare.com/ajax/libs/dexie/3.0.3/dexie.min.js',
     'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
     'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js',
-    'https://i.postimg.cc/htZPjx5g/logo-89.png'
+    'https://i.postimg.cc/htZPjx5g/logo-89.png' // Cached Logo
 ];
 
 // Additional cache for dynamic content
