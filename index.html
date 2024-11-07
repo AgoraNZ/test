@@ -135,11 +135,28 @@
             display: block;
             margin-top: 10px;
         }
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+        width: 90%;
+    }
+    .image-preview, .image-preview-2 {
+        max-width: 70px; /* Reduce preview size for mobile */
+    }
+    h1, h2 {
+        font-size: 1.5em;
+    }
+}
+
     </style>
 </head>
 
 <body>
     <div class="container" id="form-container">
+<div id="network-status" style="position: fixed; top: 10px; right: 10px; background-color: #FF4136; color: #FFFFFF; padding: 5px 10px; border-radius: 5px; display: none;">
+    Offline
+</div>
+
         <!-- Embedded Logo as Base64 Data URL -->
         <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADICAMAAACahl6sAAAAA1BMVEWZmZnGjxkGAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH5AQDCB8AyXmk4wAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAABYSURBVHja7cEBAQAAAIIg/69uEcgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFgBjEAAEUW6GoAAAAASUVORK5CYII=" alt="Logo" class="logo">
         <h1>Dairy Shed Hygiene Checklist</h1>
@@ -266,6 +283,18 @@
     <script>
         // Ensure that jsPDF is properly initialized
         const { jsPDF } = window.jspdf;
+function updateNetworkStatus() {
+    const networkStatus = document.getElementById('network-status');
+    if (!navigator.onLine) {
+        networkStatus.style.display = 'block';
+    } else {
+        networkStatus.style.display = 'none';
+    }
+}
+
+window.addEventListener('offline', updateNetworkStatus);
+window.addEventListener('online', updateNetworkStatus);
+document.addEventListener('DOMContentLoaded', updateNetworkStatus);
 
         // Firebase configuration
         const firebaseConfig = {
