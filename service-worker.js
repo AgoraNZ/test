@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dairy-shed-cache-v7';
+const CACHE_NAME = 'dairy-shed-cache-v6';
 const CACHE_FILES = [
     './index.html',
     './service-worker.js',
