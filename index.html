@@ -284,7 +284,7 @@
         // Initialize IndexedDB using Dexie
         const db = new Dexie("OfflineData");
         db.version(2).stores({
-            forms: "++id, dairyNumber, formData, pdfBlob",
+            forms: "++id, dairyNumber, formData, pdfBlob, timestamp",
             drafts: "++id, dairyNumber, formData, photos, timestamp"
         });
 
@@ -640,7 +640,8 @@
                         uploadPDF(dairyNumber, pdfBlob);
 
                         // Display PDF to user
-                        pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
+                        const pdfUrl = URL.createObjectURL(pdfBlob);
+                        window.open(pdfUrl, '_blank');
 
                         // Option A: Delete All Drafts After Submission
                         await db.drafts.clear();
@@ -665,7 +666,8 @@
                         const pdfUrl = URL.createObjectURL(pdfBlob);
                         window.open(pdfUrl, '_blank');
 
-                        // Do not clear drafts
+                        // Optionally, notify the user that data will be synced when online
+                        alert('You are currently offline. The PDF has been generated and saved locally. It will be uploaded to Firebase once you are back online.');
                     }
                 };
             } catch (error) {
@@ -781,6 +783,7 @@
                 // First Image Upload
                 const imageUpload1 = document.createElement('input');
                 imageUpload1.type = 'file';
+                imageUpload1.accept = 'image/*';
                 imageUpload1.classList.add('form-control', 'image-upload-1');
                 imageUpload1.style.display = 'none';
                 itemContainer.appendChild(imageUpload1);
@@ -794,6 +797,7 @@
                 // Second Image Upload
                 const imageUpload2 = document.createElement('input');
                 imageUpload2.type = 'file';
+                imageUpload2.accept = 'image/*';
                 imageUpload2.classList.add('form-control', 'image-upload-2');
                 imageUpload2.style.display = 'none';
                 itemContainer.appendChild(imageUpload2);
@@ -1019,7 +1023,8 @@
                 dairyNumber: dairyNumber,
                 formData: formObject,
                 photos: photos,
-                timestamp: new Date().getTime()
+                timestamp: new Date().getTime(),
+                pdfBlob: null // Initialize as null; will be set when PDF is generated
             });
         }
 
