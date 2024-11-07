@@ -282,12 +282,14 @@
         const storage = firebase.storage();
         const firestore = firebase.firestore();
 
-        // Initialize IndexedDB using Dexie
-        const db = new Dexie("OfflineData");
-        db.version(2).stores({
-            forms: "++id, dairyNumber, formData, pdfBlob",
-            drafts: "++id, dairyNumber, formData, photos, timestamp"
-        });
+       // Initialize IndexedDB with a separate store for farm details
+const db = new Dexie("OfflineData");
+db.version(2).stores({
+    forms: "++id, dairyNumber, formData, pdfBlob",
+    drafts: "++id, dairyNumber, formData, photos, timestamp",
+    farmDetails: "++id, dairyNumber, details"
+});
+
 
         // Service Worker Registration
         if ('serviceWorker' in navigator) {
@@ -374,7 +376,7 @@
             }
         }
 
-       async function saveFarmDetails(formData) {
+async function saveFarmDetails(formData) {
     const dairyNumber = formData.get('dairy-number');
     const farmDetails = {
         dairyCompany: formData.get('dairy-company'),
@@ -384,51 +386,27 @@
         farmName: formData.get('farm-name'),
         island: formData.get('island'),
     };
+
     const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
-    const metadata = {
-        contentType: 'application/json',
-    };
+    const metadata = { contentType: 'application/json' };
 
     try {
         if (navigator.onLine) {
-            await storageRef.put(
-                new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }),
-                metadata
-            );
+            await storageRef.put(new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }), metadata);
             console.log('Farm details saved successfully to Firebase.');
-
-            // Also save to IndexedDB
-            await db.forms.put({
-                dairyNumber: dairyNumber,
-                formData: farmDetails,
-                pdfBlob: null,
-                timestamp: new Date().getTime()
-            });
         } else {
-            console.log('Offline: Saving farm details locally to IndexedDB.');
-            await db.forms.put({
-                dairyNumber: dairyNumber,
-                formData: farmDetails,
-                pdfBlob: null,
-                timestamp: new Date().getTime()
-            });
+            // Save offline in IndexedDB in case of connectivity issues
+            await db.farmDetails.put({ dairyNumber, details: farmDetails });
+            console.log('Farm details saved locally to IndexedDB.');
         }
     } catch (error) {
         console.error('Error saving farm details:', error);
         if (!navigator.onLine) {
-            try {
-                await db.forms.put({
-                    dairyNumber: dairyNumber,
-                    formData: farmDetails,
-                    pdfBlob: null,
-                    timestamp: new Date().getTime()
-                });
-                console.log('Farm details saved locally to IndexedDB after error.');
-            } catch (dbError) {
-                console.error('Error saving farm details locally:', dbError);
-            }
+            await db.farmDetails.put({ dairyNumber, details: farmDetails });
         }
     }
+}
+
 }
 
         async function generatePDF() {
@@ -739,54 +717,39 @@ async function syncDataWithFirebase() {
             // Upload the PDF
             uploadPDF(dairyNumber, pdfBlob);
         }
-
-        // Remove the draft after uploading
         await db.drafts.delete(draft.id);
-        console.log(`Draft with ID ${draft.id} uploaded and deleted.`);
     }
 
     // Sync forms (offline-generated PDFs)
     const offlineForms = await db.forms.toArray();
-
     for (const record of offlineForms) {
         const dairyNumber = record.dairyNumber;
         const pdfBlob = record.pdfBlob;
 
         uploadPDF(dairyNumber, pdfBlob);
-
-        // Remove the record from IndexedDB after uploading
         await db.forms.delete(record.id);
-        console.log(`Offline form with ID ${record.id} uploaded and deleted.`);
     }
 
-    // Sync farm details
-    const offlineFarmDetails = await db.forms.toArray();
+    // Sync farm details specifically
+    const offlineFarmDetails = await db.farmDetails.toArray();
     for (const detail of offlineFarmDetails) {
         const dairyNumber = detail.dairyNumber;
-        const farmDetails = detail.formData;
+        const farmDetails = detail.details;
+        
+        const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
+        const metadata = { contentType: 'application/json' };
 
-        if (farmDetails) {
-            const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
-            const metadata = {
-                contentType: 'application/json',
-            };
-            try {
-                await storageRef.put(
-                    new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }),
-                    metadata
-                );
-                console.log(`Farm details for dairy number ${dairyNumber} uploaded successfully.`);
-
-                // Remove the record from IndexedDB after uploading
-                await db.forms.delete(detail.id);
-            } catch (error) {
-                console.error(`Error uploading farm details for dairy number ${dairyNumber}:`, error);
-            }
+        try {
+            await storageRef.put(new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }), metadata);
+            console.log(`Farm details for dairy number ${dairyNumber} uploaded successfully.`);
+            await db.farmDetails.delete(detail.id);
+        } catch (error) {
+            console.error(`Error uploading farm details for dairy number ${dairyNumber}:`, error);
         }
     }
-
     console.log('All offline data has been synced with Firebase.');
 }
+
 
 
             function createChecklistItems() {
