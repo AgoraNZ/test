@@ -2,34 +2,35 @@
 <html lang="en">
 
 <head>
-    <!-- Meta tags and CSS links -->
+    <!-- Meta tags for responsiveness and character encoding -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dairy Shed Hygiene Checklist</title>
+    
+    <!-- Bootstrap CSS for responsive design -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
-    <!-- Your existing styles here -->
+    
+    <!-- Custom Styles -->
     <style>
-        /* Existing Styles */
+        /* Base Styles */
         body {
             background-color: #002B5C;
             color: #FFFFFF;
             font-family: Arial, sans-serif;
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             padding: 20px;
             margin: 0;
             overflow-x: hidden; /* Prevent horizontal scroll */
         }
 
-        .container {
+        .container-custom {
             background-color: #002B5C;
             padding: 30px;
             border-radius: 10px;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-            max-width: 800px;
+            max-width: 900px;
             width: 100%;
+            margin: 0 auto;
         }
 
         h1,
@@ -44,6 +45,7 @@
 
         label {
             margin-top: 10px;
+            font-weight: bold;
         }
 
         button {
@@ -52,10 +54,11 @@
             border: none;
             padding: 10px 20px;
             cursor: pointer;
-            display: block;
-            margin: 20px auto;
+            display: inline-block;
+            margin: 10px 5px;
             border-radius: 5px;
             transition: background-color 0.3s ease;
+            font-size: 16px;
         }
 
         button:hover {
@@ -63,7 +66,9 @@
         }
 
         .checklist-item {
-            margin-bottom: 30px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #FFFFFF;
         }
 
         .form-control,
@@ -100,11 +105,8 @@
 
         .record-container h2 {
             color: #002B5C;
-        }
-
-        .record-list {
-            max-height: 400px;
-            overflow-y: auto;
+            text-align: center;
+            margin-bottom: 20px;
         }
 
         .record-list a {
@@ -123,6 +125,10 @@
             border-radius: 5px;
             cursor: pointer;
             transition: background-color 0.3s ease;
+            font-size: 16px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         .back-button:hover {
@@ -135,13 +141,7 @@
 
         /* Responsive Adjustments */
         @media (max-width: 768px) {
-            body {
-                flex-direction: column;
-                align-items: flex-start;
-                justify-content: flex-start;
-            }
-
-            .container {
+            .container-custom {
                 padding: 20px;
                 max-width: 100%;
             }
@@ -153,6 +153,7 @@
             button {
                 width: 100%;
                 padding: 12px 0;
+                font-size: 16px;
             }
 
             .record-container {
@@ -167,31 +168,41 @@
                 font-size: 16px;
             }
 
-            /* Full-width form controls on small screens */
-            button,
-            .form-control,
-            .form-select {
+            /* Ensure checklist items stack properly on mobile */
+            .checklist-item .row {
+                flex-direction: column;
+            }
+
+            .checklist-item .col-md-4,
+            .checklist-item .col-md-3,
+            .checklist-item .col-md-2 {
                 width: 100%;
+            }
+
+            .image-preview {
+                max-width: 100px;
+                margin-top: 10px;
             }
         }
 
-        /* Additional Styles for Image Previews */
-        .image-preview,
-        .image-preview-2 {
-            max-width: 100px;
+        /* Image Preview Styles */
+        .image-preview {
+            max-width: 150px;
             display: block;
             margin-top: 10px;
+            border: 1px solid #FFFFFF;
+            border-radius: 5px;
         }
 
-        /* Ensure form sections stack properly on mobile */
-        .section .row {
-            margin-bottom: 15px;
+        /* Hide image upload button initially */
+        .image-upload-button {
+            display: none;
         }
     </style>
 </head>
 
 <body>
-    <div class="container" id="form-container">
+    <div class="container-custom" id="form-container">
         <!-- Logo Image with Responsive Design -->
         <img src="https://i.postimg.cc/htZPjx5g/logo-89.png" alt="Logo" class="logo">
         <h1>Dairy Shed Hygiene Checklist</h1>
@@ -334,8 +345,10 @@
             </div>
 
             <!-- Action Buttons -->
-            <button type="button" onclick="generatePDF()">Generate PDF</button>
-            <button type="button" onclick="viewRecords()">View All Records</button>
+            <div class="d-flex justify-content-center">
+                <button type="button" onclick="generatePDF()">Generate PDF</button>
+                <button type="button" onclick="viewRecords()">View All Records</button>
+            </div>
         </form>
         <div class="version">Version 5.4</div>
     </div>
@@ -350,7 +363,6 @@
         <button class="back-button" onclick="goBack()">Back to Checklist</button>
     </div>
 
-    <!-- Include scripts at the end of the body for better performance -->
     <!-- Include Firebase scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
@@ -368,7 +380,7 @@
 
         // Firebase configuration
         const firebaseConfig = {
-            apiKey: "AIzaSyDr9nA44Kkej*****GUzbMDECI8cTFI",
+            apiKey: "AIzaSyDr9nA44Kjej*****GUzbMDECI8cTFI",
             authDomain: "dairy-farm-record-system.firebaseapp.com",
             projectId: "dairy-farm-record-system",
             storageBucket: "dairy-farm-record-system.appspot.com",
@@ -620,7 +632,6 @@
                     let comments = item.querySelector('input[type="text"]').value;
 
                     // Get the image data from the file inputs or from saved photos
-                    const imageButton = item.querySelector('button.btn-secondary');
                     const imageInput = item.querySelector('input[type="file"]');
                     const imageFile = imageInput.files[0];
                     let imageDataUrls = [];
@@ -901,6 +912,7 @@
                     const row = document.createElement('div');
                     row.classList.add('row', 'align-items-center');
 
+                    // Label Column
                     const labelCol = document.createElement('div');
                     labelCol.classList.add('col-md-4', 'col-12', 'mb-2');
                     const label = document.createElement('label');
@@ -908,6 +920,7 @@
                     labelCol.appendChild(label);
                     row.appendChild(labelCol);
 
+                    // Status Select Column
                     const statusCol = document.createElement('div');
                     statusCol.classList.add('col-md-3', 'col-6', 'mb-2');
                     const statusSelect = document.createElement('select');
@@ -921,6 +934,7 @@
                     statusCol.appendChild(statusSelect);
                     row.appendChild(statusCol);
 
+                    // Comments Input Column
                     const commentsCol = document.createElement('div');
                     commentsCol.classList.add('col-md-3', 'col-6', 'mb-2');
                     const commentsInput = document.createElement('input');
@@ -930,11 +944,12 @@
                     commentsCol.appendChild(commentsInput);
                     row.appendChild(commentsCol);
 
+                    // Image Upload Button Column
                     const imageCol = document.createElement('div');
                     imageCol.classList.add('col-md-2', 'col-12', 'mb-2');
                     const imageButton = document.createElement('button');
                     imageButton.type = 'button';
-                    imageButton.classList.add('btn', 'btn-secondary', 'btn-sm', 'w-100');
+                    imageButton.classList.add('btn', 'btn-secondary', 'btn-sm', 'w-100', 'image-upload-button');
                     imageButton.textContent = 'Upload Photo';
                     imageCol.appendChild(imageButton);
                     row.appendChild(imageCol);
@@ -944,6 +959,7 @@
                     imageInput.type = 'file';
                     imageInput.accept = 'image/*';
                     imageInput.style.display = 'none';
+                    imageInput.classList.add('form-control', 'mt-2');
                     itemContainer.appendChild(imageInput);
 
                     // Image Preview
@@ -989,8 +1005,8 @@
                     // Save form data on input
                     statusSelect.addEventListener('change', saveFormData);
                     commentsInput.addEventListener('input', saveFormData);
+                    imageInput.addEventListener('change', saveFormData);
 
-                    row.appendChild(document.createElement('hr')); // Optional: Add a horizontal line for separation
                     itemContainer.appendChild(row);
                     checklistContainer.appendChild(itemContainer);
                 });
@@ -1215,6 +1231,7 @@
                         const commentsInput = item.querySelector('input[type="text"]');
                         const imageInput = item.querySelector('input[type="file"]');
                         const imagePreview = item.querySelector('.image-preview');
+                        const imageButton = item.querySelector('.image-upload-button');
 
                         if (statusSelect && commentsInput && checklistItemData) {
                             statusSelect.value = checklistItemData.status;
@@ -1230,6 +1247,11 @@
                                     // Display the image preview
                                     imagePreview.src = imageUrl;
                                     imagePreview.style.display = 'block';
+
+                                    // Show the upload button if necessary
+                                    if (checklistItemData.status === 'attention-required') {
+                                        imageButton.style.display = 'block';
+                                    }
                                 }
                             }
                         }
@@ -1334,7 +1356,7 @@
                 const offlineForms = await db.forms.where('dairyNumber').equals(dairyNumber).toArray();
 
                 offlineForms.forEach(record => {
-                    const fileName = `Offline Form - ${record.timestamp}`;
+                    const fileName = `Offline Form - ${new Date(record.timestamp).toLocaleString()}`;
                     const fileLink = document.createElement('a');
                     fileLink.textContent = fileName;
                     fileLink.href = '#';
