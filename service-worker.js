@@ -1,20 +1,18 @@
 // Name and version for the cache
-const CACHE_NAME = 'dairy-shed-cache-v2';
+const CACHE_NAME = 'dairy-shed-cache-v4';
 
 // Files to be cached
 const CACHE_FILES = [
-    '/',
-    '/index.html', // Make sure this points to your main HTML file
-    '/css/styles.css', // Update with your CSS path if any
+    './index.html', // Corrected path to index.html within the 'test' folder
+    './service-worker.js', // Add service worker itself for caching
     'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css',
-    '/js/app.js', // Update with your JavaScript path if applicable
     'https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js',
     'https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js',
     'https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js',
     'https://cdnjs.cloudflare.com/ajax/libs/dexie/3.0.3/dexie.min.js',
     'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
     'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js',
-    'https://i.postimg.cc/htZPjx5g/logo-89.png' // Update if using other resources
+    'https://i.postimg.cc/htZPjx5g/logo-89.png' // External image
 ];
 
 // Install Service Worker
@@ -24,9 +22,10 @@ self.addEventListener('install', (event) => {
             const cache = await caches.open(CACHE_NAME);
             for (const file of CACHE_FILES) {
                 try {
-                    const response = await fetch(file, { mode: 'no-cors' });
-                    if (response.ok || response.type === 'opaque') {
-                        await cache.put(file, response);
+                    const response = await fetch(file);
+                    // Check if the response is valid
+                    if (response && response.ok) {
+                        await cache.put(file, response.clone());
                     } else {
                         console.warn(`Failed to cache ${file}: Response was not ok.`);
                     }
@@ -47,7 +46,7 @@ self.addEventListener('fetch', (event) => {
                     return cachedResponse;
                 }
                 return fetch(event.request).then((networkResponse) => {
-                    if (networkResponse.ok) {
+                    if (networkResponse && networkResponse.ok) {
                         return caches.open(CACHE_NAME).then((cache) => {
                             cache.put(event.request, networkResponse.clone());
                             return networkResponse;
@@ -57,7 +56,7 @@ self.addEventListener('fetch', (event) => {
                 });
             }).catch((error) => {
                 console.error('Fetch failed; returning offline page instead.', error);
-                return caches.match('/offline.html'); // Optional: fallback page
+                return caches.match('./index.html'); // Fallback to index.html for offline use
             })
     );
 });
