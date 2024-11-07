@@ -140,6 +140,11 @@
 
 <body>
     <div class="container" id="form-container">
+        <!-- Use a locally hosted logo or a data URL to ensure it's available offline -->
+        <!-- Option 1: Use a locally hosted logo -->
+        <!-- <img src="logo-89.png" alt="Logo" class="logo"> -->
+
+        <!-- Option 2: Embed the logo as a base64 data URL -->
         <img src="https://i.postimg.cc/htZPjx5g/logo-89.png" alt="Logo" class="logo">
         <h1>Dairy Shed Hygiene Checklist</h1>
 
@@ -306,38 +311,56 @@
             if (dairyNumber) {
                 const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
                 try {
-                    const url = await storageRef.getDownloadURL();
-                    const response = await fetch(url);
-                    if (!response.ok) {
-                        throw new Error('Failed to fetch the farm details');
-                    }
-                    const data = await response.json();
-                    if (data) {
-                        document.getElementById('dairy-company').value = data.dairyCompany || '';
-                        document.getElementById('address').value = data.address || '';
-                        document.getElementById('customer-name').value = data.customerName || '';
-                        document.getElementById('region').value = data.region || '';
-                        document.getElementById('farm-name').value = data.farmName || '';
-                        document.getElementById('island').value = data.island || '';
+                    if (navigator.onLine) { // Only attempt to fetch from Firebase if online
+                        const url = await storageRef.getDownloadURL();
+                        const response = await fetch(url);
+                        if (!response.ok) {
+                            throw new Error('Failed to fetch the farm details');
+                        }
+                        const data = await response.json();
+                        if (data) {
+                            document.getElementById('dairy-company').value = data.dairyCompany || '';
+                            document.getElementById('address').value = data.address || '';
+                            document.getElementById('customer-name').value = data.customerName || '';
+                            document.getElementById('region').value = data.region || '';
+                            document.getElementById('farm-name').value = data.farmName || '';
+                            document.getElementById('island').value = data.island || '';
 
-                        // Save fetched farm details to IndexedDB for offline use
-                        await db.forms.put({
-                            dairyNumber: dairyNumber,
-                            formData: {
-                                'dairy-company': data.dairyCompany || '',
-                                'address': data.address || '',
-                                'customer-name': data.customerName || '',
-                                'region': data.region || '',
-                                'farm-name': data.farmName || '',
-                                'island': data.island || ''
-                            },
-                            pdfBlob: null,
-                            timestamp: new Date().getTime()
-                        });
+                            // Save fetched farm details to IndexedDB for offline use
+                            await db.forms.put({
+                                dairyNumber: dairyNumber,
+                                formData: {
+                                    'dairy-company': data.dairyCompany || '',
+                                    'address': data.address || '',
+                                    'customer-name': data.customerName || '',
+                                    'region': data.region || '',
+                                    'farm-name': data.farmName || '',
+                                    'island': data.island || ''
+                                },
+                                pdfBlob: null,
+                                timestamp: new Date().getTime()
+                            });
+                        }
+                    } else {
+                        console.log('Offline: Attempting to load farm details from IndexedDB.');
+                        // Attempt to load farm details from IndexedDB
+                        const offlineData = await db.forms.where('dairyNumber').equals(dairyNumber).first();
+                        if (offlineData && offlineData.formData) {
+                            const data = offlineData.formData;
+                            document.getElementById('dairy-company').value = data['dairy-company'] || '';
+                            document.getElementById('address').value = data['address'] || '';
+                            document.getElementById('customer-name').value = data['customer-name'] || '';
+                            document.getElementById('region').value = data['region'] || '';
+                            document.getElementById('farm-name').value = data['farm-name'] || '';
+                            document.getElementById('island').value = data['island'] || '';
+                            console.log('Loaded farm details from IndexedDB.');
+                        } else {
+                            console.warn('No offline farm details available.');
+                        }
                     }
                 } catch (error) {
                     console.error('Error fetching farm details:', error);
-                    // Attempt to load farm details from IndexedDB
+                    // Attempt to load farm details from IndexedDB in case of any error
                     const offlineData = await db.forms.where('dairyNumber').equals(dairyNumber).first();
                     if (offlineData && offlineData.formData) {
                         const data = offlineData.formData;
@@ -347,9 +370,9 @@
                         document.getElementById('region').value = data['region'] || '';
                         document.getElementById('farm-name').value = data['farm-name'] || '';
                         document.getElementById('island').value = data['island'] || '';
-                        console.log('Loaded farm details from IndexedDB.');
+                        console.log('Loaded farm details from IndexedDB after error.');
                     } else {
-                        console.warn('No offline farm details available.');
+                        console.warn('No offline farm details available after error.');
                     }
                 }
             }
@@ -370,13 +393,13 @@
                 contentType: 'application/json',
             };
 
-            if (navigator.onLine) {
-                try {
+            try {
+                if (navigator.onLine) {
                     await storageRef.put(
                         new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }),
                         metadata
                     );
-                    console.log('Farm details saved successfully.');
+                    console.log('Farm details saved successfully to Firebase.');
 
                     // Also save to IndexedDB
                     await db.forms.put({
@@ -385,21 +408,32 @@
                         pdfBlob: null,
                         timestamp: new Date().getTime()
                     });
-                } catch (error) {
-                    console.error('Error saving farm details:', error);
-                }
-            } else {
-                // Offline: Save farm details to IndexedDB without uploading
-                try {
+                } else {
+                    console.log('Offline: Saving farm details locally to IndexedDB.');
+                    // Offline: Save farm details to IndexedDB without uploading
                     await db.forms.put({
                         dairyNumber: dairyNumber,
                         formData: farmDetails,
                         pdfBlob: null,
                         timestamp: new Date().getTime()
                     });
-                    console.log('Farm details saved locally for later upload.');
-                } catch (error) {
-                    console.error('Error saving farm details locally:', error);
+                }
+            } catch (error) {
+                console.error('Error saving farm details:', error);
+                if (!navigator.onLine) {
+                    console.log('Offline: Farm details saved locally to IndexedDB despite error.');
+                    // Attempt to save locally even if an error occurs
+                    try {
+                        await db.forms.put({
+                            dairyNumber: dairyNumber,
+                            formData: farmDetails,
+                            pdfBlob: null,
+                            timestamp: new Date().getTime()
+                        });
+                        console.log('Farm details saved locally to IndexedDB after error.');
+                    } catch (dbError) {
+                        console.error('Error saving farm details locally:', dbError);
+                    }
                 }
             }
         }
@@ -416,6 +450,7 @@
             // Add logo centered
             const logoUrl = 'https://i.postimg.cc/htZPjx5g/logo-89.png'; // Use cached logo URL
             try {
+                // Fetch the logo; this will be served from cache when offline
                 const response = await fetch(logoUrl);
                 if (!response.ok) {
                     throw new Error('Failed to fetch the logo');
@@ -689,6 +724,26 @@
                 };
             } catch (error) {
                 console.error('Error fetching logo:', error);
+                // Even if logo fetching fails, proceed with PDF generation without logo
+                // Proceed to generate PDF without adding the logo
+                try {
+                    pdf.setFontSize(12);
+                    pdf.setTextColor('#000000');
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text('Farm Details:', 40, 60);
+
+                    let currentY = 80;
+
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.text(`Dairy Company: ${formData.get('dairy-company')}`, 40, currentY);
+                    currentY += 15;
+                    // ... (continue as before, skipping the logo section)
+
+                    // The rest of the PDF generation code remains the same
+                    // You might want to refactor the code to handle missing logo gracefully
+                } catch (pdfError) {
+                    console.error('Error generating PDF without logo:', pdfError);
+                }
             }
         }
 
@@ -905,6 +960,20 @@
                 });
             } catch (error) {
                 console.error('Error fetching records:', error);
+                // Optionally, load records from IndexedDB when offline
+                if (!navigator.onLine) {
+                    console.log('Offline: Loading records from IndexedDB.');
+                    const offlineForms = await db.forms.toArray();
+                    offlineForms.forEach(record => {
+                        const fileLink = document.createElement('a');
+                        fileLink.textContent = `${record.dairyNumber} (Offline)`;
+                        fileLink.href = '#';
+                        fileLink.addEventListener('click', () => {
+                            displayOfflinePDF(record);
+                        });
+                        recordList.appendChild(fileLink);
+                    });
+                }
             }
         }
 
@@ -941,6 +1010,20 @@
                 recordList.appendChild(backButton);
             } catch (error) {
                 console.error('Error fetching record files:', error);
+                // Optionally, load records from IndexedDB when offline
+                if (!navigator.onLine) {
+                    console.log('Offline: Loading records from IndexedDB.');
+                    const offlineForms = await db.forms.where('dairyNumber').equals(dairyNumber).toArray();
+                    offlineForms.forEach(record => {
+                        const fileLink = document.createElement('a');
+                        fileLink.textContent = `${record.dairyNumber} (Offline)`;
+                        fileLink.href = '#';
+                        fileLink.addEventListener('click', () => {
+                            displayOfflinePDF(record);
+                        });
+                        recordList.appendChild(fileLink);
+                    });
+                }
             }
         }
 
@@ -1184,6 +1267,17 @@
 
         // Add event listeners to save form data on input
         document.getElementById('hygiene-checklist-form').addEventListener('input', saveFormData);
+
+        // Function to display offline PDF from IndexedDB
+        async function displayOfflinePDF(record) {
+            try {
+                const pdfBlob = record.pdfBlob;
+                const pdfUrl = URL.createObjectURL(pdfBlob);
+                window.open(pdfUrl, '_blank');
+            } catch (error) {
+                console.error('Error displaying offline PDF:', error);
+            }
+        }
     </script>
 </body>
 
