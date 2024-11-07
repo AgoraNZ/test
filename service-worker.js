@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dairy-shed-cache-v6';
+const CACHE_NAME = 'dairy-shed-cache-v7';
 const CACHE_FILES = [
     './index.html',
     './service-worker.js',
@@ -12,7 +12,7 @@ const CACHE_FILES = [
     'https://i.postimg.cc/htZPjx5g/logo-89.png' // Cached Logo
 ];
 
-// Additional cache for dynamic content
+// Dynamic cache for API responses and other assets
 const DYNAMIC_CACHE = 'dairy-shed-dynamic-cache-v1';
 
 // Install Event - Caching Static Assets
@@ -20,6 +20,7 @@ self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
+                console.log('Caching static assets');
                 return cache.addAll(CACHE_FILES);
             })
             .catch((error) => {
@@ -36,6 +37,7 @@ self.addEventListener('activate', (event) => {
             return Promise.all(
                 cacheNames.map((cacheName) => {
                     if (cacheName !== CACHE_NAME && cacheName !== DYNAMIC_CACHE) {
+                        console.log('Deleting old cache:', cacheName);
                         return caches.delete(cacheName);
                     }
                 })
@@ -57,7 +59,7 @@ self.addEventListener('fetch', (event) => {
 
     // **Handle API requests differently if needed**
     // For example, farm_details/*.json can be cached dynamically
-    if (url.pathname.startsWith('/test/farm_details/')) {
+    if (url.pathname.startsWith('/farm_details/')) {
         event.respondWith(
             caches.open(DYNAMIC_CACHE).then((cache) => {
                 return cache.match(request).then((response) => {
