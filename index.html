@@ -374,65 +374,62 @@
             }
         }
 
-        async function saveFarmDetails(formData) {
-            const dairyNumber = formData.get('dairy-number');
-            const farmDetails = {
-                dairyCompany: formData.get('dairy-company'),
-                address: formData.get('address'),
-                customerName: formData.get('customer-name'),
-                region: formData.get('region'),
-                farmName: formData.get('farm-name'),
-                island: formData.get('island'),
-            };
-            const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
-            const metadata = {
-                contentType: 'application/json',
-            };
+       async function saveFarmDetails(formData) {
+    const dairyNumber = formData.get('dairy-number');
+    const farmDetails = {
+        dairyCompany: formData.get('dairy-company'),
+        address: formData.get('address'),
+        customerName: formData.get('customer-name'),
+        region: formData.get('region'),
+        farmName: formData.get('farm-name'),
+        island: formData.get('island'),
+    };
+    const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
+    const metadata = {
+        contentType: 'application/json',
+    };
 
+    try {
+        if (navigator.onLine) {
+            await storageRef.put(
+                new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }),
+                metadata
+            );
+            console.log('Farm details saved successfully to Firebase.');
+
+            // Also save to IndexedDB
+            await db.forms.put({
+                dairyNumber: dairyNumber,
+                formData: farmDetails,
+                pdfBlob: null,
+                timestamp: new Date().getTime()
+            });
+        } else {
+            console.log('Offline: Saving farm details locally to IndexedDB.');
+            await db.forms.put({
+                dairyNumber: dairyNumber,
+                formData: farmDetails,
+                pdfBlob: null,
+                timestamp: new Date().getTime()
+            });
+        }
+    } catch (error) {
+        console.error('Error saving farm details:', error);
+        if (!navigator.onLine) {
             try {
-                if (navigator.onLine) {
-                    await storageRef.put(
-                        new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }),
-                        metadata
-                    );
-                    console.log('Farm details saved successfully to Firebase.');
-
-                    // Also save to IndexedDB
-                    await db.forms.put({
-                        dairyNumber: dairyNumber,
-                        formData: farmDetails,
-                        pdfBlob: null,
-                        timestamp: new Date().getTime()
-                    });
-                } else {
-                    console.log('Offline: Saving farm details locally to IndexedDB.');
-                    // Offline: Save farm details to IndexedDB without uploading
-                    await db.forms.put({
-                        dairyNumber: dairyNumber,
-                        formData: farmDetails,
-                        pdfBlob: null,
-                        timestamp: new Date().getTime()
-                    });
-                }
-            } catch (error) {
-                console.error('Error saving farm details:', error);
-                if (!navigator.onLine) {
-                    console.log('Offline: Farm details saved locally to IndexedDB despite error.');
-                    // Attempt to save locally even if an error occurs
-                    try {
-                        await db.forms.put({
-                            dairyNumber: dairyNumber,
-                            formData: farmDetails,
-                            pdfBlob: null,
-                            timestamp: new Date().getTime()
-                        });
-                        console.log('Farm details saved locally to IndexedDB after error.');
-                    } catch (dbError) {
-                        console.error('Error saving farm details locally:', dbError);
-                    }
-                }
+                await db.forms.put({
+                    dairyNumber: dairyNumber,
+                    formData: farmDetails,
+                    pdfBlob: null,
+                    timestamp: new Date().getTime()
+                });
+                console.log('Farm details saved locally to IndexedDB after error.');
+            } catch (dbError) {
+                console.error('Error saving farm details locally:', dbError);
             }
         }
+    }
+}
 
         async function generatePDF() {
             const form = document.getElementById('hygiene-checklist-form');
