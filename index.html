@@ -78,7 +78,9 @@
         .logo {
             display: block;
             margin: 0 auto 20px;
-            width: 250px;
+            width: 100%;
+            max-width: 800px; /* Match the container's max-width */
+            height: auto; /* Maintain aspect ratio */
         }
 
         .record-container {
@@ -140,8 +142,8 @@
 
 <body>
     <div class="container" id="form-container">
-        <!-- Embedded Logo as Base64 Data URL -->
-        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADICAMAAACahl6sAAAAA1BMVEWZmZnGjxkGAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH5AQDCB8AyXmk4wAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAABYSURBVHja7cEBAQAAAIIg/69uEcgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFgBjEAAEUW6GoAAAAASUVORK5CYII=" alt="Logo" class="logo">
+        <!-- Logo Image with Dynamic Source -->
+        <img id="logo-image" src="" alt="Logo" class="logo">
         <h1>Dairy Shed Hygiene Checklist</h1>
 
         <form id="hygiene-checklist-form">
@@ -300,6 +302,21 @@
                 });
         }
 
+        // Helper function to fetch and convert image to data URL
+        async function fetchImageAsDataURL(url) {
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error('Failed to fetch the logo image.');
+            }
+            const blob = await response.blob();
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        }
+
         // Function definitions
 
         async function fetchFarmDetails() {
@@ -443,51 +460,51 @@
 
             const pdf = new jsPDF('p', 'pt', 'a4');
 
-            // Embedded Logo as Base64 Data URL (no need to fetch)
-            const embeddedLogo = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADICAMAAACahl6sAAAAA1BMVEWZmZnGjxkGAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH5AQDCB8AyXmk4wAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAABYSURBVHja7cEBAQAAAIIg/69uEcgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFgBjEAAEUW6GoAAAAASUVORK5CYII=";
-
             try {
-                // Add embedded logo centered
+                // Use the correct logo fetched earlier
+                const embeddedLogo = window.correctLogoDataURL || "https://via.placeholder.com/800x200?text=Logo";
+
                 const imgProps = pdf.getImageProperties(embeddedLogo);
                 const pageWidth = pdf.internal.pageSize.getWidth();
-                const imgWidth = pageWidth - 80; // Leave some margins
+                const pageMargins = 40; // Total horizontal margins (left + right)
+                const imgWidth = pageWidth - pageMargins * 2; // Adjust based on desired margins
                 const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
-                const x = (pageWidth - imgWidth) / 2; // Center the image
-                pdf.addImage(embeddedLogo, 'PNG', x, 40, imgWidth, imgHeight);
+                const x = pageMargins; // Start after left margin
+                pdf.addImage(embeddedLogo, imgProps.fileType || 'PNG', x, 40, imgWidth, imgHeight);
 
                 pdf.setFontSize(12);
                 pdf.setTextColor('#000000');
                 pdf.setFont('helvetica', 'bold');
-                pdf.text('Farm Details:', 40, imgHeight + 60);
+                pdf.text('Farm Details:', pageMargins, 40 + imgHeight + 20);
 
-                let currentY = imgHeight + 80;
+                let currentY = 40 + imgHeight + 40;
 
                 pdf.setFont('helvetica', 'normal');
-                pdf.text(`Dairy Company: ${formData.get('dairy-company')}`, 40, currentY);
+                pdf.text(`Dairy Company: ${formData.get('dairy-company')}`, pageMargins, currentY);
                 currentY += 15;
-                pdf.text(`Dairy Number: ${formData.get('dairy-number')}`, 40, currentY);
+                pdf.text(`Dairy Number: ${formData.get('dairy-number')}`, pageMargins, currentY);
                 currentY += 15;
-                pdf.text(`Address: ${formData.get('address')}`, 40, currentY);
+                pdf.text(`Address: ${formData.get('address')}`, pageMargins, currentY);
                 currentY += 15;
-                pdf.text(`Customer Name: ${formData.get('customer-name')}`, 40, currentY);
+                pdf.text(`Customer Name: ${formData.get('customer-name')}`, pageMargins, currentY);
                 currentY += 15;
-                pdf.text(`Region: ${formData.get('region')}`, 40, currentY);
+                pdf.text(`Region: ${formData.get('region')}`, pageMargins, currentY);
                 currentY += 15;
-                pdf.text(`Farm Name: ${formData.get('farm-name')}`, 40, currentY);
+                pdf.text(`Farm Name: ${formData.get('farm-name')}`, pageMargins, currentY);
                 currentY += 15;
-                pdf.text(`Island: ${formData.get('island')}`, 40, currentY);
+                pdf.text(`Island: ${formData.get('island')}`, pageMargins, currentY);
                 currentY += 15;
-                pdf.text(`Visit Date: ${formData.get('visit-date')}`, 40, currentY);
+                pdf.text(`Visit Date: ${formData.get('visit-date')}`, pageMargins, currentY);
                 currentY += 15;
-                pdf.text(`Visit Type: ${formData.get('visit-type')}`, 40, currentY);
+                pdf.text(`Visit Type: ${formData.get('visit-type')}`, pageMargins, currentY);
                 currentY += 15;
-                pdf.text(`Inspection Start Time: ${formData.get('inspection-start-time')}`, 40, currentY);
+                pdf.text(`Inspection Start Time: ${formData.get('inspection-start-time')}`, pageMargins, currentY);
                 currentY += 15;
-                pdf.text(`Inspection End Time: ${formData.get('inspection-end-time')}`, 40, currentY);
+                pdf.text(`Inspection End Time: ${formData.get('inspection-end-time')}`, pageMargins, currentY);
                 currentY += 15;
-                pdf.text(`Inspection Completed By: ${formData.get('inspection-completed-by')}`, 40, currentY);
+                pdf.text(`Inspection Completed By: ${formData.get('inspection-completed-by')}`, pageMargins, currentY);
                 currentY += 15;
-                pdf.text(`Call Type: ${formData.get('call-type')}`, 40, currentY);
+                pdf.text(`Call Type: ${formData.get('call-type')}`, pageMargins, currentY);
                 currentY += 30;
 
                 // Checklist Items Section
@@ -595,22 +612,22 @@
                 let tempY = currentY;
 
                 pdf.setFont('helvetica', 'bold');
-                pdf.text('Temperature Measurements:', 40, tempY);
+                pdf.text('Temperature Measurements:', pageMargins, tempY);
                 tempY += 20;
 
                 pdf.setFont('helvetica', 'normal');
                 const hotWaterTemp = formData.get('hot-water-temp') || '';
                 const hotWaterTime = formData.get('hot-water-time') || '';
-                pdf.text(`Hot Water Temp: ${hotWaterTemp} °C`, 40, tempY);
+                pdf.text(`Hot Water Temp: ${hotWaterTemp} °C`, pageMargins, tempY);
                 tempY += 15;
-                pdf.text(`Time Taken: ${hotWaterTime}`, 40, tempY);
+                pdf.text(`Time Taken: ${hotWaterTime}`, pageMargins, tempY);
                 tempY += 20;
 
                 const milkTemp = formData.get('milk-temp') || '';
                 const milkTime = formData.get('milk-time') || '';
-                pdf.text(`Milk Temp: ${milkTemp} °C`, 40, tempY);
+                pdf.text(`Milk Temp: ${milkTemp} °C`, pageMargins, tempY);
                 tempY += 15;
-                pdf.text(`Time Taken: ${milkTime}`, 40, tempY);
+                pdf.text(`Time Taken: ${milkTime}`, pageMargins, tempY);
                 tempY += 20;
 
                 // Add photos after the temperature data
@@ -638,9 +655,9 @@
                             }
 
                             try {
-                                pdf.addImage(photo.imageData, photo.imageType, 40, photoY, 250, 200); // Adjust the size to fit more photos
+                                pdf.addImage(photo.imageData, photo.imageType, pageMargins, photoY, imgWidth, 200); // Adjust the size to fit more photos
                                 pdf.setFontSize(12);
-                                pdf.text(photo.title, 40, photoY - 10); // Add the title above the photo
+                                pdf.text(photo.title, pageMargins, photoY - 10); // Add the title above the photo
                                 photoY += 220; // Move Y position down for the next photo (image height + spacing)
                             } catch (error) {
                                 console.error('Error adding image to PDF:', error);
@@ -656,14 +673,17 @@
                             }
 
                             try {
+                                // Define width for two images side by side
+                                const singleImgWidth = (imgWidth - 20) / 2; // 20 points total spacing
+
                                 // Add first image
-                                pdf.addImage(photo1.imageData, photo1.imageType, 40, photoY, 250, 200);
+                                pdf.addImage(photo1.imageData, photo1.imageType, pageMargins, photoY, singleImgWidth, 200);
                                 pdf.setFontSize(12);
-                                pdf.text(photo1.title, 40, photoY - 10); // Add the title above the first photo
+                                pdf.text(photo1.title, pageMargins, photoY - 10); // Add the title above the first photo
 
                                 // Add second image to the right of the first
-                                pdf.addImage(photo2.imageData, photo2.imageType, 310, photoY, 250, 200);
-                                pdf.text(photo2.title, 310, photoY - 10); // Add the title above the second photo
+                                pdf.addImage(photo2.imageData, photo2.imageType, pageMargins + singleImgWidth + 20, photoY, singleImgWidth, 200);
+                                pdf.text(photo2.title, pageMargins + singleImgWidth + 20, photoY - 10); // Add the title above the second photo
 
                                 photoY += 220; // Move Y position down for the next set of photos
                             } catch (error) {
@@ -1209,6 +1229,17 @@
                 createChecklistItems();
                 // Other initialization code
 
+                // Fetch and set the correct logo
+                const logoUrl = "https://storage.googleapis.com/dairy-farm-record-system.appspot.com/Picture3.jpg?alt=media&token=c0bb53ff-e59b-4d7b-b5b1-bb7f8c8813cf";
+                try {
+                    const logoDataURL = await fetchImageAsDataURL(logoUrl);
+                    document.getElementById('logo-image').src = logoDataURL;
+                    window.correctLogoDataURL = logoDataURL; // Store globally for PDF generation
+                } catch (error) {
+                    console.error('Error fetching the correct logo:', error);
+                    // Fallback to default logo if needed
+                }
+
                 // Get all drafts from IndexedDB
                 let drafts = await db.drafts.toArray();
 
@@ -1282,5 +1313,3 @@
     </body>
 
 </html>
-
-
