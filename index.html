@@ -166,6 +166,13 @@
                 min-height: 44px;
                 font-size: 16px;
             }
+
+            /* Full-width form controls on small screens */
+            button,
+            .form-control,
+            .form-select {
+                width: 100%;
+            }
         }
 
         /* Additional Styles for Image Previews */
@@ -361,7 +368,7 @@
 
         // Firebase configuration
         const firebaseConfig = {
-            apiKey: "AIzaSyDr9nA44Kjejzeyg9E7nGUzbMDECI8cTFI",
+            apiKey: "AIzaSyDr9nA44Kkej*****GUzbMDECI8cTFI",
             authDomain: "dairy-farm-record-system.firebaseapp.com",
             projectId: "dairy-farm-record-system",
             storageBucket: "dairy-farm-record-system.appspot.com",
@@ -613,37 +620,22 @@
                     let comments = item.querySelector('input[type="text"]').value;
 
                     // Get the image data from the file inputs or from saved photos
-                    const imageInput1 = item.querySelector('input.image-upload-1');
-                    const imageFile1 = imageInput1.files[0];
-                    const imageInput2 = item.querySelector('input.image-upload-2');
-                    const imageFile2 = imageInput2.files[0];
+                    const imageButton = item.querySelector('button.btn-secondary');
+                    const imageInput = item.querySelector('input[type="file"]');
+                    const imageFile = imageInput.files[0];
                     let imageDataUrls = [];
 
-                    if (imageFile1) {
-                        // Read image from first file input
-                        const dataUrl1 = await readFileAsDataURL(imageFile1);
-                        imageDataUrls.push(dataUrl1);
+                    if (imageFile) {
+                        // Read image from file input
+                        const dataUrl = await readFileAsDataURL(imageFile);
+                        imageDataUrls.push(dataUrl);
                     } else if (savedPhotos && savedPhotos.length > 0) {
                         // Find the saved photo with photoIndex 0 for this item
-                        const photoData1 = savedPhotos.find(photo => photo.itemIndex === i && photo.photoIndex === 0);
-                        if (photoData1) {
-                            const blob1 = new Blob([photoData1.imageData], { type: photoData1.imageType });
-                            const dataUrl1 = await readBlobAsDataURL(blob1);
-                            imageDataUrls.push(dataUrl1);
-                        }
-                    }
-
-                    if (imageFile2) {
-                        // Read image from second file input
-                        const dataUrl2 = await readFileAsDataURL(imageFile2);
-                        imageDataUrls.push(dataUrl2);
-                    } else if (savedPhotos && savedPhotos.length > 0) {
-                        // Find the saved photo with photoIndex 1 for this item
-                        const photoData2 = savedPhotos.find(photo => photo.itemIndex === i && photo.photoIndex === 1);
-                        if (photoData2) {
-                            const blob2 = new Blob([photoData2.imageData], { type: photoData2.imageType });
-                            const dataUrl2 = await readBlobAsDataURL(blob2);
-                            imageDataUrls.push(dataUrl2);
+                        const photoData = savedPhotos.find(photo => photo.itemIndex === i && photo.photoIndex === 0);
+                        if (photoData) {
+                            const blob = new Blob([photoData.imageData], { type: photoData.imageType });
+                            const dataUrl = await readBlobAsDataURL(blob);
+                            imageDataUrls.push(dataUrl);
                         }
                     }
 
@@ -764,7 +756,7 @@
 
                             try {
                                 // Define width for two images side by side
-                                const singleImgWidth = (pageWidth - 80 - 20) / 2; // Total margins and spacing
+                                const singleImgWidth = (pdf.internal.pageSize.getWidth() - 80 - 20) / 2; // Total margins and spacing
 
                                 // Add first image
                                 pdf.addImage(photo1.imageData, photo1.imageType, 40, photoY, singleImgWidth, 200);
@@ -947,7 +939,7 @@
                     imageCol.appendChild(imageButton);
                     row.appendChild(imageCol);
 
-                    // Image Upload Modal or File Input
+                    // Image Upload File Input
                     const imageInput = document.createElement('input');
                     imageInput.type = 'file';
                     imageInput.accept = 'image/*';
@@ -1160,7 +1152,7 @@
                     const itemName = item.querySelector('label').textContent;
                     const status = item.querySelector('select').value;
                     const comments = item.querySelector('input[type="text"]').value;
-                    const imageInput = item.querySelector('input.image-upload');
+                    const imageInput = item.querySelector('input[type="file"]');
                     const imageFile = imageInput.files[0];
 
                     let imageData = null;
@@ -1221,7 +1213,7 @@
 
                         const statusSelect = item.querySelector('select');
                         const commentsInput = item.querySelector('input[type="text"]');
-                        const imageInput = item.querySelector('input.image-upload');
+                        const imageInput = item.querySelector('input[type="file"]');
                         const imagePreview = item.querySelector('.image-preview');
 
                         if (statusSelect && commentsInput && checklistItemData) {
