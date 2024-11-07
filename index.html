@@ -14,9 +14,6 @@
             color: #FFFFFF;
             font-family: Arial, sans-serif;
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             padding: 20px;
             margin: 0;
         }
@@ -29,6 +26,7 @@
             max-width: 800px;
             width: 100%;
             overflow-y: auto; /* Ensures scrolling if content exceeds view height */
+            margin: 0 auto; /* Center the container horizontally */
         }
 
         #checklist-items {
@@ -173,7 +171,6 @@
     </style>
 </head>
 
-
 <body>
     <div class="container" id="form-container">
         <div id="network-status"
@@ -312,6 +309,7 @@
         // Ensure that jsPDF is properly initialized
         const { jsPDF } = window.jspdf;
 
+        // Function to update network status
         function updateNetworkStatus() {
             const networkStatus = document.getElementById('network-status');
             if (!navigator.onLine) {
@@ -319,6 +317,7 @@
             } else {
                 networkStatus.style.display = 'none';
             }
+            console.log('Network status updated:', navigator.onLine ? 'Online' : 'Offline');
         }
 
         window.addEventListener('offline', updateNetworkStatus);
@@ -340,7 +339,7 @@
         const storage = firebase.storage();
         const firestore = firebase.firestore();
 
-        // Initialize IndexedDB with a separate store for farm details
+        // Initialize IndexedDB with Dexie
         const db = new Dexie("OfflineData");
         db.version(2).stores({
             forms: "++id, dairyNumber, formData, pdfBlob",
@@ -363,10 +362,12 @@
 
         async function fetchFarmDetails() {
             const dairyNumber = document.getElementById('dairy-number').value;
+            console.log('Fetching farm details for Dairy Number:', dairyNumber);
             if (dairyNumber) {
                 const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
                 try {
                     if (navigator.onLine) { // Only attempt to fetch from Firebase if online
+                        console.log('Online: Attempting to fetch farm details from Firebase.');
                         const url = await storageRef.getDownloadURL();
                         const response = await fetch(url);
                         if (!response.ok) {
@@ -380,6 +381,8 @@
                             document.getElementById('region').value = data.region || '';
                             document.getElementById('farm-name').value = data.farmName || '';
                             document.getElementById('island').value = data.island || '';
+
+                            console.log('Farm details fetched successfully from Firebase:', data);
 
                             // Save fetched farm details to IndexedDB for offline use
                             await db.forms.put({
@@ -395,6 +398,7 @@
                                 pdfBlob: null,
                                 timestamp: new Date().getTime()
                             });
+                            console.log('Farm details saved to IndexedDB.');
                         }
                     } else {
                         console.log('Offline: Attempting to load farm details from IndexedDB.');
@@ -408,7 +412,7 @@
                             document.getElementById('region').value = data['region'] || '';
                             document.getElementById('farm-name').value = data['farm-name'] || '';
                             document.getElementById('island').value = data['island'] || '';
-                            console.log('Loaded farm details from IndexedDB.');
+                            console.log('Loaded farm details from IndexedDB:', data);
                         } else {
                             console.warn('No offline farm details available.');
                         }
@@ -425,7 +429,7 @@
                         document.getElementById('region').value = data['region'] || '';
                         document.getElementById('farm-name').value = data['farm-name'] || '';
                         document.getElementById('island').value = data['island'] || '';
-                        console.log('Loaded farm details from IndexedDB after error.');
+                        console.log('Loaded farm details from IndexedDB after error:', data);
                     } else {
                         console.warn('No offline farm details available after error.');
                     }
@@ -449,9 +453,11 @@
 
             try {
                 if (navigator.onLine) {
+                    console.log('Online: Saving farm details to Firebase.');
                     await storageRef.put(new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }), metadata);
                     console.log('Farm details saved successfully to Firebase.');
                 } else {
+                    console.log('Offline: Saving farm details to IndexedDB.');
                     // Save offline in IndexedDB in case of connectivity issues
                     await db.farmDetails.put({ dairyNumber, details: farmDetails });
                     console.log('Farm details saved locally to IndexedDB.');
@@ -459,6 +465,7 @@
             } catch (error) {
                 console.error('Error saving farm details:', error);
                 if (!navigator.onLine) {
+                    console.log('Offline: Saving farm details to IndexedDB due to error.');
                     await db.farmDetails.put({ dairyNumber, details: farmDetails });
                 }
             }
@@ -468,6 +475,8 @@
             const form = document.getElementById('hygiene-checklist-form');
             const formData = new FormData(form);
             const dairyNumber = formData.get('dairy-number');
+
+            console.log('Generating PDF for Dairy Number:', dairyNumber);
 
             await saveFarmDetails(formData); // Save farm details if not found
 
@@ -484,6 +493,7 @@
                 const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
                 const x = (pageWidth - imgWidth) / 2; // Center the image
                 pdf.addImage(embeddedLogo, 'PNG', x, 40, imgWidth, imgHeight);
+                console.log('Logo added to PDF.');
 
                 pdf.setFontSize(12);
                 pdf.setTextColor('#000000');
@@ -616,6 +626,7 @@
                             textColor: '#FFFFFF'
                         }
                     });
+                    console.log('Checklist table added to PDF.');
                     currentY = pdf.lastAutoTable.finalY + 20;
                 } else {
                     currentY += 20;
@@ -672,6 +683,7 @@
                                 pdf.setFontSize(12);
                                 pdf.text(photo.title, 40, photoY - 10); // Add the title above the photo
                                 photoY += 220; // Move Y position down for the next photo (image height + spacing)
+                                console.log(`Added one photo for item ${i}: ${photo.title}`);
                             } catch (error) {
                                 console.error('Error adding image to PDF:', error);
                             }
@@ -696,6 +708,7 @@
                                 pdf.text(photo2.title, 310, photoY - 10); // Add the title above the second photo
 
                                 photoY += 220; // Move Y position down for the next set of photos
+                                console.log(`Added two photos for item ${i}: ${photo1.title} and ${photo2.title}`);
                             } catch (error) {
                                 console.error('Error adding images to PDF:', error);
                             }
@@ -708,6 +721,7 @@
 
                 if (navigator.onLine) {
                     // Online Mode
+                    console.log('Online: Uploading PDF to Firebase.');
                     // Upload to Firebase
                     uploadPDF(dairyNumber, pdfBlob);
 
@@ -719,6 +733,7 @@
                     console.log('All drafts have been cleared after submission.');
                 } else {
                     // Offline Mode
+                    console.log('Offline: Saving PDF and form data to IndexedDB.');
                     // Save PDF and form data to 'forms' store
                     const formObject = {};
                     for (const [key, value] of formData.entries()) {
@@ -880,6 +895,7 @@
                     imagePreview2.style.display = 'none'; // Initially hidden
                     itemContainer.appendChild(imagePreview2);
 
+                    // Event listener for status change
                     statusSelect.addEventListener('change', () => {
                         if (statusSelect.value === 'attention-required') {
                             imageUpload1.style.display = 'block';
@@ -899,6 +915,7 @@
                             commentsInput.value = ""; // Clear the field if it was auto-filled
                         }
                         saveFormData();
+                        console.log(`Status changed for item "${item}" to "${statusSelect.value}"`);
                     });
 
                     // Event listeners for saving data
@@ -912,6 +929,7 @@
                             const imageUrl = URL.createObjectURL(file);
                             imagePreview1.src = imageUrl;
                             imagePreview1.style.display = 'block';
+                            console.log(`Image 1 uploaded for item "${item}"`);
                         } else {
                             imagePreview1.style.display = 'none';
                         }
@@ -925,6 +943,7 @@
                             const imageUrl = URL.createObjectURL(file);
                             imagePreview2.src = imageUrl;
                             imagePreview2.style.display = 'block';
+                            console.log(`Image 2 uploaded for item "${item}"`);
                         } else {
                             imagePreview2.style.display = 'none';
                         }
@@ -933,11 +952,14 @@
 
                     checklistContainer.appendChild(itemContainer);
                 });
+
+                console.log('Checklist items created.');
             }
 
             // View Records Functions
 
             function viewRecords() {
+                console.log('Viewing all records.');
                 document.getElementById('form-container').style.display = 'none';
                 document.getElementById('record-container').style.display = 'block';
                 loadAllRecords();
@@ -950,6 +972,7 @@
 
                 try {
                     if (navigator.onLine) {
+                        console.log('Online: Loading records from Firebase.');
                         const folderSnapshot = await storageRef.listAll();
                         folderSnapshot.prefixes.forEach(folderRef => {
                             const dairyNumber = folderRef.name;
@@ -993,6 +1016,7 @@
                         });
                     }
                 }
+                console.log('All records loaded.');
             }
 
             async function loadRecordFiles(dairyNumber) {
@@ -1002,6 +1026,7 @@
 
                 try {
                     if (navigator.onLine) {
+                        console.log(`Online: Loading records for Dairy Number: ${dairyNumber} from Firebase.`);
                         const fileSnapshot = await storageRef.listAll();
                         fileSnapshot.items.forEach(fileRef => {
                             const fileName = fileRef.name;
@@ -1022,7 +1047,7 @@
                             recordList.appendChild(fileLink);
                         });
                     } else {
-                        console.log('Offline: Loading records from IndexedDB.');
+                        console.log(`Offline: Loading records for Dairy Number: ${dairyNumber} from IndexedDB.`);
                         displayOfflineRecords(dairyNumber);
                     }
 
@@ -1035,18 +1060,20 @@
                     console.error('Error fetching record files:', error);
                     // Optionally, load records from IndexedDB when offline
                     if (!navigator.onLine) {
-                        console.log('Offline: Loading records from IndexedDB.');
+                        console.log(`Offline: Loading records for Dairy Number: ${dairyNumber} from IndexedDB.`);
                         displayOfflineRecords(dairyNumber);
                     }
                 }
             }
 
             function goBack() {
+                console.log('Returning to checklist form.');
                 document.getElementById('form-container').style.display = 'block';
                 document.getElementById('record-container').style.display = 'none';
             }
 
             function goBackToRecords() {
+                console.log('Returning to records list.');
                 loadAllRecords();
             }
 
@@ -1064,10 +1091,12 @@
                         record.style.display = "none";
                     }
                 }
+                console.log(`Filtered records with search input: "${searchInput}"`);
             }
 
             // Function to save form data to IndexedDB
             async function saveFormData() {
+                console.log('Saving form data to IndexedDB.');
                 const form = document.getElementById('hygiene-checklist-form');
                 const formData = new FormData(form);
                 const formObject = {};
@@ -1104,6 +1133,7 @@
                             imageData: imageData1,
                             imageType: imageFile1.type
                         });
+                        console.log(`Image 1 saved for item "${itemName}".`);
                     }
 
                     if (imageFile2) {
@@ -1115,6 +1145,7 @@
                             imageData: imageData2,
                             imageType: imageFile2.type
                         });
+                        console.log(`Image 2 saved for item "${itemName}".`);
                     }
 
                     checklistData.push({
@@ -1137,10 +1168,12 @@
                     photos: photos,
                     timestamp: new Date().getTime()
                 });
+                console.log(`Form data saved locally for Dairy Number: ${dairyNumber}`);
             }
 
             // Function to populate form with saved data
             async function populateForm(data) {
+                console.log('Populating form with saved draft.');
                 const form = document.getElementById('hygiene-checklist-form');
 
                 // Populate standard form fields
@@ -1149,6 +1182,7 @@
                         const field = form.elements[key];
                         if (field) {
                             field.value = value;
+                            console.log(`Field "${key}" populated with value: "${value}"`);
                         }
                     }
                 }
@@ -1182,6 +1216,7 @@
                                     // Display the image preview
                                     imagePreview1.src = imageUrl1;
                                     imagePreview1.style.display = 'block';
+                                    console.log(`Image 1 loaded for item "${checklistItemData.itemName}".`);
                                 }
                             }
 
@@ -1195,11 +1230,17 @@
                                     // Display the image preview
                                     imagePreview2.src = imageUrl2;
                                     imagePreview2.style.display = 'block';
+                                    console.log(`Image 2 loaded for item "${checklistItemData.itemName}".`);
                                 }
                             }
+
+                            // Trigger change event to handle image display based on status
+                            const event = new Event('change');
+                            statusSelect.dispatchEvent(event);
                         }
                     }
                 }
+                console.log('Form populated with saved draft.');
             }
 
             // Helper functions to read files
@@ -1244,6 +1285,7 @@
             }
 
             document.addEventListener("DOMContentLoaded", async () => {
+                console.log('Document loaded. Creating checklist items.');
                 createChecklistItems();
                 // Other initialization code
 
@@ -1284,6 +1326,7 @@
 
             // Function to display offline records from IndexedDB
             async function displayOfflineRecords(dairyNumber) {
+                console.log(`Displaying offline records for Dairy Number: ${dairyNumber}`);
                 const recordList = document.getElementById('record-list');
                 recordList.innerHTML = '';
                 const offlineForms = await db.forms.where('dairyNumber').equals(dairyNumber).toArray();
@@ -1312,6 +1355,7 @@
                     const pdfBlob = record.pdfBlob;
                     const pdfUrl = URL.createObjectURL(pdfBlob);
                     window.open(pdfUrl, '_blank');
+                    console.log('Displayed offline PDF.');
                 } catch (error) {
                     console.error('Error displaying offline PDF:', error);
                 }
