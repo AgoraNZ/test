@@ -1,4 +1,6 @@
-const CACHE_NAME = 'dairy-shed-cache-v7'; // Updated version
+// service-worker.js
+
+const CACHE_NAME = 'dairy-shed-cache-v8'; // Incremented version
 const CACHE_FILES = [
     './index.html',
     './service-worker.js',
@@ -12,8 +14,18 @@ const CACHE_FILES = [
     // Add any new assets here
 ];
 
-// Additional cache for dynamic content
-const DYNAMIC_CACHE = 'dairy-shed-dynamic-cache-v1';
+// Dynamic cache for runtime caching
+const DYNAMIC_CACHE = 'dairy-shed-dynamic-cache-v2';
+
+// Utility function to limit cache size
+const limitCacheSize = async (cacheName, maxSize) => {
+    const cache = await caches.open(cacheName);
+    const keys = await cache.keys();
+    if (keys.length > maxSize) {
+        await cache.delete(keys[0]);
+        await limitCacheSize(cacheName, maxSize);
+    }
+};
 
 // Install Event - Caching Static Assets
 self.addEventListener('install', (event) => {
@@ -54,57 +66,66 @@ self.addEventListener('fetch', (event) => {
     const request = event.request;
     const url = new URL(request.url);
 
-    // **Ignore non-HTTP(S) requests to prevent errors (e.g., chrome-extension://)**
+    // Ignore non-HTTP(S) requests
     if (!['http:', 'https:'].includes(url.protocol)) {
-        return; // Do not handle this request
+        return;
     }
 
-    // **Handle API requests differently if needed**
-    // For example, farm_details/*.json can be cached dynamically
-    if (url.pathname.startsWith('/farm_details/')) { // Adjusted path
+    // Handle index.html with Network-First Strategy
+    if (url.pathname === '/' || url.pathname === '/index.html') {
         event.respondWith(
-            caches.open(DYNAMIC_CACHE).then((cache) => {
-                return cache.match(request).then((response) => {
-                    if (response) {
-                        console.log(`[Service Worker] Serving from cache: ${request.url}`);
-                        return response;
-                    }
-                    return fetch(request).then((networkResponse) => {
-                        if (networkResponse.ok) {
-                            cache.put(request, networkResponse.clone());
-                            console.log(`[Service Worker] Fetched and cached: ${request.url}`);
-                        }
+            fetch(request)
+                .then((networkResponse) => {
+                    // Update cache with the latest index.html
+                    return caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(request, networkResponse.clone());
                         return networkResponse;
-                    }).catch(() => {
-                        console.warn(`[Service Worker] Fetch failed for: ${request.url}`);
-                        // Optionally, return a fallback JSON or handle offline scenario
-                        return new Response(JSON.stringify({}), {
-                            headers: { 'Content-Type': 'application/json' }
-                        });
                     });
-                });
-            })
+                })
+                .catch(() => {
+                    // Fallback to cache if network fails
+                    return caches.match(request);
+                })
         );
         return;
     }
 
-    // **Handle image requests from Firebase Storage**
-    if (url.origin === 'https://firebasestorage.googleapis.com') {
+    // Handle API requests (e.g., farm_details/*.json) with Network-First Strategy
+    if (url.pathname.startsWith('/farm_details/')) {
+        event.respondWith(
+            fetch(request)
+                .then((networkResponse) => {
+                    if (networkResponse.ok) {
+                        return caches.open(DYNAMIC_CACHE).then((cache) => {
+                            cache.put(request, networkResponse.clone());
+                            return networkResponse;
+                        });
+                    }
+                    throw new Error('Network response was not ok.');
+                })
+                .catch(() => {
+                    return caches.match(request).then((cachedResponse) => {
+                        return cachedResponse || new Response(JSON.stringify({}), {
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+                    });
+                })
+        );
+        return;
+    }
+
+    // Handle images from Firebase Storage and other cross-origin images dynamically
+    if (url.origin === 'https://firebasestorage.googleapis.com' || url.origin === 'https://i.postimg.cc') {
         event.respondWith(
             caches.open(DYNAMIC_CACHE).then((cache) => {
                 return cache.match(request).then((response) => {
-                    if (response) {
-                        console.log(`[Service Worker] Serving image from cache: ${request.url}`);
-                        return response;
-                    }
-                    return fetch(request).then((networkResponse) => {
+                    return response || fetch(request).then((networkResponse) => {
                         if (networkResponse.ok) {
                             cache.put(request, networkResponse.clone());
-                            console.log(`[Service Worker] Fetched and cached image: ${request.url}`);
+                            limitCacheSize(DYNAMIC_CACHE, 50); // Limit dynamic cache size
                         }
                         return networkResponse;
                     }).catch(() => {
-                        console.warn(`[Service Worker] Fetch failed for image: ${request.url}`);
                         // Optionally, return a fallback image or nothing
                         return new Response(null, { status: 404 });
                     });
@@ -114,19 +135,41 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // **For all other requests, use cache-first strategy**
+    // Handle CSS and JS files with Stale-While-Revalidate Strategy
+    if (request.destination === 'style' || request.destination === 'script') {
+        event.respondWith(
+            caches.open(DYNAMIC_CACHE).then((cache) => {
+                return cache.match(request).then((response) => {
+                    const fetchPromise = fetch(request).then((networkResponse) => {
+                        if (networkResponse.ok) {
+                            cache.put(request, networkResponse.clone());
+                            limitCacheSize(DYNAMIC_CACHE, 50);
+                        }
+                        return networkResponse;
+                    }).catch(() => {
+                        // Network request failed, proceed with cached response
+                        return response;
+                    });
+                    // Return cached response immediately, and update cache in background
+                    return response || fetchPromise;
+                });
+            })
+        );
+        return;
+    }
+
+    // For all other requests, use Cache-First Strategy
     event.respondWith(
         caches.match(request)
             .then((cachedResponse) => {
                 if (cachedResponse) {
-                    console.log(`[Service Worker] Serving from cache: ${request.url}`);
                     return cachedResponse;
                 }
                 return fetch(request).then((networkResponse) => {
                     if (networkResponse.ok) {
                         return caches.open(DYNAMIC_CACHE).then((cache) => {
                             cache.put(request, networkResponse.clone());
-                            console.log(`[Service Worker] Fetched and cached: ${request.url}`);
+                            limitCacheSize(DYNAMIC_CACHE, 50); // Limit dynamic cache size
                             return networkResponse;
                         });
                     }
@@ -134,7 +177,10 @@ self.addEventListener('fetch', (event) => {
                 }).catch((error) => {
                     console.error(`[Service Worker] Fetch failed for: ${request.url}`, error);
                     // Optionally, return a fallback page or resource
-                    return caches.match('./index.html');
+                    if (request.destination === 'document') {
+                        return caches.match('/index.html');
+                    }
+                    return new Response(null, { status: 404 });
                 });
             })
     );
