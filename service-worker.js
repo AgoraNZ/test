@@ -1,32 +1,19 @@
-// service-worker.js
-
-const CACHE_NAME = 'dairy-shed-cache-v10'; // Incremented version for updates
+const CACHE_NAME = 'dairy-shed-cache-v7'; // Updated version
 const CACHE_FILES = [
-    '/index.html', // Use absolute paths to ensure correct caching
-    '/service-worker.js',
+    './index.html',
+    './service-worker.js',
     'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css',
     'https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js',
     'https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js',
     'https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js',
     'https://cdnjs.cloudflare.com/ajax/libs/dexie/3.0.3/dexie.min.js',
     'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js',
-    'https://i.postimg.cc/htZPjx5g/logo-89.png' // Pre-cache the logo image
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js'
     // Add any new assets here
 ];
 
-// Dynamic cache for runtime caching
-const DYNAMIC_CACHE = 'dairy-shed-dynamic-cache-v4';
-
-// Utility function to limit cache size
-const limitCacheSize = async (cacheName, maxSize) => {
-    const cache = await caches.open(cacheName);
-    const keys = await cache.keys();
-    if (keys.length > maxSize) {
-        await cache.delete(keys[0]);
-        await limitCacheSize(cacheName, maxSize);
-    }
-};
+// Additional cache for dynamic content
+const DYNAMIC_CACHE = 'dairy-shed-dynamic-cache-v1';
 
 // Install Event - Caching Static Assets
 self.addEventListener('install', (event) => {
@@ -34,7 +21,7 @@ self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
-                console.log('[Service Worker] Caching App Shell and Essential Assets');
+                console.log('[Service Worker] Caching App Shell');
                 return cache.addAll(CACHE_FILES);
             })
             .catch((error) => {
@@ -52,7 +39,7 @@ self.addEventListener('activate', (event) => {
             return Promise.all(
                 cacheNames.map((cacheName) => {
                     if (cacheName !== CACHE_NAME && cacheName !== DYNAMIC_CACHE) {
-                        console.log(`[Service Worker] Deleting old cache: ${cacheName}`);
+                        console.log([Service Worker] Deleting old cache: ${cacheName});
                         return caches.delete(cacheName);
                     }
                 })
@@ -67,78 +54,58 @@ self.addEventListener('fetch', (event) => {
     const request = event.request;
     const url = new URL(request.url);
 
-    // Ignore non-HTTP(S) requests
+    // **Ignore non-HTTP(S) requests to prevent errors (e.g., chrome-extension://)**
     if (!['http:', 'https:'].includes(url.protocol)) {
-        return;
+        return; // Do not handle this request
     }
 
-    // Handle index.html with Network-First Strategy
-    if (url.pathname === '/' || url.pathname === '/index.html') {
+    // **Handle API requests differently if needed**
+    // For example, farm_details/*.json can be cached dynamically
+    if (url.pathname.startsWith('/farm_details/')) { // Adjusted path
         event.respondWith(
-            fetch(request)
-                .then((networkResponse) => {
-                    // Update cache with the latest index.html
-                    return caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(request, networkResponse.clone());
-                        return networkResponse;
-                    });
-                })
-                .catch(() => {
-                    // Fallback to cache if network fails
-                    return caches.match(request);
-                })
-        );
-        return;
-    }
-
-    // Handle farm_details JSON requests with Network-First Strategy
-    // Assuming farm_details are fetched from 'https://firebasestorage.googleapis.com/.../farm_details/*.json'
-    if (url.origin === 'https://firebasestorage.googleapis.com' && url.pathname.includes('/farm_details/') && url.pathname.endsWith('.json')) {
-        event.respondWith(
-            fetch(request)
-                .then((networkResponse) => {
-                    if (networkResponse.ok) {
-                        return caches.open(DYNAMIC_CACHE).then((cache) => {
-                            cache.put(request, networkResponse.clone());
-                            console.log(`[Service Worker] Cached farm details JSON: ${request.url}`);
-                            return networkResponse;
-                        });
+            caches.open(DYNAMIC_CACHE).then((cache) => {
+                return cache.match(request).then((response) => {
+                    if (response) {
+                        console.log([Service Worker] Serving from cache: ${request.url});
+                        return response;
                     }
-                    throw new Error('Network response was not ok.');
-                })
-                .catch(() => {
-                    return caches.match(request).then((cachedResponse) => {
-                        if (cachedResponse) {
-                            console.log(`[Service Worker] Serving cached farm details JSON: ${request.url}`);
-                            return cachedResponse;
+                    return fetch(request).then((networkResponse) => {
+                        if (networkResponse.ok) {
+                            cache.put(request, networkResponse.clone());
+                            console.log([Service Worker] Fetched and cached: ${request.url});
                         }
-                        // Return a default empty JSON object if not cached
+                        return networkResponse;
+                    }).catch(() => {
+                        console.warn([Service Worker] Fetch failed for: ${request.url});
+                        // Optionally, return a fallback JSON or handle offline scenario
                         return new Response(JSON.stringify({}), {
                             headers: { 'Content-Type': 'application/json' }
                         });
                     });
-                })
+                });
+            })
         );
         return;
     }
 
-    // Handle images from Firebase Storage and other cross-origin images dynamically
-    if (url.origin === 'https://firebasestorage.googleapis.com' || url.origin === 'https://i.postimg.cc') {
+    // **Handle image requests from Firebase Storage**
+    if (url.origin === 'https://firebasestorage.googleapis.com') {
         event.respondWith(
             caches.open(DYNAMIC_CACHE).then((cache) => {
                 return cache.match(request).then((response) => {
-                    return response || fetch(request).then((networkResponse) => {
+                    if (response) {
+                        console.log([Service Worker] Serving image from cache: ${request.url});
+                        return response;
+                    }
+                    return fetch(request).then((networkResponse) => {
                         if (networkResponse.ok) {
                             cache.put(request, networkResponse.clone());
-                            limitCacheSize(DYNAMIC_CACHE, 50); // Limit dynamic cache size
-                            console.log(`[Service Worker] Cached image: ${request.url}`);
+                            console.log([Service Worker] Fetched and cached image: ${request.url});
                         }
                         return networkResponse;
                     }).catch(() => {
+                        console.warn([Service Worker] Fetch failed for image: ${request.url});
                         // Optionally, return a fallback image or nothing
-                        if (url.origin === 'https://i.postimg.cc') {
-                            return caches.match('https://i.postimg.cc/htZPjx5g/logo-89.png') || new Response(null, { status: 404 });
-                        }
                         return new Response(null, { status: 404 });
                     });
                 });
@@ -147,54 +114,27 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Handle CSS and JS files with Stale-While-Revalidate Strategy
-    if (request.destination === 'style' || request.destination === 'script') {
-        event.respondWith(
-            caches.open(DYNAMIC_CACHE).then((cache) => {
-                return cache.match(request).then((response) => {
-                    const fetchPromise = fetch(request).then((networkResponse) => {
-                        if (networkResponse.ok) {
-                            cache.put(request, networkResponse.clone());
-                            limitCacheSize(DYNAMIC_CACHE, 50);
-                            console.log(`[Service Worker] Updated cache for ${request.url}`);
-                        }
-                        return networkResponse;
-                    }).catch(() => {
-                        // Network request failed, proceed with cached response
-                        return response;
-                    });
-                    // Return cached response immediately, and update cache in background
-                    return response || fetchPromise;
-                });
-            })
-        );
-        return;
-    }
-
-    // For all other requests, use Cache-First Strategy
+    // **For all other requests, use cache-first strategy**
     event.respondWith(
         caches.match(request)
             .then((cachedResponse) => {
                 if (cachedResponse) {
+                    console.log([Service Worker] Serving from cache: ${request.url});
                     return cachedResponse;
                 }
                 return fetch(request).then((networkResponse) => {
                     if (networkResponse.ok) {
                         return caches.open(DYNAMIC_CACHE).then((cache) => {
                             cache.put(request, networkResponse.clone());
-                            limitCacheSize(DYNAMIC_CACHE, 50); // Limit dynamic cache size
-                            console.log(`[Service Worker] Cached resource: ${request.url}`);
+                            console.log([Service Worker] Fetched and cached: ${request.url});
                             return networkResponse;
                         });
                     }
                     return networkResponse;
                 }).catch((error) => {
-                    console.error(`[Service Worker] Fetch failed for: ${request.url}`, error);
+                    console.error([Service Worker] Fetch failed for: ${request.url}, error);
                     // Optionally, return a fallback page or resource
-                    if (request.destination === 'document') {
-                        return caches.match('/index.html');
-                    }
-                    return new Response(null, { status: 404 });
+                    return caches.match('./index.html');
                 });
             })
     );
