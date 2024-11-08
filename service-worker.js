@@ -1,21 +1,22 @@
 // service-worker.js
 
-const CACHE_NAME = 'dairy-shed-cache-v8'; // Incremented version
+const CACHE_NAME = 'dairy-shed-cache-v10'; // Incremented version for updates
 const CACHE_FILES = [
-    './index.html',
-    './service-worker.js',
+    '/index.html', // Use absolute paths to ensure correct caching
+    '/service-worker.js',
     'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css',
     'https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js',
     'https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js',
     'https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js',
     'https://cdnjs.cloudflare.com/ajax/libs/dexie/3.0.3/dexie.min.js',
     'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js'
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js',
+    'https://i.postimg.cc/htZPjx5g/logo-89.png' // Pre-cache the logo image
     // Add any new assets here
 ];
 
 // Dynamic cache for runtime caching
-const DYNAMIC_CACHE = 'dairy-shed-dynamic-cache-v2';
+const DYNAMIC_CACHE = 'dairy-shed-dynamic-cache-v4';
 
 // Utility function to limit cache size
 const limitCacheSize = async (cacheName, maxSize) => {
@@ -33,7 +34,7 @@ self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
-                console.log('[Service Worker] Caching App Shell');
+                console.log('[Service Worker] Caching App Shell and Essential Assets');
                 return cache.addAll(CACHE_FILES);
             })
             .catch((error) => {
@@ -90,14 +91,16 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Handle API requests (e.g., farm_details/*.json) with Network-First Strategy
-    if (url.pathname.startsWith('/farm_details/')) {
+    // Handle farm_details JSON requests with Network-First Strategy
+    // Assuming farm_details are fetched from 'https://firebasestorage.googleapis.com/.../farm_details/*.json'
+    if (url.origin === 'https://firebasestorage.googleapis.com' && url.pathname.includes('/farm_details/') && url.pathname.endsWith('.json')) {
         event.respondWith(
             fetch(request)
                 .then((networkResponse) => {
                     if (networkResponse.ok) {
                         return caches.open(DYNAMIC_CACHE).then((cache) => {
                             cache.put(request, networkResponse.clone());
+                            console.log(`[Service Worker] Cached farm details JSON: ${request.url}`);
                             return networkResponse;
                         });
                     }
@@ -105,7 +108,12 @@ self.addEventListener('fetch', (event) => {
                 })
                 .catch(() => {
                     return caches.match(request).then((cachedResponse) => {
-                        return cachedResponse || new Response(JSON.stringify({}), {
+                        if (cachedResponse) {
+                            console.log(`[Service Worker] Serving cached farm details JSON: ${request.url}`);
+                            return cachedResponse;
+                        }
+                        // Return a default empty JSON object if not cached
+                        return new Response(JSON.stringify({}), {
                             headers: { 'Content-Type': 'application/json' }
                         });
                     });
@@ -123,10 +131,14 @@ self.addEventListener('fetch', (event) => {
                         if (networkResponse.ok) {
                             cache.put(request, networkResponse.clone());
                             limitCacheSize(DYNAMIC_CACHE, 50); // Limit dynamic cache size
+                            console.log(`[Service Worker] Cached image: ${request.url}`);
                         }
                         return networkResponse;
                     }).catch(() => {
                         // Optionally, return a fallback image or nothing
+                        if (url.origin === 'https://i.postimg.cc') {
+                            return caches.match('https://i.postimg.cc/htZPjx5g/logo-89.png') || new Response(null, { status: 404 });
+                        }
                         return new Response(null, { status: 404 });
                     });
                 });
@@ -144,6 +156,7 @@ self.addEventListener('fetch', (event) => {
                         if (networkResponse.ok) {
                             cache.put(request, networkResponse.clone());
                             limitCacheSize(DYNAMIC_CACHE, 50);
+                            console.log(`[Service Worker] Updated cache for ${request.url}`);
                         }
                         return networkResponse;
                     }).catch(() => {
@@ -170,6 +183,7 @@ self.addEventListener('fetch', (event) => {
                         return caches.open(DYNAMIC_CACHE).then((cache) => {
                             cache.put(request, networkResponse.clone());
                             limitCacheSize(DYNAMIC_CACHE, 50); // Limit dynamic cache size
+                            console.log(`[Service Worker] Cached resource: ${request.url}`);
                             return networkResponse;
                         });
                     }
