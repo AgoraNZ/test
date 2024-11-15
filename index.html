@@ -6,7 +6,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dairy Shed Hygiene Checklist</title>
+
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self'; 
+        script-src 'self' https://cdnjs.cloudflare.com https://www.gstatic.com https://www.gstatic.cn https://www.googleapis.com; 
+        style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; 
+        img-src 'self' data: https://storage.googleapis.com https://i.postimg.cc; 
+        font-src 'self' data:; 
+        connect-src 'self' https://www.googleapis.com https://firebasestorage.googleapis.com https://storage.googleapis.com; 
+        object-src 'none'; 
+        base-uri 'self'; 
+        form-action 'self';
+    ">
+
+    <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    
+    <!-- Custom Styles -->
     <style>
         /* Base Styles */
         body {
@@ -253,13 +270,10 @@
         <button class="back-button" onclick="goBack()">Back to Checklist</button>
     </div>
 
-    <!-- Include scripts at the end of the body for better performance -->
-    <!-- Firebase scripts -->
+    <!-- Firebase and External Libraries -->
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
-
-    <!-- External libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dexie/3.0.3/dexie.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
