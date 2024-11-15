@@ -1,93 +1,141 @@
-// Cache version and files to cache
-const CACHE_NAME = 'dairy-shed-hygiene-checklist-v1';
-const FILES_TO_CACHE = [
-  '/',
-  '/index.html',
-  'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css',
-  'https://cdnjs.cloudflare.com/ajax/libs/dexie/3.0.3/dexie.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js',
-  // Include any other essential files for offline functionality here
+const CACHE_NAME = 'dairy-shed-cache-v7'; // Updated version
+const CACHE_FILES = [
+    './index.html',
+    './service-worker.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css',
+    'https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js',
+    'https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js',
+    'https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/dexie/3.0.3/dexie.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js'
+    // Add any new assets here
 ];
 
-// Install event: cache essential resources
+// Additional cache for dynamic content
+const DYNAMIC_CACHE = 'dairy-shed-dynamic-cache-v1';
+
+// Install Event - Caching Static Assets
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(FILES_TO_CACHE);
-    })
-  );
-  self.skipWaiting();
+    console.log('[Service Worker] Install Event');
+    event.waitUntil(
+        caches.open(CACHE_NAME)
+            .then((cache) => {
+                console.log('[Service Worker] Caching App Shell');
+                return cache.addAll(CACHE_FILES);
+            })
+            .catch((error) => {
+                console.error('[Service Worker] Failed to cache during install', error);
+            })
+    );
+    self.skipWaiting();
 });
 
-// Activate event: clear old caches if any
+// Activate Event - Cleaning up old caches
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
+    console.log('[Service Worker] Activate Event');
+    event.waitUntil(
+        caches.keys().then((cacheNames) => {
+            return Promise.all(
+                cacheNames.map((cacheName) => {
+                    if (cacheName !== CACHE_NAME && cacheName !== DYNAMIC_CACHE) {
+                        console.log(`[Service Worker] Deleting old cache: ${cacheName}`);
+                        return caches.delete(cacheName);
+                    }
+                })
+            );
         })
-      );
-    })
-  );
-  self.clients.claim();
+    );
+    self.clients.claim();
 });
 
-// Fetch event: serve cached files if offline
+// Fetch Event - Handling Network Requests
 self.addEventListener('fetch', (event) => {
-  if (event.request.mode !== 'navigate') {
-    return;
-  }
-  event.respondWith(
-    fetch(event.request).catch(() => {
-      return caches.match(event.request).then((response) => {
-        if (response) {
-          return response;
-        } else {
-          return caches.match('/offline.html');
-        }
-      });
-    })
-  );
+    const request = event.request;
+    const url = new URL(request.url);
+
+    // **Ignore non-HTTP(S) requests to prevent errors (e.g., chrome-extension://)**
+    if (!['http:', 'https:'].includes(url.protocol)) {
+        return; // Do not handle this request
+    }
+
+    // **Handle API requests differently if needed**
+    // For example, farm_details/*.json can be cached dynamically
+    if (url.pathname.startsWith('/farm_details/')) { // Adjusted path
+        event.respondWith(
+            caches.open(DYNAMIC_CACHE).then((cache) => {
+                return cache.match(request).then((response) => {
+                    if (response) {
+                        console.log(`[Service Worker] Serving from cache: ${request.url}`);
+                        return response;
+                    }
+                    return fetch(request).then((networkResponse) => {
+                        if (networkResponse.ok) {
+                            cache.put(request, networkResponse.clone());
+                            console.log(`[Service Worker] Fetched and cached: ${request.url}`);
+                        }
+                        return networkResponse;
+                    }).catch(() => {
+                        console.warn(`[Service Worker] Fetch failed for: ${request.url}`);
+                        // Optionally, return a fallback JSON or handle offline scenario
+                        return new Response(JSON.stringify({}), {
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+                    });
+                });
+            })
+        );
+        return;
+    }
+
+    // **Handle image requests from Firebase Storage**
+    if (url.origin === 'https://firebasestorage.googleapis.com') {
+        event.respondWith(
+            caches.open(DYNAMIC_CACHE).then((cache) => {
+                return cache.match(request).then((response) => {
+                    if (response) {
+                        console.log(`[Service Worker] Serving image from cache: ${request.url}`);
+                        return response;
+                    }
+                    return fetch(request).then((networkResponse) => {
+                        if (networkResponse.ok) {
+                            cache.put(request, networkResponse.clone());
+                            console.log(`[Service Worker] Fetched and cached image: ${request.url}`);
+                        }
+                        return networkResponse;
+                    }).catch(() => {
+                        console.warn(`[Service Worker] Fetch failed for image: ${request.url}`);
+                        // Optionally, return a fallback image or nothing
+                        return new Response(null, { status: 404 });
+                    });
+                });
+            })
+        );
+        return;
+    }
+
+    // **For all other requests, use cache-first strategy**
+    event.respondWith(
+        caches.match(request)
+            .then((cachedResponse) => {
+                if (cachedResponse) {
+                    console.log(`[Service Worker] Serving from cache: ${request.url}`);
+                    return cachedResponse;
+                }
+                return fetch(request).then((networkResponse) => {
+                    if (networkResponse.ok) {
+                        return caches.open(DYNAMIC_CACHE).then((cache) => {
+                            cache.put(request, networkResponse.clone());
+                            console.log(`[Service Worker] Fetched and cached: ${request.url}`);
+                            return networkResponse;
+                        });
+                    }
+                    return networkResponse;
+                }).catch((error) => {
+                    console.error(`[Service Worker] Fetch failed for: ${request.url}`, error);
+                    // Optionally, return a fallback page or resource
+                    return caches.match('./index.html');
+                });
+            })
+    );
 });
-
-// Sync event: handle background sync for unsent data
-self.addEventListener('sync', async (event) => {
-  if (event.tag === 'syncOfflineData') {
-    event.waitUntil(syncOfflineData());
-  }
-});
-
-// Function to sync offline data from IndexedDB to Firebase
-async function syncOfflineData() {
-  const db = new Dexie("OfflineData");
-  db.version(2).stores({
-    forms: "++id, dairyNumber, formData, pdfBlob",
-    drafts: "++id, dairyNumber, formData, photos, timestamp",
-    farmDetails: "++id, dairyNumber, details"
-  });
-
-  // Retrieve offline forms, drafts, and farm details to sync with Firebase
-  const forms = await db.forms.toArray();
-  const drafts = await db.drafts.toArray();
-  const farmDetails = await db.farmDetails.toArray();
-
-  // Handle Firebase uploading for each dataset (implement Firebase logic in main code)
-  for (const form of forms) {
-    uploadToFirebase(form.dairyNumber, form.pdfBlob);  // Define this in main code
-    await db.forms.delete(form.id);
-  }
-
-  for (const draft of drafts) {
-    uploadToFirebase(draft.dairyNumber, draft.formData); // Define this in main code
-    await db.drafts.delete(draft.id);
-  }
-
-  for (const detail of farmDetails) {
-    uploadToFirebase(detail.dairyNumber, detail.details); // Define this in main code
-    await db.farmDetails.delete(detail.id);
-  }
-}
