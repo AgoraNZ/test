@@ -28,15 +28,10 @@
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
             max-width: 800px;
             width: 100%;
-            overflow-y: auto; /* Ensures scrolling if content exceeds view height */
         }
 
-        #checklist-items {
-            overflow-y: auto; /* Enables scrolling within checklist section */
-            max-height: 50vh; /* Limits height of checklist to fit on mobile */
-        }
-
-        h1, h2 {
+        h1,
+        h2 {
             color: #a7ab01;
             text-align: center;
         }
@@ -140,39 +135,11 @@
             display: block;
             margin-top: 10px;
         }
-
-        /* Mobile responsive styles */
-        @media (max-width: 768px) {
-            .container {
-                padding: 15px;
-                width: 100%; /* Expand to full width on mobile */
-                max-width: none; /* Allow full use of mobile width */
-            }
-            #checklist-items {
-                max-height: 40vh; /* Further reduce height of checklist items for mobile */
-            }
-            .image-preview, .image-preview-2 {
-                max-width: 70px; /* Reduce preview size for mobile */
-            }
-            h1, h2 {
-                font-size: 1.5em;
-            }
-            img.logo {
-                width: 80%; /* Reduce logo size on mobile */
-                display: block;
-                margin: 0 auto 20px;
-            }
-        }
     </style>
 </head>
 
-
 <body>
     <div class="container" id="form-container">
-<div id="network-status" style="position: fixed; top: 10px; right: 10px; background-color: #FF4136; color: #FFFFFF; padding: 5px 10px; border-radius: 5px; display: none;">
-    Offline
-</div>
-
         <!-- Embedded Logo as Base64 Data URL -->
         <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADICAMAAACahl6sAAAAA1BMVEWZmZnGjxkGAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH5AQDCB8AyXmk4wAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAABYSURBVHja7cEBAQAAAIIg/69uEcgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFgBjEAAEUW6GoAAAAASUVORK5CYII=" alt="Logo" class="logo">
         <h1>Dairy Shed Hygiene Checklist</h1>
@@ -299,18 +266,6 @@
     <script>
         // Ensure that jsPDF is properly initialized
         const { jsPDF } = window.jspdf;
-function updateNetworkStatus() {
-    const networkStatus = document.getElementById('network-status');
-    if (!navigator.onLine) {
-        networkStatus.style.display = 'block';
-    } else {
-        networkStatus.style.display = 'none';
-    }
-}
-
-window.addEventListener('offline', updateNetworkStatus);
-window.addEventListener('online', updateNetworkStatus);
-document.addEventListener('DOMContentLoaded', updateNetworkStatus);
 
         // Firebase configuration
         const firebaseConfig = {
@@ -327,14 +282,12 @@ document.addEventListener('DOMContentLoaded', updateNetworkStatus);
         const storage = firebase.storage();
         const firestore = firebase.firestore();
 
-       // Initialize IndexedDB with a separate store for farm details
-const db = new Dexie("OfflineData");
-db.version(2).stores({
-    forms: "++id, dairyNumber, formData, pdfBlob",
-    drafts: "++id, dairyNumber, formData, photos, timestamp",
-    farmDetails: "++id, dairyNumber, details"
-});
-
+        // Initialize IndexedDB using Dexie
+        const db = new Dexie("OfflineData");
+        db.version(2).stores({
+            forms: "++id, dairyNumber, formData, pdfBlob",
+            drafts: "++id, dairyNumber, formData, photos, timestamp"
+        });
 
         // Service Worker Registration
         if ('serviceWorker' in navigator) {
@@ -352,7 +305,7 @@ db.version(2).stores({
         async function fetchFarmDetails() {
             const dairyNumber = document.getElementById('dairy-number').value;
             if (dairyNumber) {
-                const storageRef = storage.ref(farm_details/${dairyNumber}.json);
+                const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
                 try {
                     if (navigator.onLine) { // Only attempt to fetch from Firebase if online
                         const url = await storageRef.getDownloadURL();
@@ -421,38 +374,65 @@ db.version(2).stores({
             }
         }
 
-async function saveFarmDetails(formData) {
-    const dairyNumber = formData.get('dairy-number');
-    const farmDetails = {
-        dairyCompany: formData.get('dairy-company'),
-        address: formData.get('address'),
-        customerName: formData.get('customer-name'),
-        region: formData.get('region'),
-        farmName: formData.get('farm-name'),
-        island: formData.get('island'),
-    };
+        async function saveFarmDetails(formData) {
+            const dairyNumber = formData.get('dairy-number');
+            const farmDetails = {
+                dairyCompany: formData.get('dairy-company'),
+                address: formData.get('address'),
+                customerName: formData.get('customer-name'),
+                region: formData.get('region'),
+                farmName: formData.get('farm-name'),
+                island: formData.get('island'),
+            };
+            const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
+            const metadata = {
+                contentType: 'application/json',
+            };
 
-    const storageRef = storage.ref(farm_details/${dairyNumber}.json);
-    const metadata = { contentType: 'application/json' };
+            try {
+                if (navigator.onLine) {
+                    await storageRef.put(
+                        new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }),
+                        metadata
+                    );
+                    console.log('Farm details saved successfully to Firebase.');
 
-    try {
-        if (navigator.onLine) {
-            await storageRef.put(new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }), metadata);
-            console.log('Farm details saved successfully to Firebase.');
-        } else {
-            // Save offline in IndexedDB in case of connectivity issues
-            await db.farmDetails.put({ dairyNumber, details: farmDetails });
-            console.log('Farm details saved locally to IndexedDB.');
+                    // Also save to IndexedDB
+                    await db.forms.put({
+                        dairyNumber: dairyNumber,
+                        formData: farmDetails,
+                        pdfBlob: null,
+                        timestamp: new Date().getTime()
+                    });
+                } else {
+                    console.log('Offline: Saving farm details locally to IndexedDB.');
+                    // Offline: Save farm details to IndexedDB without uploading
+                    await db.forms.put({
+                        dairyNumber: dairyNumber,
+                        formData: farmDetails,
+                        pdfBlob: null,
+                        timestamp: new Date().getTime()
+                    });
+                }
+            } catch (error) {
+                console.error('Error saving farm details:', error);
+                if (!navigator.onLine) {
+                    console.log('Offline: Farm details saved locally to IndexedDB despite error.');
+                    // Attempt to save locally even if an error occurs
+                    try {
+                        await db.forms.put({
+                            dairyNumber: dairyNumber,
+                            formData: farmDetails,
+                            pdfBlob: null,
+                            timestamp: new Date().getTime()
+                        });
+                        console.log('Farm details saved locally to IndexedDB after error.');
+                    } catch (dbError) {
+                        console.error('Error saving farm details locally:', dbError);
+                    }
+                }
+            }
         }
-    } catch (error) {
-        console.error('Error saving farm details:', error);
-        if (!navigator.onLine) {
-            await db.farmDetails.put({ dairyNumber, details: farmDetails });
-        }
-    }
-}
-
-}
 
         async function generatePDF() {
             const form = document.getElementById('hygiene-checklist-form');
@@ -483,31 +463,31 @@ async function saveFarmDetails(formData) {
                 let currentY = imgHeight + 80;
 
                 pdf.setFont('helvetica', 'normal');
-                pdf.text(Dairy Company: ${formData.get('dairy-company')}, 40, currentY);
+                pdf.text(`Dairy Company: ${formData.get('dairy-company')}`, 40, currentY);
                 currentY += 15;
-                pdf.text(Dairy Number: ${formData.get('dairy-number')}, 40, currentY);
+                pdf.text(`Dairy Number: ${formData.get('dairy-number')}`, 40, currentY);
                 currentY += 15;
-                pdf.text(Address: ${formData.get('address')}, 40, currentY);
+                pdf.text(`Address: ${formData.get('address')}`, 40, currentY);
                 currentY += 15;
-                pdf.text(Customer Name: ${formData.get('customer-name')}, 40, currentY);
+                pdf.text(`Customer Name: ${formData.get('customer-name')}`, 40, currentY);
                 currentY += 15;
-                pdf.text(Region: ${formData.get('region')}, 40, currentY);
+                pdf.text(`Region: ${formData.get('region')}`, 40, currentY);
                 currentY += 15;
-                pdf.text(Farm Name: ${formData.get('farm-name')}, 40, currentY);
+                pdf.text(`Farm Name: ${formData.get('farm-name')}`, 40, currentY);
                 currentY += 15;
-                pdf.text(Island: ${formData.get('island')}, 40, currentY);
+                pdf.text(`Island: ${formData.get('island')}`, 40, currentY);
                 currentY += 15;
-                pdf.text(Visit Date: ${formData.get('visit-date')}, 40, currentY);
+                pdf.text(`Visit Date: ${formData.get('visit-date')}`, 40, currentY);
                 currentY += 15;
-                pdf.text(Visit Type: ${formData.get('visit-type')}, 40, currentY);
+                pdf.text(`Visit Type: ${formData.get('visit-type')}`, 40, currentY);
                 currentY += 15;
-                pdf.text(Inspection Start Time: ${formData.get('inspection-start-time')}, 40, currentY);
+                pdf.text(`Inspection Start Time: ${formData.get('inspection-start-time')}`, 40, currentY);
                 currentY += 15;
-                pdf.text(Inspection End Time: ${formData.get('inspection-end-time')}, 40, currentY);
+                pdf.text(`Inspection End Time: ${formData.get('inspection-end-time')}`, 40, currentY);
                 currentY += 15;
-                pdf.text(Inspection Completed By: ${formData.get('inspection-completed-by')}, 40, currentY);
+                pdf.text(`Inspection Completed By: ${formData.get('inspection-completed-by')}`, 40, currentY);
                 currentY += 15;
-                pdf.text(Call Type: ${formData.get('call-type')}, 40, currentY);
+                pdf.text(`Call Type: ${formData.get('call-type')}`, 40, currentY);
                 currentY += 30;
 
                 // Checklist Items Section
@@ -621,16 +601,16 @@ async function saveFarmDetails(formData) {
                 pdf.setFont('helvetica', 'normal');
                 const hotWaterTemp = formData.get('hot-water-temp') || '';
                 const hotWaterTime = formData.get('hot-water-time') || '';
-                pdf.text(Hot Water Temp: ${hotWaterTemp} °C, 40, tempY);
+                pdf.text(`Hot Water Temp: ${hotWaterTemp} °C`, 40, tempY);
                 tempY += 15;
-                pdf.text(Time Taken: ${hotWaterTime}, 40, tempY);
+                pdf.text(`Time Taken: ${hotWaterTime}`, 40, tempY);
                 tempY += 20;
 
                 const milkTemp = formData.get('milk-temp') || '';
                 const milkTime = formData.get('milk-time') || '';
-                pdf.text(Milk Temp: ${milkTemp} °C, 40, tempY);
+                pdf.text(`Milk Temp: ${milkTemp} °C`, 40, tempY);
                 tempY += 15;
-                pdf.text(Time Taken: ${milkTime}, 40, tempY);
+                pdf.text(`Time Taken: ${milkTime}`, 40, tempY);
                 tempY += 20;
 
                 // Add photos after the temperature data
@@ -735,10 +715,10 @@ async function saveFarmDetails(formData) {
                 console.log('uploadPDF function called with dairyNumber:', dairyNumber); // Debugging statement
 
                 const timestamp = new Date().toISOString().split('T')[0];
-                const fileName = ${dairyNumber}-form-${timestamp}.pdf;
-                const storageRef = storage.ref(customers/${dairyNumber}/${fileName});
+                const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
+                const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
 
-                console.log(Uploading PDF to path: customers/${dairyNumber}/${fileName}); // Debugging statement
+                console.log(`Uploading PDF to path: customers/${dairyNumber}/${fileName}`); // Debugging statement
 
                 storageRef.put(pdfBlob).then(() => {
                     console.log('PDF uploaded successfully');
@@ -749,53 +729,43 @@ async function saveFarmDetails(formData) {
 
             window.addEventListener('online', syncDataWithFirebase);
 
-async function syncDataWithFirebase() {
-    console.log('Device is online. Syncing data with Firebase.');
+            async function syncDataWithFirebase() {
+                console.log('Device is online. Syncing data with Firebase.');
 
-    // Sync drafts
-    const drafts = await db.drafts.toArray();
-    for (const draft of drafts) {
-        const dairyNumber = draft.dairyNumber;
-        const pdfBlob = draft.pdfBlob;
+                // Sync drafts
+                const drafts = await db.drafts.toArray();
+                for (const draft of drafts) {
+                    const dairyNumber = draft.dairyNumber;
+                    const pdfBlob = draft.pdfBlob; // Assuming pdfBlob is stored in drafts
 
-        if (pdfBlob) {
-            // Upload the PDF
-            uploadPDF(dairyNumber, pdfBlob);
-        }
-        await db.drafts.delete(draft.id);
-    }
+                    if (pdfBlob) {
+                        // Upload the PDF
+                        uploadPDF(dairyNumber, pdfBlob);
+                    }
 
-    // Sync forms (offline-generated PDFs)
-    const offlineForms = await db.forms.toArray();
-    for (const record of offlineForms) {
-        const dairyNumber = record.dairyNumber;
-        const pdfBlob = record.pdfBlob;
+                    // You can add more upload logic here if needed
 
-        uploadPDF(dairyNumber, pdfBlob);
-        await db.forms.delete(record.id);
-    }
+                    // Remove the draft after uploading
+                    await db.drafts.delete(draft.id);
+                    console.log(`Draft with ID ${draft.id} uploaded and deleted.`);
+                }
 
-    // Sync farm details specifically
-    const offlineFarmDetails = await db.farmDetails.toArray();
-    for (const detail of offlineFarmDetails) {
-        const dairyNumber = detail.dairyNumber;
-        const farmDetails = detail.details;
-        
-        const storageRef = storage.ref(farm_details/${dairyNumber}.json);
-        const metadata = { contentType: 'application/json' };
+                // Sync forms (offline-generated PDFs)
+                const offlineForms = await db.forms.toArray();
 
-        try {
-            await storageRef.put(new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }), metadata);
-            console.log(Farm details for dairy number ${dairyNumber} uploaded successfully.);
-            await db.farmDetails.delete(detail.id);
-        } catch (error) {
-            console.error(Error uploading farm details for dairy number ${dairyNumber}:, error);
-        }
-    }
-    console.log('All offline data has been synced with Firebase.');
-}
+                for (const record of offlineForms) {
+                    const dairyNumber = record.dairyNumber;
+                    const pdfBlob = record.pdfBlob;
 
+                    uploadPDF(dairyNumber, pdfBlob);
 
+                    // Remove the record from IndexedDB after uploading
+                    await db.forms.delete(record.id);
+                    console.log(`Offline form with ID ${record.id} uploaded and deleted.`);
+                }
+
+                console.log('All offline data has been synced with Firebase.');
+            }
 
             function createChecklistItems() {
                 const checklistItems = [
@@ -832,12 +802,12 @@ async function syncDataWithFirebase() {
 
                     const statusSelect = document.createElement('select');
                     statusSelect.classList.add('form-select');
-                    statusSelect.innerHTML = 
+                    statusSelect.innerHTML = `
                         <option value="ok">OK</option>
                         <option value="attention-required">Attention Required</option>
                         <option value="na">N/A</option>
                         <option value="not-checked">Not Checked</option>
-                    ;
+                    `;
                     itemContainer.appendChild(statusSelect);
 
                     const commentsInput = document.createElement('input');
@@ -959,7 +929,7 @@ async function syncDataWithFirebase() {
                         const dairyNumbers = [...new Set(offlineForms.map(record => record.dairyNumber))];
                         dairyNumbers.forEach(dairyNumber => {
                             const fileLink = document.createElement('a');
-                            fileLink.textContent = ${dairyNumber} (Offline);
+                            fileLink.textContent = `${dairyNumber} (Offline)`;
                             fileLink.href = '#';
                             fileLink.addEventListener('click', () => {
                                 displayOfflineRecords(dairyNumber);
@@ -976,7 +946,7 @@ async function syncDataWithFirebase() {
                         const dairyNumbers = [...new Set(offlineForms.map(record => record.dairyNumber))];
                         dairyNumbers.forEach(dairyNumber => {
                             const fileLink = document.createElement('a');
-                            fileLink.textContent = ${dairyNumber} (Offline);
+                            fileLink.textContent = `${dairyNumber} (Offline)`;
                             fileLink.href = '#';
                             fileLink.addEventListener('click', () => {
                                 displayOfflineRecords(dairyNumber);
@@ -990,7 +960,7 @@ async function syncDataWithFirebase() {
             async function loadRecordFiles(dairyNumber) {
                 const recordList = document.getElementById('record-list');
                 recordList.innerHTML = '';
-                const storageRef = storage.ref(customers/${dairyNumber});
+                const storageRef = storage.ref(`customers/${dairyNumber}`);
 
                 try {
                     if (navigator.onLine) {
@@ -1252,7 +1222,7 @@ async function syncDataWithFirebase() {
                 for (const draft of drafts) {
                     if (now - draft.timestamp > twoHoursInMillis) {
                         await db.drafts.delete(draft.id);
-                        console.log(Deleted draft with ID ${draft.id} due to expiration.);
+                        console.log(`Deleted draft with ID ${draft.id} due to expiration.`);
                     }
                 }
 
@@ -1281,7 +1251,7 @@ async function syncDataWithFirebase() {
                 const offlineForms = await db.forms.where('dairyNumber').equals(dairyNumber).toArray();
 
                 offlineForms.forEach(record => {
-                    const fileName = Offline Form - ${record.timestamp};
+                    const fileName = `Offline Form - ${record.timestamp}`;
                     const fileLink = document.createElement('a');
                     fileLink.textContent = fileName;
                     fileLink.href = '#';
@@ -1312,3 +1282,5 @@ async function syncDataWithFirebase() {
     </body>
 
 </html>
+
+
