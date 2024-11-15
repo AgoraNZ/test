@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dairy-shed-cache-v7'; // Updated version
+const CACHE_NAME = 'dairy-shed-cache-v8';
 const CACHE_FILES = [
     './index.html',
     './service-worker.js',
@@ -9,11 +9,10 @@ const CACHE_FILES = [
     'https://cdnjs.cloudflare.com/ajax/libs/dexie/3.0.3/dexie.min.js',
     'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
     'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js'
-    // Add any new assets here
 ];
 
 // Additional cache for dynamic content
-const DYNAMIC_CACHE = 'dairy-shed-dynamic-cache-v1';
+const DYNAMIC_CACHE = 'dairy-shed-dynamic-cache-v2';
 
 // Install Event - Caching Static Assets
 self.addEventListener('install', (event) => {
@@ -54,14 +53,13 @@ self.addEventListener('fetch', (event) => {
     const request = event.request;
     const url = new URL(request.url);
 
-    // **Ignore non-HTTP(S) requests to prevent errors (e.g., chrome-extension://)**
+    // Ignore non-HTTP(S) requests to prevent errors (e.g., chrome-extension://)
     if (!['http:', 'https:'].includes(url.protocol)) {
         return; // Do not handle this request
     }
 
-    // **Handle API requests differently if needed**
-    // For example, farm_details/*.json can be cached dynamically
-    if (url.pathname.startsWith('/farm_details/')) { // Adjusted path
+    // Handle farm_details/*.json requests separately
+    if (url.pathname.startsWith('/farm_details/')) {
         event.respondWith(
             caches.open(DYNAMIC_CACHE).then((cache) => {
                 return cache.match(request).then((response) => {
@@ -77,7 +75,7 @@ self.addEventListener('fetch', (event) => {
                         return networkResponse;
                     }).catch(() => {
                         console.warn(`[Service Worker] Fetch failed for: ${request.url}`);
-                        // Optionally, return a fallback JSON or handle offline scenario
+                        // Optionally return a fallback JSON or handle offline scenario
                         return new Response(JSON.stringify({}), {
                             headers: { 'Content-Type': 'application/json' }
                         });
@@ -88,7 +86,7 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // **Handle image requests from Firebase Storage**
+    // For image requests from Firebase Storage
     if (url.origin === 'https://firebasestorage.googleapis.com') {
         event.respondWith(
             caches.open(DYNAMIC_CACHE).then((cache) => {
@@ -105,7 +103,7 @@ self.addEventListener('fetch', (event) => {
                         return networkResponse;
                     }).catch(() => {
                         console.warn(`[Service Worker] Fetch failed for image: ${request.url}`);
-                        // Optionally, return a fallback image or nothing
+                        // Optionally return a fallback image or nothing
                         return new Response(null, { status: 404 });
                     });
                 });
@@ -114,7 +112,7 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // **For all other requests, use cache-first strategy**
+    // For all other requests, use a cache-first strategy
     event.respondWith(
         caches.match(request)
             .then((cachedResponse) => {
@@ -133,7 +131,7 @@ self.addEventListener('fetch', (event) => {
                     return networkResponse;
                 }).catch((error) => {
                     console.error(`[Service Worker] Fetch failed for: ${request.url}`, error);
-                    // Optionally, return a fallback page or resource
+                    // Optionally return a fallback page or resource
                     return caches.match('./index.html');
                 });
             })
