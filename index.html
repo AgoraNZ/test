@@ -2,15 +2,13 @@
 <html lang="en">
 
 <head>
-    <!-- Meta tags and CSS links -->
+    <!-- Meta tags, CSS links, and Content Security Policy -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dairy Shed Hygiene Checklist</title>
-
-    <!-- Content Security Policy -->
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self'; 
-        script-src 'self' https://cdnjs.cloudflare.com https://www.gstatic.com https://www.gstatic.cn https://www.googleapis.com; 
+        script-src 'self' https://cdnjs.cloudflare.com https://www.gstatic.com https://firebasestorage.googleapis.com https://storage.googleapis.com; 
         style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; 
         img-src 'self' data: https://storage.googleapis.com https://i.postimg.cc; 
         font-src 'self' data:; 
@@ -20,9 +18,9 @@
         form-action 'self';
     ">
 
-    <!-- Bootstrap CSS -->
+    <!-- Bootstrap CSS for responsiveness -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
-    
+
     <!-- Custom Styles -->
     <style>
         /* Base Styles */
@@ -31,11 +29,7 @@
             color: #FFFFFF;
             font-family: Arial, sans-serif;
             min-height: 100vh;
-            padding: 20px;
             margin: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
         .container-custom {
@@ -45,6 +39,7 @@
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
             max-width: 800px;
             width: 100%;
+            margin: auto;
         }
 
         h1,
@@ -68,11 +63,11 @@
             border: none;
             padding: 10px 20px;
             cursor: pointer;
-            display: inline-block;
-            margin: 10px 5px;
+            display: block;
+            margin: 20px auto;
             border-radius: 5px;
-            transition: background-color 0.3s ease;
             font-size: 16px;
+            transition: background-color 0.3s ease;
         }
 
         button:hover {
@@ -150,7 +145,9 @@
 
 <body>
     <div class="container-custom" id="form-container">
+        <!-- Logo -->
         <img src="https://i.postimg.cc/htZPjx5g/logo-89.png" alt="Logo" class="logo">
+
         <h1>Dairy Shed Hygiene Checklist</h1>
 
         <form id="hygiene-checklist-form">
@@ -233,7 +230,7 @@
             <div class="section mb-4">
                 <h2>Checklist Items</h2>
                 <div id="checklist-items">
-                    <!-- Checklist items will be dynamically added here -->
+                    <!-- Checklist items will be dynamically created here -->
                 </div>
             </div>
 
@@ -285,7 +282,7 @@
 
         // Firebase configuration
         const firebaseConfig = {
-            apiKey: "AIzaSyDr9nA44Kkej*****GUzbMDECI8cTFI",
+            apiKey: "AIzaSyDr9nA44Kjej*****GUzbMDECI8cTFI", // replace with real API key
             authDomain: "dairy-farm-record-system.firebaseapp.com",
             projectId: "dairy-farm-record-system",
             storageBucket: "dairy-farm-record-system.appspot.com",
@@ -316,11 +313,11 @@
                 });
         }
 
-        // Helper function to fetch and convert image to data URL
+        // Helper function to fetch and convert an image to a data URL
         async function fetchImageAsDataURL(url) {
             const response = await fetch(url);
             if (!response.ok) {
-                throw new Error('Failed to fetch the logo image.');
+                throw new Error('Failed to fetch the image.');
             }
             const blob = await response.blob();
             return new Promise((resolve, reject) => {
@@ -331,8 +328,7 @@
             });
         }
 
-        // Function definitions
-
+        // Function to fetch farm details from Firebase Storage or IndexedDB
         async function fetchFarmDetails() {
             const dairyNumber = document.getElementById('dairy-number').value;
             if (dairyNumber) {
@@ -397,7 +393,7 @@
                         document.getElementById('region').value = data['region'] || '';
                         document.getElementById('farm-name').value = data['farm-name'] || '';
                         document.getElementById('island').value = data['island'] || '';
-                        console.log('Loaded farm details from IndexedDB after error.');
+                        console.log('Loaded farm details from IndexedDB after an error occurred.');
                     } else {
                         console.warn('No offline farm details available after error.');
                     }
@@ -405,10 +401,11 @@
             }
         }
 
+        // Function to save or update farm details in Firebase Storage and IndexedDB
         async function saveFarmDetails(formData) {
             const dairyNumber = formData.get('dairy-number');
             if (!dairyNumber) {
-                return; // if no dairy number, skip
+                return; // If no dairy number, skip saving farm details
             }
             const farmDetails = {
                 dairyCompany: formData.get('dairy-company'),
@@ -460,7 +457,7 @@
                             pdfBlob: null,
                             timestamp: new Date().getTime()
                         });
-                        console.log('Farm details saved locally to IndexedDB after error.');
+                        console.log('Farm details saved locally to IndexedDB after an error occurred.');
                     } catch (dbError) {
                         console.error('Error saving farm details locally:', dbError);
                     }
@@ -468,27 +465,27 @@
             }
         }
 
+        // Function to generate and save PDF for the form data
         async function generatePDF() {
             const form = document.getElementById('hygiene-checklist-form');
             const formData = new FormData(form);
             const dairyNumber = formData.get('dairy-number');
 
-            await saveFarmDetails(formData); // Save farm details if not found
+            // Save or update farm details first
+            await saveFarmDetails(formData);
 
-            // Additional code to handle offline drafts and images
-            // We'll incorporate logic from old code
             const pdf = new jsPDF('p', 'pt', 'a4');
 
             try {
-                // Use the correct logo fetched earlier or fallback
+                // Fetch and embed a logo image
                 const logoUrl = "https://storage.googleapis.com/dairy-farm-record-system.appspot.com/Picture3.jpg?alt=media&token=c0bb53ff-e59b-4d7b-b5b1-bb7f8c8813cf";
                 const embeddedLogo = await fetchImageAsDataURL(logoUrl);
                 const imgProps = pdf.getImageProperties(embeddedLogo);
                 const pageWidth = pdf.internal.pageSize.getWidth();
-                const pageMargins = 40; // Total horizontal margins (left + right)
-                const imgWidth = pageWidth - pageMargins * 2; // Adjust based on desired margins
+                const pageMargins = 40;
+                const imgWidth = pageWidth - pageMargins * 2;
                 const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
-                const x = pageMargins; // Start after left margin
+                const x = pageMargins;
                 pdf.addImage(embeddedLogo, imgProps.fileType || 'PNG', x, 40, imgWidth, imgHeight);
 
                 pdf.setFontSize(12);
@@ -531,8 +528,7 @@
                 const checklistTable = [];
                 const photos = [];
 
-                // We'll handle multiple images per item. The maximum number is 2 (double photos).
-                // We'll gather them from the file inputs with `multiple` attribute.
+                // We handle up to 2 images per item
                 for (let i = 0; i < checklistItemsDiv.length; i++) {
                     const item = checklistItemsDiv[i];
                     const itemName = item.querySelector('label').textContent;
@@ -544,7 +540,7 @@
 
                     let imageDataUrls = [];
                     if (imageInput && imageInput.files.length > 0) {
-                        // Limit to maximum 2 images
+                        // Limit to 2 images
                         const maxImages = Math.min(imageInput.files.length, 2);
                         for (let j = 0; j < maxImages; j++) {
                             const file = imageInput.files[j];
@@ -562,7 +558,6 @@
                     checklistTable.push([itemName, status, comments]);
 
                     if (imageDataUrls.length > 0) {
-                        // Determine the image types and prepare for PDF
                         imageDataUrls.forEach((dataUrl, index) => {
                             let imageType = dataUrl.substring(5, dataUrl.indexOf(';'));
                             if (imageType === 'image/jpeg' || imageType === 'image/jpg') {
@@ -570,7 +565,7 @@
                             } else if (imageType === 'image/png') {
                                 imageType = 'PNG';
                             } else {
-                                imageType = 'JPEG'; // Default to JPEG
+                                imageType = 'JPEG';
                             }
 
                             photos.push({
@@ -584,7 +579,7 @@
                     }
                 }
 
-                // Generate checklist items table if not empty
+                // Generate the checklist items table
                 if (checklistTable.length > 0) {
                     pdf.autoTable({
                         startY: currentY,
@@ -627,7 +622,7 @@
                 tempY += 20;
 
                 // Add photos after the temperature data
-                let photoY = tempY + 20; // Adjust as needed
+                let photoY = tempY + 20;
 
                 // Group photos by checklist item
                 const photosByItem = {};
@@ -641,49 +636,45 @@
                 for (let i = 0; i < checklistItemsDiv.length; i++) {
                     const itemPhotos = photosByItem[i];
                     if (itemPhotos && itemPhotos.length > 0) {
-                        // If more than 2 images are present, handle them - though we only store up to 2
                         if (itemPhotos.length === 1) {
                             const photo = itemPhotos[0];
                             if (photoY > pdf.internal.pageSize.getHeight() - 220) {
-                                // If we're getting close to the end of the page, add a new page
+                                // If we're close to the end of the page, add a new page
                                 pdf.addPage();
-                                photoY = 60; // Reset Y position for the new page
+                                photoY = 60;
                             }
 
                             try {
-                                pdf.addImage(photo.imageData, photo.imageType, 40, photoY, 250, 200); // Adjust the size to fit more photos
+                                pdf.addImage(photo.imageData, photo.imageType, 40, photoY, 250, 200);
                                 pdf.setFontSize(12);
-                                pdf.text(photo.title, 40, photoY - 10); // Add the title above the photo
-                                photoY += 220; // Move Y position down for the next photo (image height + spacing)
+                                pdf.text(photo.title, 40, photoY - 10);
+                                photoY += 220;
                             } catch (error) {
                                 console.error('Error adding image to PDF:', error);
                             }
                         } else if (itemPhotos.length >= 2) {
-                            // If we have at least two photos, show two side by side
-                            // Additional photos are not displayed as limit is 2
                             const photo1 = itemPhotos[0];
                             const photo2 = itemPhotos[1];
 
                             if (photoY > pdf.internal.pageSize.getHeight() - 220) {
-                                // If we're getting close to the end of the page, add a new page
                                 pdf.addPage();
-                                photoY = 60; // Reset Y position for the new page
+                                photoY = 60;
                             }
 
                             try {
                                 // Define width for two images side by side
-                                const singleImgWidth = (pdf.internal.pageSize.getWidth() - 80 - 20) / 2; // Total margins and spacing
+                                const singleImgWidth = (pdf.internal.pageSize.getWidth() - 80 - 20) / 2;
 
                                 // Add first image
                                 pdf.addImage(photo1.imageData, photo1.imageType, 40, photoY, singleImgWidth, 200);
                                 pdf.setFontSize(12);
-                                pdf.text(photo1.title, 40, photoY - 10); // Add the title above the first photo
+                                pdf.text(photo1.title, 40, photoY - 10);
 
-                                // Add second image to the right of the first
+                                // Add second image to the right
                                 pdf.addImage(photo2.imageData, photo2.imageType, 40 + singleImgWidth + 20, photoY, singleImgWidth, 200);
-                                pdf.text(photo2.title, 40 + singleImgWidth + 20, photoY - 10); // Add the title above the second photo
+                                pdf.text(photo2.title, 40 + singleImgWidth + 20, photoY - 10);
 
-                                photoY += 220; // Move Y position down for the next set of photos
+                                photoY += 220; 
                             } catch (error) {
                                 console.error('Error adding images to PDF:', error);
                             }
@@ -695,19 +686,15 @@
                 const pdfBlob = pdf.output('blob');
 
                 if (navigator.onLine) {
-                    // Online Mode
-                    // Upload to Firebase
+                    // Online mode: upload to Firebase
                     uploadPDF(dairyNumber, pdfBlob);
-
-                    // Display PDF to user
+                    // Display the PDF to the user
                     pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
-
-                    // Optionally clear drafts after submission
+                    // Clear drafts after submission if desired
                     await db.drafts.clear();
                     console.log('All drafts have been cleared after submission.');
                 } else {
-                    // Offline Mode
-                    // Save PDF and form data to 'forms' store
+                    // Offline mode: save PDF and form data to 'forms' store
                     const formObject = {};
                     for (const [key, value] of formData.entries()) {
                         formObject[key] = value;
@@ -720,8 +707,7 @@
                         timestamp: new Date().getTime()
                     });
                     console.log('Form data and PDF saved locally for later upload.');
-
-                    // Display PDF to user in a new tab
+                    // Display the PDF to the user in a new tab
                     const pdfUrl = URL.createObjectURL(pdfBlob);
                     window.open(pdfUrl, '_blank');
                 }
@@ -730,9 +716,9 @@
             }
         }
 
+        // Function to upload PDF to Firebase
         function uploadPDF(dairyNumber, pdfBlob) {
             console.log('uploadPDF function called with dairyNumber:', dairyNumber);
-
             const timestamp = new Date().toISOString().split('T')[0];
             const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
             const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
@@ -744,6 +730,7 @@
             });
         }
 
+        // Sync data with Firebase when online
         window.addEventListener('online', syncDataWithFirebase);
 
         async function syncDataWithFirebase() {
@@ -753,30 +740,22 @@
             const drafts = await db.drafts.toArray();
             for (const draft of drafts) {
                 const dairyNumber = draft.dairyNumber;
-                const pdfBlob = draft.pdfBlob; // If pdfBlob is stored in drafts
-
+                const pdfBlob = draft.pdfBlob;
                 if (pdfBlob) {
-                    // Upload the PDF
                     uploadPDF(dairyNumber, pdfBlob);
                 }
-
-                // Additional upload logic if needed
-
-                // Remove the draft after uploading
+                // More upload logic can be added here if needed
                 await db.drafts.delete(draft.id);
                 console.log(`Draft with ID ${draft.id} uploaded and deleted.`);
             }
 
-            // Sync forms (offline-generated PDFs)
+            // Sync offline forms
             const offlineForms = await db.forms.toArray();
-
             for (const record of offlineForms) {
                 const dairyNumber = record.dairyNumber;
                 const pdfBlob = record.pdfBlob;
-
                 uploadPDF(dairyNumber, pdfBlob);
-
-                // Remove the record from IndexedDB after uploading
+                // Remove record after uploading
                 await db.forms.delete(record.id);
                 console.log(`Offline form with ID ${record.id} uploaded and deleted.`);
             }
@@ -784,6 +763,7 @@
             console.log('All offline data has been synced with Firebase.');
         }
 
+        // Function to create checklist items and attach event listeners
         function createChecklistItems() {
             const checklistItems = [
                 "Pulsator Airline", "Long Bend Elbows", "Automatic Cup and Remover", "Diaphragm", "Receiving Can",
@@ -840,6 +820,7 @@
                 imageUpload.setAttribute('multiple', 'multiple'); // allow multiple images
                 itemContainer.appendChild(imageUpload);
 
+                // Event listeners
                 statusSelect.addEventListener('change', () => {
                     if (statusSelect.value === 'attention-required') {
                         imageUpload.style.display = 'block';
@@ -851,8 +832,9 @@
                     if (statusSelect.value === 'not-checked' && itemsToAutoFill.includes(item)) {
                         commentsInput.value = "Milk in Vat";
                     } else if (commentsInput.value === "Milk in Vat") {
-                        commentsInput.value = ""; // Clear the field if it was auto-filled
+                        commentsInput.value = "";
                     }
+
                     saveFormData();
                 });
 
@@ -863,7 +845,7 @@
             });
         }
 
-        // Save form data to IndexedDB as drafts
+        // Save form data to IndexedDB as a draft
         async function saveFormData() {
             const form = document.getElementById('hygiene-checklist-form');
             const formData = new FormData(form);
@@ -888,10 +870,7 @@
                 const comments = commentsInput ? commentsInput.value : '';
                 const imageInput = item.querySelector('input[type="file"]');
 
-                let imageData = null;
-
                 if (imageInput && imageInput.files.length > 0) {
-                    // Save image data
                     const files = Array.from(imageInput.files);
                     const maxImages = Math.min(files.length, 2);
                     for (let j = 0; j < maxImages; j++) {
@@ -928,6 +907,7 @@
             console.log('Draft saved/updated in IndexedDB.');
         }
 
+        // Function to populate form data from a draft
         async function populateForm(data) {
             const form = document.getElementById('hygiene-checklist-form');
 
@@ -959,7 +939,7 @@
                         if (checklistItemData.hasImages) {
                             const photosForItem = data.photos.filter(photo => photo.itemIndex === i);
                             if (photosForItem.length > 0) {
-                                // We'll not directly populate the input. The user will have to re-attach images if needed.
+                                // We'll not reattach images automatically. The user may re-upload if needed.
                             }
                         }
 
@@ -973,6 +953,7 @@
             }
         }
 
+        // Function to display offline PDF from IndexedDB
         async function displayOfflinePDF(record) {
             try {
                 const pdfBlob = record.pdfBlob;
@@ -983,12 +964,14 @@
             }
         }
 
+        // Function to view all records
         function viewRecords() {
             document.getElementById('form-container').style.display = 'none';
             document.getElementById('record-container').style.display = 'block';
             loadAllRecords();
         }
 
+        // Function to load all records either from Firebase or IndexedDB (offline)
         async function loadAllRecords() {
             const recordList = document.getElementById('record-list');
             recordList.innerHTML = '';
@@ -1025,7 +1008,7 @@
                 }
             } catch (error) {
                 console.error('Error fetching records:', error);
-                // If offline, load records from IndexedDB
+                // Optionally load records from IndexedDB offline
                 if (!navigator.onLine) {
                     console.log('Offline: Loading records from IndexedDB.');
                     const offlineForms = await db.forms.toArray();
@@ -1044,6 +1027,7 @@
             }
         }
 
+        // Function to load record files for a specific dairy number
         async function loadRecordFiles(dairyNumber) {
             const recordList = document.getElementById('record-list');
             recordList.innerHTML = '';
@@ -1083,7 +1067,7 @@
                 recordList.appendChild(backButton);
             } catch (error) {
                 console.error('Error fetching record files:', error);
-                // If offline, load records from IndexedDB
+                // Optionally load records from IndexedDB offline
                 if (!navigator.onLine) {
                     console.log('Offline: Loading records from IndexedDB.');
                     displayOfflineRecords(dairyNumber);
@@ -1091,15 +1075,18 @@
             }
         }
 
+        // Function to go back to the form
         function goBack() {
             document.getElementById('form-container').style.display = 'block';
             document.getElementById('record-container').style.display = 'none';
         }
 
+        // Function to go back to records list
         function goBackToRecords() {
             loadAllRecords();
         }
 
+        // Function to filter records by dairy number
         function filterRecords() {
             const searchInput = document.getElementById('search-dairy-number').value.toLowerCase();
             const recordList = document.getElementById('record-list');
@@ -1116,14 +1103,14 @@
             }
         }
 
-        // Helper functions to read files
+        // Functions to read files as data or array buffer
         function readFileAsArrayBuffer(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
-                reader.onload = function (event) {
+                reader.onload = (event) => {
                     resolve(event.target.result);
                 };
-                reader.onerror = function (error) {
+                reader.onerror = (error) => {
                     reject(error);
                 };
                 reader.readAsArrayBuffer(file);
@@ -1133,34 +1120,25 @@
         function readFileAsDataURL(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
-                reader.onload = function (event) {
+                reader.onload = (event) => {
                     resolve(event.target.result);
                 };
-                reader.onerror = function (error) {
+                reader.onerror = (error) => {
                     reject(error);
                 };
                 reader.readAsDataURL(file);
             });
         }
 
+        // Document ready event
         document.addEventListener("DOMContentLoaded", async () => {
             createChecklistItems();
-            // Additional initialization code
-
-            // Fetch and set the correct logo (optional)
-            // The code is already fetching from a URL above. We'll leave it as is.
 
             // 2-hour cache draft form data feature
-            // Get all drafts from IndexedDB
+            // Clean up old drafts from IndexedDB
             let drafts = await db.drafts.toArray();
-
-            // Get the current time in milliseconds
             const now = new Date().getTime();
-
-            // Define the time limit (2 hours in milliseconds)
             const twoHoursInMillis = 2 * 60 * 60 * 1000;
-
-            // Delete drafts older than 2 hours
             for (const draft of drafts) {
                 if (now - draft.timestamp > twoHoursInMillis) {
                     await db.drafts.delete(draft.id);
@@ -1168,9 +1146,8 @@
                 }
             }
 
-            // Reload the drafts after deletion
+            // Reload drafts after cleaning up
             drafts = await db.drafts.toArray();
-
             if (drafts.length > 0) {
                 const recentDraft = drafts[drafts.length - 1];
                 const resume = confirm('You have an unsaved checklist. Would you like to resume?');
