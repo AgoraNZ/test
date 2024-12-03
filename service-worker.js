@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dairy-shed-cache-v7'; // Updated version
+const CACHE_NAME = 'dairy-shed-cache-v6';
 const CACHE_FILES = [
     './index.html',
     './service-worker.js',
@@ -8,8 +8,8 @@ const CACHE_FILES = [
     'https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js',
     'https://cdnjs.cloudflare.com/ajax/libs/dexie/3.0.3/dexie.min.js',
     'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js'
-    // Add any new assets here
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js',
+    'https://i.postimg.cc/htZPjx5g/logo-89.png' // Cached Logo
 ];
 
 // Additional cache for dynamic content
@@ -17,15 +17,13 @@ const DYNAMIC_CACHE = 'dairy-shed-dynamic-cache-v1';
 
 // Install Event - Caching Static Assets
 self.addEventListener('install', (event) => {
-    console.log('[Service Worker] Install Event');
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
-                console.log('[Service Worker] Caching App Shell');
                 return cache.addAll(CACHE_FILES);
             })
             .catch((error) => {
-                console.error('[Service Worker] Failed to cache during install', error);
+                console.error('Failed to cache during install', error);
             })
     );
     self.skipWaiting();
@@ -33,13 +31,11 @@ self.addEventListener('install', (event) => {
 
 // Activate Event - Cleaning up old caches
 self.addEventListener('activate', (event) => {
-    console.log('[Service Worker] Activate Event');
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((cacheName) => {
                     if (cacheName !== CACHE_NAME && cacheName !== DYNAMIC_CACHE) {
-                        console.log([Service Worker] Deleting old cache: ${cacheName});
                         return caches.delete(cacheName);
                     }
                 })
@@ -61,22 +57,19 @@ self.addEventListener('fetch', (event) => {
 
     // **Handle API requests differently if needed**
     // For example, farm_details/*.json can be cached dynamically
-    if (url.pathname.startsWith('/farm_details/')) { // Adjusted path
+    if (url.pathname.startsWith('/test/farm_details/')) {
         event.respondWith(
             caches.open(DYNAMIC_CACHE).then((cache) => {
                 return cache.match(request).then((response) => {
                     if (response) {
-                        console.log([Service Worker] Serving from cache: ${request.url});
                         return response;
                     }
                     return fetch(request).then((networkResponse) => {
                         if (networkResponse.ok) {
                             cache.put(request, networkResponse.clone());
-                            console.log([Service Worker] Fetched and cached: ${request.url});
                         }
                         return networkResponse;
                     }).catch(() => {
-                        console.warn([Service Worker] Fetch failed for: ${request.url});
                         // Optionally, return a fallback JSON or handle offline scenario
                         return new Response(JSON.stringify({}), {
                             headers: { 'Content-Type': 'application/json' }
@@ -94,19 +87,16 @@ self.addEventListener('fetch', (event) => {
             caches.open(DYNAMIC_CACHE).then((cache) => {
                 return cache.match(request).then((response) => {
                     if (response) {
-                        console.log([Service Worker] Serving image from cache: ${request.url});
                         return response;
                     }
                     return fetch(request).then((networkResponse) => {
                         if (networkResponse.ok) {
                             cache.put(request, networkResponse.clone());
-                            console.log([Service Worker] Fetched and cached image: ${request.url});
                         }
                         return networkResponse;
                     }).catch(() => {
-                        console.warn([Service Worker] Fetch failed for image: ${request.url});
-                        // Optionally, return a fallback image or nothing
-                        return new Response(null, { status: 404 });
+                        // Optionally, return a fallback image
+                        return caches.match('https://i.postimg.cc/htZPjx5g/logo-89.png');
                     });
                 });
             })
@@ -119,21 +109,18 @@ self.addEventListener('fetch', (event) => {
         caches.match(request)
             .then((cachedResponse) => {
                 if (cachedResponse) {
-                    console.log([Service Worker] Serving from cache: ${request.url});
                     return cachedResponse;
                 }
                 return fetch(request).then((networkResponse) => {
                     if (networkResponse.ok) {
                         return caches.open(DYNAMIC_CACHE).then((cache) => {
                             cache.put(request, networkResponse.clone());
-                            console.log([Service Worker] Fetched and cached: ${request.url});
                             return networkResponse;
                         });
                     }
                     return networkResponse;
                 }).catch((error) => {
-                    console.error([Service Worker] Fetch failed for: ${request.url}, error);
-                    // Optionally, return a fallback page or resource
+                    console.error('Fetch failed, serving offline page', error);
                     return caches.match('./index.html');
                 });
             })
