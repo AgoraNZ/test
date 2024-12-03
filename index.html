@@ -2,35 +2,32 @@
 <html lang="en">
 
 <head>
-    <!-- Meta tags for responsiveness and character encoding -->
+    <!-- Meta tags and CSS links -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dairy Shed Hygiene Checklist</title>
-    
-    <!-- Bootstrap CSS for responsive design -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
-    
-    <!-- Custom Styles -->
+    <!-- Your existing styles here -->
     <style>
-        /* Base Styles */
         body {
             background-color: #002B5C;
             color: #FFFFFF;
             font-family: Arial, sans-serif;
             min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             padding: 20px;
             margin: 0;
-            overflow-x: hidden; /* Prevent horizontal scroll */
         }
 
-        .container-custom {
+        .container {
             background-color: #002B5C;
             padding: 30px;
             border-radius: 10px;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-            max-width: 900px;
+            max-width: 800px;
             width: 100%;
-            margin: 0 auto;
         }
 
         h1,
@@ -45,7 +42,6 @@
 
         label {
             margin-top: 10px;
-            font-weight: bold;
         }
 
         button {
@@ -54,11 +50,9 @@
             border: none;
             padding: 10px 20px;
             cursor: pointer;
-            display: inline-block;
-            margin: 10px 5px;
+            display: block;
+            margin: 20px auto;
             border-radius: 5px;
-            transition: background-color 0.3s ease;
-            font-size: 16px;
         }
 
         button:hover {
@@ -66,9 +60,7 @@
         }
 
         .checklist-item {
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #FFFFFF;
+            margin-bottom: 30px;
         }
 
         .form-control,
@@ -87,7 +79,7 @@
             display: block;
             margin: 0 auto 20px;
             width: 100%;
-            max-width: 250px; /* Adjusted for responsiveness */
+            max-width: 800px; /* Match the container's max-width */
             height: auto; /* Maintain aspect ratio */
         }
 
@@ -100,13 +92,15 @@
             max-width: 1000px;
             width: 100%;
             margin: 20px auto;
-            overflow-y: auto; /* Enable vertical scroll if content overflows */
         }
 
         .record-container h2 {
             color: #002B5C;
-            text-align: center;
-            margin-bottom: 20px;
+        }
+
+        .record-list {
+            max-height: 400px;
+            overflow-y: auto;
         }
 
         .record-list a {
@@ -124,191 +118,98 @@
             padding: 10px 20px;
             border-radius: 5px;
             cursor: pointer;
-            transition: background-color 0.3s ease;
-            font-size: 16px;
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .back-button:hover {
-            background-color: #001f3f;
         }
 
         .search-container {
             margin-bottom: 20px;
         }
 
-        /* Responsive Adjustments */
-        @media (max-width: 768px) {
-            .container-custom {
-                padding: 20px;
-                max-width: 100%;
-            }
-
-            .logo {
-                max-width: 200px; /* Slightly smaller on mobile */
-            }
-
-            button {
-                width: 100%;
-                padding: 12px 0;
-                font-size: 16px;
-            }
-
-            .record-container {
-                max-width: 100%;
-            }
-
-            /* Increase touch target sizes */
-            button,
-            .form-control,
-            .form-select {
-                min-height: 44px;
-                font-size: 16px;
-            }
-
-            /* Ensure checklist items stack properly on mobile */
-            .checklist-item .row {
-                flex-direction: column;
-            }
-
-            .checklist-item .col-md-4,
-            .checklist-item .col-md-3,
-            .checklist-item .col-md-2 {
-                width: 100%;
-            }
-
-            .image-preview {
-                max-width: 100px;
-                margin-top: 10px;
-            }
-        }
-
-        /* Image Preview Styles */
+        /* New styles for image previews */
         .image-preview {
-            max-width: 150px;
+            max-width: 100px;
             display: block;
             margin-top: 10px;
-            border: 1px solid #FFFFFF;
-            border-radius: 5px;
         }
 
-        /* Hide image upload button initially */
-        .image-upload-button {
-            display: none;
+        /* Styles for dual image previews */
+        .image-preview-2 {
+            max-width: 100px;
+            display: block;
+            margin-top: 10px;
         }
     </style>
 </head>
 
 <body>
-    <div class="container-custom" id="form-container">
-        <!-- Logo Image with Responsive Design -->
-        <img src="https://i.postimg.cc/htZPjx5g/logo-89.png" alt="Logo" class="logo">
+    <div class="container" id="form-container">
+        <!-- Logo Image with Dynamic Source -->
+        <img id="logo-image" src="" alt="Logo" class="logo">
         <h1>Dairy Shed Hygiene Checklist</h1>
 
         <form id="hygiene-checklist-form">
+            <!-- Form Fields -->
             <!-- Farm Details Section -->
             <div class="section mb-4">
                 <h2>Farm Details</h2>
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label for="dairy-number">Dairy Number:</label>
-                        <input type="text" class="form-control" id="dairy-number" name="dairy-number" onblur="fetchFarmDetails()">
-                    </div>
-                    <div class="col-md-6">
-                        <label for="dairy-company">Dairy Company:</label>
-                        <select id="dairy-company" name="dairy-company" class="form-select">
-                            <option value="fonterra">Fonterra</option>
-                            <option value="dairy-goat-coop">Dairy Goat Co-op</option>
-                            <option value="green-valley">Green Valley Dairies</option>
-                            <option value="maui-milk">Maui Milk</option>
-                            <option value="oceania">Oceania</option>
-                            <option value="ofi">OFI</option>
-                            <option value="synlait">Synlait Milk LTD</option>
-                            <option value="tatua">Tatua</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label for="address">Address:</label>
-                        <input type="text" class="form-control" id="address" name="address">
-                    </div>
-                    <div class="col-md-6">
-                        <label for="customer-name">Customer Name:</label>
-                        <input type="text" class="form-control" id="customer-name" name="customer-name">
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label for="region">Region:</label>
-                        <select id="region" name="region" class="form-select">
-                            <option value="northland">Northland</option>
-                            <option value="auckland">Auckland</option>
-                            <option value="waikato">Waikato</option>
-                            <option value="bay-of-plenty">Bay of Plenty</option>
-                            <option value="gisborne">Gisborne</option>
-                            <option value="hawkes-bay">Hawke's Bay</option>
-                            <option value="taranaki">Taranaki</option>
-                            <option value="manawatu-wanganui">Manawatu-Wanganui</option>
-                            <option value="wellington">Wellington</option>
-                            <option value="nelson">Nelson</option>
-                            <option value="marlborough">Marlborough</option>
-                            <option value="west-coast">West Coast</option>
-                            <option value="canterbury">Canterbury</option>
-                            <option value="otago">Otago</option>
-                            <option value="southland">Southland</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="farm-name">Farm Name:</label>
-                        <input type="text" class="form-control" id="farm-name" name="farm-name">
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label for="island">Island:</label>
-                        <select id="island" name="island" class="form-select">
-                            <option value="north-island">North Island</option>
-                            <option value="south-island">South Island</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="visit-date">Visit Date:</label>
-                        <input type="date" class="form-control" id="visit-date" name="visit-date">
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label for="visit-type">Visit Type:</label>
-                        <input type="text" class="form-control" id="visit-type" name="visit-type" value="Milking Plant & Milk Vat Check" readonly>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="inspection-start-time">Inspection Start Time:</label>
-                        <input type="time" class="form-control" id="inspection-start-time" name="inspection-start-time">
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label for="inspection-end-time">Inspection End Time:</label>
-                        <input type="time" class="form-control" id="inspection-end-time" name="inspection-end-time">
-                    </div>
-                    <div class="col-md-6">
-                        <label for="inspection-completed-by">Inspection Completed By:</label>
-                        <input type="text" class="form-control" id="inspection-completed-by" name="inspection-completed-by">
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label for="call-type">Call Type:</label>
-                        <select id="call-type" name="call-type" class="form-select">
-                            <option value="alert">Alert</option>
-                            <option value="grade-call">Grade Call</option>
-                            <option value="regular-scheduled-visit" selected>Regular Scheduled Visit</option>
-                        </select>
-                    </div>
-                </div>
+                <label for="dairy-number">Dairy Number:</label>
+                <input type="text" class="form-control" id="dairy-number" name="dairy-number" onblur="fetchFarmDetails()">
+
+                <label for="dairy-company">Dairy Company:</label>
+                <select id="dairy-company" name="dairy-company" class="form-select">
+                    <option value="fonterra">Fonterra</option>
+                    <option value="dairy-goat-coop">Dairy Goat Co-op</option>
+                    <option value="green-valley">Green Valley Dairies</option>
+                    <option value="maui-milk">Maui Milk</option>
+                    <option value="oceania">Oceania</option>
+                    <option value="ofi">OFI</option>
+                    <option value="synlait">Synlait Milk LTD</option>
+                    <option value="tatua">Tatua</option>
+                </select>
+                <label for="address">Address:</label>
+                <input type="text" class="form-control" id="address" name="address">
+                <label for="customer-name">Customer Name:</label>
+                <input type="text" class="form-control" id="customer-name" name="customer-name">
+                <label for="region">Region:</label>
+                <select id="region" name="region" class="form-select">
+                    <option value="northland">Northland</option>
+                    <option value="auckland">Auckland</option>
+                    <option value="waikato">Waikato</option>
+                    <option value="bay-of-plenty">Bay of Plenty</option>
+                    <option value="gisborne">Gisborne</option>
+                    <option value="hawkes-bay">Hawke's Bay</option>
+                    <option value="taranaki">Taranaki</option>
+                    <option value="manawatu-wanganui">Manawatu-Wanganui</option>
+                    <option value="wellington">Wellington</option>
+                    <option value="nelson">Nelson</option>
+                    <option value="marlborough">Marlborough</option>
+                    <option value="west-coast">West Coast</option>
+                    <option value="canterbury">Canterbury</option>
+                    <option value="otago">Otago</option>
+                    <option value="southland">Southland</option>
+                </select>
+                <label for="farm-name">Farm Name:</label>
+                <input type="text" class="form-control" id="farm-name" name="farm-name">
+                <label for="island">Island:</label>
+                <select id="island" name="island" class="form-select">
+                    <option value="north-island">North Island</option>
+                    <option value="south-island">South Island</option>
+                </select>
+                <label for="visit-date">Visit Date:</label>
+                <input type="date" class="form-control" id="visit-date" name="visit-date">
+                <label for="visit-type">Visit Type:</label>
+                <input type="text" class="form-control" id="visit-type" name="visit-type" value="Milking Plant & Milk Vat Check" readonly>
+                <label for="inspection-start-time">Inspection Start Time:</label>
+                <input type="time" class="form-control" id="inspection-start-time" name="inspection-start-time">
+                <label for="inspection-end-time">Inspection End Time:</label>
+                <input type="time" class="form-control" id="inspection-end-time" name="inspection-end-time">
+                <label for="inspection-completed-by">Inspection Completed By:</label>
+                <input type="text" class="form-control" id="inspection-completed-by" name="inspection-completed-by">
+                <label for="call-type">Call Type:</label>
+                <select id="call-type" name="call-type" class="form-select">
+                    <option value="alert">Alert</option>
+                    <option value="grade-call">Grade Call</option>
+                    <option value="regular-scheduled-visit" selected>Regular Scheduled Visit</option>
+                </select>
             </div>
 
             <!-- Checklist Items Section -->
@@ -322,33 +223,22 @@
             <!-- Temperature Measurements Section -->
             <div class="section mb-4">
                 <h2>Temperature Measurements</h2>
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label for="hot-water-temp">Hot Water Temp (°C):</label>
-                        <input type="number" step="0.1" class="form-control" id="hot-water-temp" name="hot-water-temp">
-                    </div>
-                    <div class="col-md-6">
-                        <label for="hot-water-time">Time Taken:</label>
-                        <input type="time" class="form-control" id="hot-water-time" name="hot-water-time">
-                    </div>
+                <div class="checklist-item">
+                    <label for="hot-water-temp">Hot Water Temp (°C):</label>
+                    <input type="text" class="form-control" id="hot-water-temp" name="hot-water-temp">
+                    <label for="hot-water-time">Time Taken:</label>
+                    <input type="time" class="form-control" id="hot-water-time" name="hot-water-time">
                 </div>
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label for="milk-temp">Milk Temp (°C):</label>
-                        <input type="number" step="0.1" class="form-control" id="milk-temp" name="milk-temp">
-                    </div>
-                    <div class="col-md-6">
-                        <label for="milk-time">Time Taken:</label>
-                        <input type="time" class="form-control" id="milk-time" name="milk-time">
-                    </div>
+                <div class="checklist-item">
+                    <label for="milk-temp">Milk Temp (°C):</label>
+                    <input type="text" class="form-control" id="milk-temp" name="milk-temp">
+                    <label for="milk-time">Time Taken:</label>
+                    <input type="time" class="form-control" id="milk-time" name="milk-time">
                 </div>
             </div>
 
-            <!-- Action Buttons -->
-            <div class="d-flex justify-content-center">
-                <button type="button" onclick="generatePDF()">Generate PDF</button>
-                <button type="button" onclick="viewRecords()">View All Records</button>
-            </div>
+            <button type="button" onclick="generatePDF()">Generate PDF</button>
+            <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
         <div class="version">Version 5.4</div>
     </div>
@@ -363,6 +253,7 @@
         <button class="back-button" onclick="goBack()">Back to Checklist</button>
     </div>
 
+    <!-- Include scripts at the end of the body for better performance -->
     <!-- Include Firebase scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
@@ -380,7 +271,7 @@
 
         // Firebase configuration
         const firebaseConfig = {
-            apiKey: "AIzaSyDr9nA44Kjej*****GUzbMDECI8cTFI",
+            apiKey: "AIzaSyDr9nA44Kjejzeyg9E7nGUzbMDECI8cTFI",
             authDomain: "dairy-farm-record-system.firebaseapp.com",
             projectId: "dairy-farm-record-system",
             storageBucket: "dairy-farm-record-system.appspot.com",
@@ -431,7 +322,7 @@
         async function fetchFarmDetails() {
             const dairyNumber = document.getElementById('dairy-number').value;
             if (dairyNumber) {
-                const storageRef = storage.ref(farm_details/${dairyNumber}.json);
+                const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
                 try {
                     if (navigator.onLine) { // Only attempt to fetch from Firebase if online
                         const url = await storageRef.getDownloadURL();
@@ -510,7 +401,7 @@
                 farmName: formData.get('farm-name'),
                 island: formData.get('island'),
             };
-            const storageRef = storage.ref(farm_details/${dairyNumber}.json);
+            const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
             const metadata = {
                 contentType: 'application/json',
             };
@@ -570,8 +461,8 @@
             const pdf = new jsPDF('p', 'pt', 'a4');
 
             try {
-                // Use the correct logo fetched earlier or fallback
-                const embeddedLogo = window.correctLogoDataURL || "https://via.placeholder.com/250x100?text=Logo";
+                // Use the correct logo fetched earlier
+                const embeddedLogo = window.correctLogoDataURL || "https://via.placeholder.com/800x200?text=Logo";
 
                 const imgProps = pdf.getImageProperties(embeddedLogo);
                 const pageWidth = pdf.internal.pageSize.getWidth();
@@ -589,31 +480,31 @@
                 let currentY = 40 + imgHeight + 40;
 
                 pdf.setFont('helvetica', 'normal');
-                pdf.text(Dairy Company: ${formData.get('dairy-company')}, pageMargins, currentY);
+                pdf.text(`Dairy Company: ${formData.get('dairy-company')}`, pageMargins, currentY);
                 currentY += 15;
-                pdf.text(Dairy Number: ${formData.get('dairy-number')}, pageMargins, currentY);
+                pdf.text(`Dairy Number: ${formData.get('dairy-number')}`, pageMargins, currentY);
                 currentY += 15;
-                pdf.text(Address: ${formData.get('address')}, pageMargins, currentY);
+                pdf.text(`Address: ${formData.get('address')}`, pageMargins, currentY);
                 currentY += 15;
-                pdf.text(Customer Name: ${formData.get('customer-name')}, pageMargins, currentY);
+                pdf.text(`Customer Name: ${formData.get('customer-name')}`, pageMargins, currentY);
                 currentY += 15;
-                pdf.text(Region: ${formData.get('region')}, pageMargins, currentY);
+                pdf.text(`Region: ${formData.get('region')}`, pageMargins, currentY);
                 currentY += 15;
-                pdf.text(Farm Name: ${formData.get('farm-name')}, pageMargins, currentY);
+                pdf.text(`Farm Name: ${formData.get('farm-name')}`, pageMargins, currentY);
                 currentY += 15;
-                pdf.text(Island: ${formData.get('island')}, pageMargins, currentY);
+                pdf.text(`Island: ${formData.get('island')}`, pageMargins, currentY);
                 currentY += 15;
-                pdf.text(Visit Date: ${formData.get('visit-date')}, pageMargins, currentY);
+                pdf.text(`Visit Date: ${formData.get('visit-date')}`, pageMargins, currentY);
                 currentY += 15;
-                pdf.text(Visit Type: ${formData.get('visit-type')}, pageMargins, currentY);
+                pdf.text(`Visit Type: ${formData.get('visit-type')}`, pageMargins, currentY);
                 currentY += 15;
-                pdf.text(Inspection Start Time: ${formData.get('inspection-start-time')}, pageMargins, currentY);
+                pdf.text(`Inspection Start Time: ${formData.get('inspection-start-time')}`, pageMargins, currentY);
                 currentY += 15;
-                pdf.text(Inspection End Time: ${formData.get('inspection-end-time')}, pageMargins, currentY);
+                pdf.text(`Inspection End Time: ${formData.get('inspection-end-time')}`, pageMargins, currentY);
                 currentY += 15;
-                pdf.text(Inspection Completed By: ${formData.get('inspection-completed-by')}, pageMargins, currentY);
+                pdf.text(`Inspection Completed By: ${formData.get('inspection-completed-by')}`, pageMargins, currentY);
                 currentY += 15;
-                pdf.text(Call Type: ${formData.get('call-type')}, pageMargins, currentY);
+                pdf.text(`Call Type: ${formData.get('call-type')}`, pageMargins, currentY);
                 currentY += 30;
 
                 // Checklist Items Section
@@ -632,21 +523,37 @@
                     let comments = item.querySelector('input[type="text"]').value;
 
                     // Get the image data from the file inputs or from saved photos
-                    const imageInput = item.querySelector('input[type="file"]');
-                    const imageFile = imageInput.files[0];
+                    const imageInput1 = item.querySelector('input.image-upload-1');
+                    const imageFile1 = imageInput1.files[0];
+                    const imageInput2 = item.querySelector('input.image-upload-2');
+                    const imageFile2 = imageInput2.files[0];
                     let imageDataUrls = [];
 
-                    if (imageFile) {
-                        // Read image from file input
-                        const dataUrl = await readFileAsDataURL(imageFile);
-                        imageDataUrls.push(dataUrl);
+                    if (imageFile1) {
+                        // Read image from first file input
+                        const dataUrl1 = await readFileAsDataURL(imageFile1);
+                        imageDataUrls.push(dataUrl1);
                     } else if (savedPhotos && savedPhotos.length > 0) {
                         // Find the saved photo with photoIndex 0 for this item
-                        const photoData = savedPhotos.find(photo => photo.itemIndex === i && photo.photoIndex === 0);
-                        if (photoData) {
-                            const blob = new Blob([photoData.imageData], { type: photoData.imageType });
-                            const dataUrl = await readBlobAsDataURL(blob);
-                            imageDataUrls.push(dataUrl);
+                        const photoData1 = savedPhotos.find(photo => photo.itemIndex === i && photo.photoIndex === 0);
+                        if (photoData1) {
+                            const blob1 = new Blob([photoData1.imageData], { type: photoData1.imageType });
+                            const dataUrl1 = await readBlobAsDataURL(blob1);
+                            imageDataUrls.push(dataUrl1);
+                        }
+                    }
+
+                    if (imageFile2) {
+                        // Read image from second file input
+                        const dataUrl2 = await readFileAsDataURL(imageFile2);
+                        imageDataUrls.push(dataUrl2);
+                    } else if (savedPhotos && savedPhotos.length > 0) {
+                        // Find the saved photo with photoIndex 1 for this item
+                        const photoData2 = savedPhotos.find(photo => photo.itemIndex === i && photo.photoIndex === 1);
+                        if (photoData2) {
+                            const blob2 = new Blob([photoData2.imageData], { type: photoData2.imageType });
+                            const dataUrl2 = await readBlobAsDataURL(blob2);
+                            imageDataUrls.push(dataUrl2);
                         }
                     }
 
@@ -705,22 +612,22 @@
                 let tempY = currentY;
 
                 pdf.setFont('helvetica', 'bold');
-                pdf.text('Temperature Measurements:', 40, tempY);
+                pdf.text('Temperature Measurements:', pageMargins, tempY);
                 tempY += 20;
 
                 pdf.setFont('helvetica', 'normal');
                 const hotWaterTemp = formData.get('hot-water-temp') || '';
                 const hotWaterTime = formData.get('hot-water-time') || '';
-                pdf.text(Hot Water Temp: ${hotWaterTemp} °C, 40, tempY);
+                pdf.text(`Hot Water Temp: ${hotWaterTemp} °C`, pageMargins, tempY);
                 tempY += 15;
-                pdf.text(Time Taken: ${hotWaterTime}, 40, tempY);
+                pdf.text(`Time Taken: ${hotWaterTime}`, pageMargins, tempY);
                 tempY += 20;
 
                 const milkTemp = formData.get('milk-temp') || '';
                 const milkTime = formData.get('milk-time') || '';
-                pdf.text(Milk Temp: ${milkTemp} °C, 40, tempY);
+                pdf.text(`Milk Temp: ${milkTemp} °C`, pageMargins, tempY);
                 tempY += 15;
-                pdf.text(Time Taken: ${milkTime}, 40, tempY);
+                pdf.text(`Time Taken: ${milkTime}`, pageMargins, tempY);
                 tempY += 20;
 
                 // Add photos after the temperature data
@@ -748,9 +655,9 @@
                             }
 
                             try {
-                                pdf.addImage(photo.imageData, photo.imageType, 40, photoY, 250, 200); // Adjust the size to fit more photos
+                                pdf.addImage(photo.imageData, photo.imageType, pageMargins, photoY, imgWidth, 200); // Adjust the size to fit more photos
                                 pdf.setFontSize(12);
-                                pdf.text(photo.title, 40, photoY - 10); // Add the title above the photo
+                                pdf.text(photo.title, pageMargins, photoY - 10); // Add the title above the photo
                                 photoY += 220; // Move Y position down for the next photo (image height + spacing)
                             } catch (error) {
                                 console.error('Error adding image to PDF:', error);
@@ -767,16 +674,16 @@
 
                             try {
                                 // Define width for two images side by side
-                                const singleImgWidth = (pdf.internal.pageSize.getWidth() - 80 - 20) / 2; // Total margins and spacing
+                                const singleImgWidth = (imgWidth - 20) / 2; // 20 points total spacing
 
                                 // Add first image
-                                pdf.addImage(photo1.imageData, photo1.imageType, 40, photoY, singleImgWidth, 200);
+                                pdf.addImage(photo1.imageData, photo1.imageType, pageMargins, photoY, singleImgWidth, 200);
                                 pdf.setFontSize(12);
-                                pdf.text(photo1.title, 40, photoY - 10); // Add the title above the first photo
+                                pdf.text(photo1.title, pageMargins, photoY - 10); // Add the title above the first photo
 
                                 // Add second image to the right of the first
-                                pdf.addImage(photo2.imageData, photo2.imageType, 40 + singleImgWidth + 20, photoY, singleImgWidth, 200);
-                                pdf.text(photo2.title, 40 + singleImgWidth + 20, photoY - 10); // Add the title above the second photo
+                                pdf.addImage(photo2.imageData, photo2.imageType, pageMargins + singleImgWidth + 20, photoY, singleImgWidth, 200);
+                                pdf.text(photo2.title, pageMargins + singleImgWidth + 20, photoY - 10); // Add the title above the second photo
 
                                 photoY += 220; // Move Y position down for the next set of photos
                             } catch (error) {
@@ -828,10 +735,10 @@
                 console.log('uploadPDF function called with dairyNumber:', dairyNumber); // Debugging statement
 
                 const timestamp = new Date().toISOString().split('T')[0];
-                const fileName = ${dairyNumber}-form-${timestamp}.pdf;
-                const storageRef = storage.ref(customers/${dairyNumber}/${fileName});
+                const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
+                const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
 
-                console.log(Uploading PDF to path: customers/${dairyNumber}/${fileName}); // Debugging statement
+                console.log(`Uploading PDF to path: customers/${dairyNumber}/${fileName}`); // Debugging statement
 
                 storageRef.put(pdfBlob).then(() => {
                     console.log('PDF uploaded successfully');
@@ -860,7 +767,7 @@
 
                     // Remove the draft after uploading
                     await db.drafts.delete(draft.id);
-                    console.log(Draft with ID ${draft.id} uploaded and deleted.);
+                    console.log(`Draft with ID ${draft.id} uploaded and deleted.`);
                 }
 
                 // Sync forms (offline-generated PDFs)
@@ -874,7 +781,7 @@
 
                     // Remove the record from IndexedDB after uploading
                     await db.forms.delete(record.id);
-                    console.log(Offline form with ID ${record.id} uploaded and deleted.);
+                    console.log(`Offline form with ID ${record.id} uploaded and deleted.`);
                 }
 
                 console.log('All offline data has been synced with Firebase.');
@@ -909,73 +816,63 @@
                     const itemContainer = document.createElement('div');
                     itemContainer.classList.add('checklist-item');
 
-                    const row = document.createElement('div');
-                    row.classList.add('row', 'align-items-center');
-
-                    // Label Column
-                    const labelCol = document.createElement('div');
-                    labelCol.classList.add('col-md-4', 'col-12', 'mb-2');
                     const label = document.createElement('label');
                     label.textContent = item;
-                    labelCol.appendChild(label);
-                    row.appendChild(labelCol);
+                    itemContainer.appendChild(label);
 
-                    // Status Select Column
-                    const statusCol = document.createElement('div');
-                    statusCol.classList.add('col-md-3', 'col-6', 'mb-2');
                     const statusSelect = document.createElement('select');
                     statusSelect.classList.add('form-select');
-                    statusSelect.innerHTML = 
+                    statusSelect.innerHTML = `
                         <option value="ok">OK</option>
                         <option value="attention-required">Attention Required</option>
                         <option value="na">N/A</option>
                         <option value="not-checked">Not Checked</option>
-                    ;
-                    statusCol.appendChild(statusSelect);
-                    row.appendChild(statusCol);
+                    `;
+                    itemContainer.appendChild(statusSelect);
 
-                    // Comments Input Column
-                    const commentsCol = document.createElement('div');
-                    commentsCol.classList.add('col-md-3', 'col-6', 'mb-2');
                     const commentsInput = document.createElement('input');
                     commentsInput.type = 'text';
                     commentsInput.classList.add('form-control');
                     commentsInput.placeholder = 'Comments';
-                    commentsCol.appendChild(commentsInput);
-                    row.appendChild(commentsCol);
+                    itemContainer.appendChild(commentsInput);
 
-                    // Image Upload Button Column
-                    const imageCol = document.createElement('div');
-                    imageCol.classList.add('col-md-2', 'col-12', 'mb-2');
-                    const imageButton = document.createElement('button');
-                    imageButton.type = 'button';
-                    imageButton.classList.add('btn', 'btn-secondary', 'btn-sm', 'w-100', 'image-upload-button');
-                    imageButton.textContent = 'Upload Photo';
-                    imageCol.appendChild(imageButton);
-                    row.appendChild(imageCol);
+                    // First Image Upload
+                    const imageUpload1 = document.createElement('input');
+                    imageUpload1.type = 'file';
+                    imageUpload1.classList.add('form-control', 'image-upload-1');
+                    imageUpload1.style.display = 'none';
+                    itemContainer.appendChild(imageUpload1);
 
-                    // Image Upload File Input
-                    const imageInput = document.createElement('input');
-                    imageInput.type = 'file';
-                    imageInput.accept = 'image/*';
-                    imageInput.style.display = 'none';
-                    imageInput.classList.add('form-control', 'mt-2');
-                    itemContainer.appendChild(imageInput);
+                    // First Image Preview
+                    const imagePreview1 = document.createElement('img');
+                    imagePreview1.classList.add('image-preview', 'image-preview-1');
+                    imagePreview1.style.display = 'none'; // Initially hidden
+                    itemContainer.appendChild(imagePreview1);
 
-                    // Image Preview
-                    const imagePreview = document.createElement('img');
-                    imagePreview.classList.add('image-preview');
-                    imagePreview.style.display = 'none';
-                    itemContainer.appendChild(imagePreview);
+                    // Second Image Upload
+                    const imageUpload2 = document.createElement('input');
+                    imageUpload2.type = 'file';
+                    imageUpload2.classList.add('form-control', 'image-upload-2');
+                    imageUpload2.style.display = 'none';
+                    itemContainer.appendChild(imageUpload2);
 
-                    // Event Listeners
+                    // Second Image Preview
+                    const imagePreview2 = document.createElement('img');
+                    imagePreview2.classList.add('image-preview', 'image-preview-2');
+                    imagePreview2.style.display = 'none'; // Initially hidden
+                    itemContainer.appendChild(imagePreview2);
+
                     statusSelect.addEventListener('change', () => {
                         if (statusSelect.value === 'attention-required') {
-                            imageButton.style.display = 'block';
+                            imageUpload1.style.display = 'block';
+                            imageUpload2.style.display = 'block';
                         } else {
-                            imageButton.style.display = 'none';
-                            imageInput.value = '';
-                            imagePreview.style.display = 'none';
+                            imageUpload1.style.display = 'none';
+                            imageUpload2.style.display = 'none';
+                            imageUpload1.value = '';
+                            imageUpload2.value = '';
+                            imagePreview1.style.display = 'none';
+                            imagePreview2.style.display = 'none';
                         }
 
                         if (statusSelect.value === 'not-checked' && itemsToAutoFill.includes(item)) {
@@ -986,28 +883,36 @@
                         saveFormData();
                     });
 
-                    imageButton.addEventListener('click', () => {
-                        imageInput.click();
-                    });
+                    // Event listeners for saving data
+                    statusSelect.addEventListener('change', saveFormData);
+                    commentsInput.addEventListener('input', saveFormData);
 
-                    imageInput.addEventListener('change', (event) => {
+                    // Event listener for first image upload
+                    imageUpload1.addEventListener('change', (event) => {
                         const file = event.target.files[0];
                         if (file) {
                             const imageUrl = URL.createObjectURL(file);
-                            imagePreview.src = imageUrl;
-                            imagePreview.style.display = 'block';
+                            imagePreview1.src = imageUrl;
+                            imagePreview1.style.display = 'block';
                         } else {
-                            imagePreview.style.display = 'none';
+                            imagePreview1.style.display = 'none';
                         }
                         saveFormData();
                     });
 
-                    // Save form data on input
-                    statusSelect.addEventListener('change', saveFormData);
-                    commentsInput.addEventListener('input', saveFormData);
-                    imageInput.addEventListener('change', saveFormData);
+                    // Event listener for second image upload
+                    imageUpload2.addEventListener('change', (event) => {
+                        const file = event.target.files[0];
+                        if (file) {
+                            const imageUrl = URL.createObjectURL(file);
+                            imagePreview2.src = imageUrl;
+                            imagePreview2.style.display = 'block';
+                        } else {
+                            imagePreview2.style.display = 'none';
+                        }
+                        saveFormData();
+                    });
 
-                    itemContainer.appendChild(row);
                     checklistContainer.appendChild(itemContainer);
                 });
             }
@@ -1033,7 +938,6 @@
                             const folderLink = document.createElement('a');
                             folderLink.textContent = dairyNumber;
                             folderLink.href = '#';
-                            folderLink.classList.add('d-block', 'mb-2');
                             folderLink.addEventListener('click', () => {
                                 loadRecordFiles(dairyNumber);
                             });
@@ -1045,9 +949,8 @@
                         const dairyNumbers = [...new Set(offlineForms.map(record => record.dairyNumber))];
                         dairyNumbers.forEach(dairyNumber => {
                             const fileLink = document.createElement('a');
-                            fileLink.textContent = ${dairyNumber} (Offline);
+                            fileLink.textContent = `${dairyNumber} (Offline)`;
                             fileLink.href = '#';
-                            fileLink.classList.add('d-block', 'mb-2');
                             fileLink.addEventListener('click', () => {
                                 displayOfflineRecords(dairyNumber);
                             });
@@ -1063,9 +966,8 @@
                         const dairyNumbers = [...new Set(offlineForms.map(record => record.dairyNumber))];
                         dairyNumbers.forEach(dairyNumber => {
                             const fileLink = document.createElement('a');
-                            fileLink.textContent = ${dairyNumber} (Offline);
+                            fileLink.textContent = `${dairyNumber} (Offline)`;
                             fileLink.href = '#';
-                            fileLink.classList.add('d-block', 'mb-2');
                             fileLink.addEventListener('click', () => {
                                 displayOfflineRecords(dairyNumber);
                             });
@@ -1078,7 +980,7 @@
             async function loadRecordFiles(dairyNumber) {
                 const recordList = document.getElementById('record-list');
                 recordList.innerHTML = '';
-                const storageRef = storage.ref(customers/${dairyNumber});
+                const storageRef = storage.ref(`customers/${dairyNumber}`);
 
                 try {
                     if (navigator.onLine) {
@@ -1091,7 +993,6 @@
                             const fileLink = document.createElement('a');
                             fileLink.textContent = displayName;
                             fileLink.href = '#';
-                            fileLink.classList.add('d-block', 'mb-2');
                             fileLink.addEventListener('click', async () => {
                                 try {
                                     const url = await fileRef.getDownloadURL();
@@ -1168,19 +1069,33 @@
                     const itemName = item.querySelector('label').textContent;
                     const status = item.querySelector('select').value;
                     const comments = item.querySelector('input[type="text"]').value;
-                    const imageInput = item.querySelector('input[type="file"]');
-                    const imageFile = imageInput.files[0];
+                    const imageInput1 = item.querySelector('input.image-upload-1');
+                    const imageFile1 = imageInput1.files[0];
+                    const imageInput2 = item.querySelector('input.image-upload-2');
+                    const imageFile2 = imageInput2.files[0];
 
-                    let imageData = null;
+                    let imageData1 = null;
+                    let imageData2 = null;
 
-                    if (imageFile) {
-                        // Read the image file as ArrayBuffer to store in IndexedDB
-                        imageData = await readFileAsArrayBuffer(imageFile);
+                    if (imageFile1) {
+                        // Read the first image file as ArrayBuffer to store in IndexedDB
+                        imageData1 = await readFileAsArrayBuffer(imageFile1);
                         photos.push({
                             itemIndex: i,
                             photoIndex: 0,
-                            imageData: imageData,
-                            imageType: imageFile.type
+                            imageData: imageData1,
+                            imageType: imageFile1.type
+                        });
+                    }
+
+                    if (imageFile2) {
+                        // Read the second image file as ArrayBuffer to store in IndexedDB
+                        imageData2 = await readFileAsArrayBuffer(imageFile2);
+                        photos.push({
+                            itemIndex: i,
+                            photoIndex: 1,
+                            imageData: imageData2,
+                            imageType: imageFile2.type
                         });
                     }
 
@@ -1188,7 +1103,8 @@
                         itemName: itemName,
                         status: status,
                         comments: comments,
-                        hasImage: !!imageFile
+                        hasImage1: !!imageFile1,
+                        hasImage2: !!imageFile2
                     });
                 }
 
@@ -1229,29 +1145,38 @@
 
                         const statusSelect = item.querySelector('select');
                         const commentsInput = item.querySelector('input[type="text"]');
-                        const imageInput = item.querySelector('input[type="file"]');
-                        const imagePreview = item.querySelector('.image-preview');
-                        const imageButton = item.querySelector('.image-upload-button');
+                        const imageInput1 = item.querySelector('input.image-upload-1');
+                        const imagePreview1 = item.querySelector('.image-preview-1');
+                        const imageInput2 = item.querySelector('input.image-upload-2');
+                        const imagePreview2 = item.querySelector('.image-preview-2');
 
                         if (statusSelect && commentsInput && checklistItemData) {
                             statusSelect.value = checklistItemData.status;
                             commentsInput.value = checklistItemData.comments;
 
-                            if (checklistItemData.hasImage) {
-                                const photoData = data.photos.find(photo => photo.itemIndex === i && photo.photoIndex === 0);
-                                if (photoData) {
+                            if (checklistItemData.hasImage1) {
+                                const photoData1 = data.photos.find(photo => photo.itemIndex === i && photo.photoIndex === 0);
+                                if (photoData1) {
                                     // Create a Blob from the ArrayBuffer
-                                    const blob = new Blob([photoData.imageData], { type: photoData.imageType });
-                                    const imageUrl = URL.createObjectURL(blob);
+                                    const blob1 = new Blob([photoData1.imageData], { type: photoData1.imageType });
+                                    const imageUrl1 = URL.createObjectURL(blob1);
 
                                     // Display the image preview
-                                    imagePreview.src = imageUrl;
-                                    imagePreview.style.display = 'block';
+                                    imagePreview1.src = imageUrl1;
+                                    imagePreview1.style.display = 'block';
+                                }
+                            }
 
-                                    // Show the upload button if necessary
-                                    if (checklistItemData.status === 'attention-required') {
-                                        imageButton.style.display = 'block';
-                                    }
+                            if (checklistItemData.hasImage2) {
+                                const photoData2 = data.photos.find(photo => photo.itemIndex === i && photo.photoIndex === 1);
+                                if (photoData2) {
+                                    // Create a Blob from the ArrayBuffer
+                                    const blob2 = new Blob([photoData2.imageData], { type: photoData2.imageType });
+                                    const imageUrl2 = URL.createObjectURL(blob2);
+
+                                    // Display the image preview
+                                    imagePreview2.src = imageUrl2;
+                                    imagePreview2.style.display = 'block';
                                 }
                             }
                         }
@@ -1286,6 +1211,7 @@
                 });
             }
 
+            // Add the missing helper function
             function readFileAsDataURL(file) {
                 return new Promise((resolve, reject) => {
                     const reader = new FileReader();
@@ -1307,7 +1233,7 @@
                 const logoUrl = "https://storage.googleapis.com/dairy-farm-record-system.appspot.com/Picture3.jpg?alt=media&token=c0bb53ff-e59b-4d7b-b5b1-bb7f8c8813cf";
                 try {
                     const logoDataURL = await fetchImageAsDataURL(logoUrl);
-                    document.querySelector('.logo').src = logoDataURL;
+                    document.getElementById('logo-image').src = logoDataURL;
                     window.correctLogoDataURL = logoDataURL; // Store globally for PDF generation
                 } catch (error) {
                     console.error('Error fetching the correct logo:', error);
@@ -1327,7 +1253,7 @@
                 for (const draft of drafts) {
                     if (now - draft.timestamp > twoHoursInMillis) {
                         await db.drafts.delete(draft.id);
-                        console.log(Deleted draft with ID ${draft.id} due to expiration.);
+                        console.log(`Deleted draft with ID ${draft.id} due to expiration.`);
                     }
                 }
 
@@ -1356,11 +1282,10 @@
                 const offlineForms = await db.forms.where('dairyNumber').equals(dairyNumber).toArray();
 
                 offlineForms.forEach(record => {
-                    const fileName = Offline Form - ${new Date(record.timestamp).toLocaleString()};
+                    const fileName = `Offline Form - ${record.timestamp}`;
                     const fileLink = document.createElement('a');
                     fileLink.textContent = fileName;
                     fileLink.href = '#';
-                    fileLink.classList.add('d-block', 'mb-2');
                     fileLink.addEventListener('click', () => {
                         displayOfflinePDF(record);
                     });
