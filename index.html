@@ -28,10 +28,15 @@
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
             max-width: 800px;
             width: 100%;
+            overflow-y: auto; /* Ensures scrolling if content exceeds view height */
         }
 
-        h1,
-        h2 {
+        #checklist-items {
+            overflow-y: auto; /* Enables scrolling within checklist section */
+            max-height: 50vh; /* Limits height of checklist to fit on mobile */
+        }
+
+        h1, h2 {
             color: #a7ab01;
             text-align: center;
         }
@@ -78,9 +83,7 @@
         .logo {
             display: block;
             margin: 0 auto 20px;
-            width: 100%;
-            max-width: 800px; /* Match the container's max-width */
-            height: auto; /* Maintain aspect ratio */
+            width: 250px;
         }
 
         .record-container {
@@ -137,13 +140,41 @@
             display: block;
             margin-top: 10px;
         }
+
+        /* Mobile responsive styles */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+                width: 100%; /* Expand to full width on mobile */
+                max-width: none; /* Allow full use of mobile width */
+            }
+            #checklist-items {
+                max-height: 40vh; /* Further reduce height of checklist items for mobile */
+            }
+            .image-preview, .image-preview-2 {
+                max-width: 70px; /* Reduce preview size for mobile */
+            }
+            h1, h2 {
+                font-size: 1.5em;
+            }
+            img.logo {
+                width: 80%; /* Reduce logo size on mobile */
+                display: block;
+                margin: 0 auto 20px;
+            }
+        }
     </style>
 </head>
 
+
 <body>
     <div class="container" id="form-container">
-        <!-- Logo Image with Dynamic Source -->
-        <img id="logo-image" src="" alt="Logo" class="logo">
+<div id="network-status" style="position: fixed; top: 10px; right: 10px; background-color: #FF4136; color: #FFFFFF; padding: 5px 10px; border-radius: 5px; display: none;">
+    Offline
+</div>
+
+        <!-- Embedded Logo as Base64 Data URL -->
+        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADICAMAAACahl6sAAAAA1BMVEWZmZnGjxkGAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH5AQDCB8AyXmk4wAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAABYSURBVHja7cEBAQAAAIIg/69uEcgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFgBjEAAEUW6GoAAAAASUVORK5CYII=" alt="Logo" class="logo">
         <h1>Dairy Shed Hygiene Checklist</h1>
 
         <form id="hygiene-checklist-form">
@@ -268,6 +299,18 @@
     <script>
         // Ensure that jsPDF is properly initialized
         const { jsPDF } = window.jspdf;
+function updateNetworkStatus() {
+    const networkStatus = document.getElementById('network-status');
+    if (!navigator.onLine) {
+        networkStatus.style.display = 'block';
+    } else {
+        networkStatus.style.display = 'none';
+    }
+}
+
+window.addEventListener('offline', updateNetworkStatus);
+window.addEventListener('online', updateNetworkStatus);
+document.addEventListener('DOMContentLoaded', updateNetworkStatus);
 
         // Firebase configuration
         const firebaseConfig = {
@@ -284,12 +327,14 @@
         const storage = firebase.storage();
         const firestore = firebase.firestore();
 
-        // Initialize IndexedDB using Dexie
-        const db = new Dexie("OfflineData");
-        db.version(2).stores({
-            forms: "++id, dairyNumber, formData, pdfBlob",
-            drafts: "++id, dairyNumber, formData, photos, timestamp"
-        });
+       // Initialize IndexedDB with a separate store for farm details
+const db = new Dexie("OfflineData");
+db.version(2).stores({
+    forms: "++id, dairyNumber, formData, pdfBlob",
+    drafts: "++id, dairyNumber, formData, photos, timestamp",
+    farmDetails: "++id, dairyNumber, details"
+});
+
 
         // Service Worker Registration
         if ('serviceWorker' in navigator) {
@@ -302,27 +347,12 @@
                 });
         }
 
-        // Helper function to fetch and convert image to data URL
-        async function fetchImageAsDataURL(url) {
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error('Failed to fetch the logo image.');
-            }
-            const blob = await response.blob();
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-            });
-        }
-
         // Function definitions
 
         async function fetchFarmDetails() {
             const dairyNumber = document.getElementById('dairy-number').value;
             if (dairyNumber) {
-                const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
+                const storageRef = storage.ref(farm_details/${dairyNumber}.json);
                 try {
                     if (navigator.onLine) { // Only attempt to fetch from Firebase if online
                         const url = await storageRef.getDownloadURL();
@@ -391,65 +421,38 @@
             }
         }
 
-        async function saveFarmDetails(formData) {
-            const dairyNumber = formData.get('dairy-number');
-            const farmDetails = {
-                dairyCompany: formData.get('dairy-company'),
-                address: formData.get('address'),
-                customerName: formData.get('customer-name'),
-                region: formData.get('region'),
-                farmName: formData.get('farm-name'),
-                island: formData.get('island'),
-            };
-            const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
-            const metadata = {
-                contentType: 'application/json',
-            };
+async function saveFarmDetails(formData) {
+    const dairyNumber = formData.get('dairy-number');
+    const farmDetails = {
+        dairyCompany: formData.get('dairy-company'),
+        address: formData.get('address'),
+        customerName: formData.get('customer-name'),
+        region: formData.get('region'),
+        farmName: formData.get('farm-name'),
+        island: formData.get('island'),
+    };
 
-            try {
-                if (navigator.onLine) {
-                    await storageRef.put(
-                        new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }),
-                        metadata
-                    );
-                    console.log('Farm details saved successfully to Firebase.');
+    const storageRef = storage.ref(farm_details/${dairyNumber}.json);
+    const metadata = { contentType: 'application/json' };
 
-                    // Also save to IndexedDB
-                    await db.forms.put({
-                        dairyNumber: dairyNumber,
-                        formData: farmDetails,
-                        pdfBlob: null,
-                        timestamp: new Date().getTime()
-                    });
-                } else {
-                    console.log('Offline: Saving farm details locally to IndexedDB.');
-                    // Offline: Save farm details to IndexedDB without uploading
-                    await db.forms.put({
-                        dairyNumber: dairyNumber,
-                        formData: farmDetails,
-                        pdfBlob: null,
-                        timestamp: new Date().getTime()
-                    });
-                }
-            } catch (error) {
-                console.error('Error saving farm details:', error);
-                if (!navigator.onLine) {
-                    console.log('Offline: Farm details saved locally to IndexedDB despite error.');
-                    // Attempt to save locally even if an error occurs
-                    try {
-                        await db.forms.put({
-                            dairyNumber: dairyNumber,
-                            formData: farmDetails,
-                            pdfBlob: null,
-                            timestamp: new Date().getTime()
-                        });
-                        console.log('Farm details saved locally to IndexedDB after error.');
-                    } catch (dbError) {
-                        console.error('Error saving farm details locally:', dbError);
-                    }
-                }
-            }
+    try {
+        if (navigator.onLine) {
+            await storageRef.put(new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }), metadata);
+            console.log('Farm details saved successfully to Firebase.');
+        } else {
+            // Save offline in IndexedDB in case of connectivity issues
+            await db.farmDetails.put({ dairyNumber, details: farmDetails });
+            console.log('Farm details saved locally to IndexedDB.');
         }
+    } catch (error) {
+        console.error('Error saving farm details:', error);
+        if (!navigator.onLine) {
+            await db.farmDetails.put({ dairyNumber, details: farmDetails });
+        }
+    }
+}
+
+}
 
         async function generatePDF() {
             const form = document.getElementById('hygiene-checklist-form');
@@ -460,51 +463,51 @@
 
             const pdf = new jsPDF('p', 'pt', 'a4');
 
-            try {
-                // Use the correct logo fetched earlier
-                const embeddedLogo = window.correctLogoDataURL || "https://via.placeholder.com/800x200?text=Logo";
+            // Embedded Logo as Base64 Data URL (no need to fetch)
+            const embeddedLogo = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADICAMAAACahl6sAAAAA1BMVEWZmZnGjxkGAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH5AQDCB8AyXmk4wAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAABYSURBVHja7cEBAQAAAIIg/69uEcgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFgBjEAAEUW6GoAAAAASUVORK5CYII=";
 
+            try {
+                // Add embedded logo centered
                 const imgProps = pdf.getImageProperties(embeddedLogo);
                 const pageWidth = pdf.internal.pageSize.getWidth();
-                const pageMargins = 40; // Total horizontal margins (left + right)
-                const imgWidth = pageWidth - pageMargins * 2; // Adjust based on desired margins
+                const imgWidth = pageWidth - 80; // Leave some margins
                 const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
-                const x = pageMargins; // Start after left margin
-                pdf.addImage(embeddedLogo, imgProps.fileType || 'PNG', x, 40, imgWidth, imgHeight);
+                const x = (pageWidth - imgWidth) / 2; // Center the image
+                pdf.addImage(embeddedLogo, 'PNG', x, 40, imgWidth, imgHeight);
 
                 pdf.setFontSize(12);
                 pdf.setTextColor('#000000');
                 pdf.setFont('helvetica', 'bold');
-                pdf.text('Farm Details:', pageMargins, 40 + imgHeight + 20);
+                pdf.text('Farm Details:', 40, imgHeight + 60);
 
-                let currentY = 40 + imgHeight + 40;
+                let currentY = imgHeight + 80;
 
                 pdf.setFont('helvetica', 'normal');
-                pdf.text(`Dairy Company: ${formData.get('dairy-company')}`, pageMargins, currentY);
+                pdf.text(Dairy Company: ${formData.get('dairy-company')}, 40, currentY);
                 currentY += 15;
-                pdf.text(`Dairy Number: ${formData.get('dairy-number')}`, pageMargins, currentY);
+                pdf.text(Dairy Number: ${formData.get('dairy-number')}, 40, currentY);
                 currentY += 15;
-                pdf.text(`Address: ${formData.get('address')}`, pageMargins, currentY);
+                pdf.text(Address: ${formData.get('address')}, 40, currentY);
                 currentY += 15;
-                pdf.text(`Customer Name: ${formData.get('customer-name')}`, pageMargins, currentY);
+                pdf.text(Customer Name: ${formData.get('customer-name')}, 40, currentY);
                 currentY += 15;
-                pdf.text(`Region: ${formData.get('region')}`, pageMargins, currentY);
+                pdf.text(Region: ${formData.get('region')}, 40, currentY);
                 currentY += 15;
-                pdf.text(`Farm Name: ${formData.get('farm-name')}`, pageMargins, currentY);
+                pdf.text(Farm Name: ${formData.get('farm-name')}, 40, currentY);
                 currentY += 15;
-                pdf.text(`Island: ${formData.get('island')}`, pageMargins, currentY);
+                pdf.text(Island: ${formData.get('island')}, 40, currentY);
                 currentY += 15;
-                pdf.text(`Visit Date: ${formData.get('visit-date')}`, pageMargins, currentY);
+                pdf.text(Visit Date: ${formData.get('visit-date')}, 40, currentY);
                 currentY += 15;
-                pdf.text(`Visit Type: ${formData.get('visit-type')}`, pageMargins, currentY);
+                pdf.text(Visit Type: ${formData.get('visit-type')}, 40, currentY);
                 currentY += 15;
-                pdf.text(`Inspection Start Time: ${formData.get('inspection-start-time')}`, pageMargins, currentY);
+                pdf.text(Inspection Start Time: ${formData.get('inspection-start-time')}, 40, currentY);
                 currentY += 15;
-                pdf.text(`Inspection End Time: ${formData.get('inspection-end-time')}`, pageMargins, currentY);
+                pdf.text(Inspection End Time: ${formData.get('inspection-end-time')}, 40, currentY);
                 currentY += 15;
-                pdf.text(`Inspection Completed By: ${formData.get('inspection-completed-by')}`, pageMargins, currentY);
+                pdf.text(Inspection Completed By: ${formData.get('inspection-completed-by')}, 40, currentY);
                 currentY += 15;
-                pdf.text(`Call Type: ${formData.get('call-type')}`, pageMargins, currentY);
+                pdf.text(Call Type: ${formData.get('call-type')}, 40, currentY);
                 currentY += 30;
 
                 // Checklist Items Section
@@ -612,22 +615,22 @@
                 let tempY = currentY;
 
                 pdf.setFont('helvetica', 'bold');
-                pdf.text('Temperature Measurements:', pageMargins, tempY);
+                pdf.text('Temperature Measurements:', 40, tempY);
                 tempY += 20;
 
                 pdf.setFont('helvetica', 'normal');
                 const hotWaterTemp = formData.get('hot-water-temp') || '';
                 const hotWaterTime = formData.get('hot-water-time') || '';
-                pdf.text(`Hot Water Temp: ${hotWaterTemp} °C`, pageMargins, tempY);
+                pdf.text(Hot Water Temp: ${hotWaterTemp} °C, 40, tempY);
                 tempY += 15;
-                pdf.text(`Time Taken: ${hotWaterTime}`, pageMargins, tempY);
+                pdf.text(Time Taken: ${hotWaterTime}, 40, tempY);
                 tempY += 20;
 
                 const milkTemp = formData.get('milk-temp') || '';
                 const milkTime = formData.get('milk-time') || '';
-                pdf.text(`Milk Temp: ${milkTemp} °C`, pageMargins, tempY);
+                pdf.text(Milk Temp: ${milkTemp} °C, 40, tempY);
                 tempY += 15;
-                pdf.text(`Time Taken: ${milkTime}`, pageMargins, tempY);
+                pdf.text(Time Taken: ${milkTime}, 40, tempY);
                 tempY += 20;
 
                 // Add photos after the temperature data
@@ -655,9 +658,9 @@
                             }
 
                             try {
-                                pdf.addImage(photo.imageData, photo.imageType, pageMargins, photoY, imgWidth, 200); // Adjust the size to fit more photos
+                                pdf.addImage(photo.imageData, photo.imageType, 40, photoY, 250, 200); // Adjust the size to fit more photos
                                 pdf.setFontSize(12);
-                                pdf.text(photo.title, pageMargins, photoY - 10); // Add the title above the photo
+                                pdf.text(photo.title, 40, photoY - 10); // Add the title above the photo
                                 photoY += 220; // Move Y position down for the next photo (image height + spacing)
                             } catch (error) {
                                 console.error('Error adding image to PDF:', error);
@@ -673,17 +676,14 @@
                             }
 
                             try {
-                                // Define width for two images side by side
-                                const singleImgWidth = (imgWidth - 20) / 2; // 20 points total spacing
-
                                 // Add first image
-                                pdf.addImage(photo1.imageData, photo1.imageType, pageMargins, photoY, singleImgWidth, 200);
+                                pdf.addImage(photo1.imageData, photo1.imageType, 40, photoY, 250, 200);
                                 pdf.setFontSize(12);
-                                pdf.text(photo1.title, pageMargins, photoY - 10); // Add the title above the first photo
+                                pdf.text(photo1.title, 40, photoY - 10); // Add the title above the first photo
 
                                 // Add second image to the right of the first
-                                pdf.addImage(photo2.imageData, photo2.imageType, pageMargins + singleImgWidth + 20, photoY, singleImgWidth, 200);
-                                pdf.text(photo2.title, pageMargins + singleImgWidth + 20, photoY - 10); // Add the title above the second photo
+                                pdf.addImage(photo2.imageData, photo2.imageType, 310, photoY, 250, 200);
+                                pdf.text(photo2.title, 310, photoY - 10); // Add the title above the second photo
 
                                 photoY += 220; // Move Y position down for the next set of photos
                             } catch (error) {
@@ -735,10 +735,10 @@
                 console.log('uploadPDF function called with dairyNumber:', dairyNumber); // Debugging statement
 
                 const timestamp = new Date().toISOString().split('T')[0];
-                const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
-                const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
+                const fileName = ${dairyNumber}-form-${timestamp}.pdf;
+                const storageRef = storage.ref(customers/${dairyNumber}/${fileName});
 
-                console.log(`Uploading PDF to path: customers/${dairyNumber}/${fileName}`); // Debugging statement
+                console.log(Uploading PDF to path: customers/${dairyNumber}/${fileName}); // Debugging statement
 
                 storageRef.put(pdfBlob).then(() => {
                     console.log('PDF uploaded successfully');
@@ -749,43 +749,53 @@
 
             window.addEventListener('online', syncDataWithFirebase);
 
-            async function syncDataWithFirebase() {
-                console.log('Device is online. Syncing data with Firebase.');
+async function syncDataWithFirebase() {
+    console.log('Device is online. Syncing data with Firebase.');
 
-                // Sync drafts
-                const drafts = await db.drafts.toArray();
-                for (const draft of drafts) {
-                    const dairyNumber = draft.dairyNumber;
-                    const pdfBlob = draft.pdfBlob; // Assuming pdfBlob is stored in drafts
+    // Sync drafts
+    const drafts = await db.drafts.toArray();
+    for (const draft of drafts) {
+        const dairyNumber = draft.dairyNumber;
+        const pdfBlob = draft.pdfBlob;
 
-                    if (pdfBlob) {
-                        // Upload the PDF
-                        uploadPDF(dairyNumber, pdfBlob);
-                    }
+        if (pdfBlob) {
+            // Upload the PDF
+            uploadPDF(dairyNumber, pdfBlob);
+        }
+        await db.drafts.delete(draft.id);
+    }
 
-                    // You can add more upload logic here if needed
+    // Sync forms (offline-generated PDFs)
+    const offlineForms = await db.forms.toArray();
+    for (const record of offlineForms) {
+        const dairyNumber = record.dairyNumber;
+        const pdfBlob = record.pdfBlob;
 
-                    // Remove the draft after uploading
-                    await db.drafts.delete(draft.id);
-                    console.log(`Draft with ID ${draft.id} uploaded and deleted.`);
-                }
+        uploadPDF(dairyNumber, pdfBlob);
+        await db.forms.delete(record.id);
+    }
 
-                // Sync forms (offline-generated PDFs)
-                const offlineForms = await db.forms.toArray();
+    // Sync farm details specifically
+    const offlineFarmDetails = await db.farmDetails.toArray();
+    for (const detail of offlineFarmDetails) {
+        const dairyNumber = detail.dairyNumber;
+        const farmDetails = detail.details;
+        
+        const storageRef = storage.ref(farm_details/${dairyNumber}.json);
+        const metadata = { contentType: 'application/json' };
 
-                for (const record of offlineForms) {
-                    const dairyNumber = record.dairyNumber;
-                    const pdfBlob = record.pdfBlob;
+        try {
+            await storageRef.put(new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }), metadata);
+            console.log(Farm details for dairy number ${dairyNumber} uploaded successfully.);
+            await db.farmDetails.delete(detail.id);
+        } catch (error) {
+            console.error(Error uploading farm details for dairy number ${dairyNumber}:, error);
+        }
+    }
+    console.log('All offline data has been synced with Firebase.');
+}
 
-                    uploadPDF(dairyNumber, pdfBlob);
 
-                    // Remove the record from IndexedDB after uploading
-                    await db.forms.delete(record.id);
-                    console.log(`Offline form with ID ${record.id} uploaded and deleted.`);
-                }
-
-                console.log('All offline data has been synced with Firebase.');
-            }
 
             function createChecklistItems() {
                 const checklistItems = [
@@ -822,12 +832,12 @@
 
                     const statusSelect = document.createElement('select');
                     statusSelect.classList.add('form-select');
-                    statusSelect.innerHTML = `
+                    statusSelect.innerHTML = 
                         <option value="ok">OK</option>
                         <option value="attention-required">Attention Required</option>
                         <option value="na">N/A</option>
                         <option value="not-checked">Not Checked</option>
-                    `;
+                    ;
                     itemContainer.appendChild(statusSelect);
 
                     const commentsInput = document.createElement('input');
@@ -949,7 +959,7 @@
                         const dairyNumbers = [...new Set(offlineForms.map(record => record.dairyNumber))];
                         dairyNumbers.forEach(dairyNumber => {
                             const fileLink = document.createElement('a');
-                            fileLink.textContent = `${dairyNumber} (Offline)`;
+                            fileLink.textContent = ${dairyNumber} (Offline);
                             fileLink.href = '#';
                             fileLink.addEventListener('click', () => {
                                 displayOfflineRecords(dairyNumber);
@@ -966,7 +976,7 @@
                         const dairyNumbers = [...new Set(offlineForms.map(record => record.dairyNumber))];
                         dairyNumbers.forEach(dairyNumber => {
                             const fileLink = document.createElement('a');
-                            fileLink.textContent = `${dairyNumber} (Offline)`;
+                            fileLink.textContent = ${dairyNumber} (Offline);
                             fileLink.href = '#';
                             fileLink.addEventListener('click', () => {
                                 displayOfflineRecords(dairyNumber);
@@ -980,7 +990,7 @@
             async function loadRecordFiles(dairyNumber) {
                 const recordList = document.getElementById('record-list');
                 recordList.innerHTML = '';
-                const storageRef = storage.ref(`customers/${dairyNumber}`);
+                const storageRef = storage.ref(customers/${dairyNumber});
 
                 try {
                     if (navigator.onLine) {
@@ -1229,17 +1239,6 @@
                 createChecklistItems();
                 // Other initialization code
 
-                // Fetch and set the correct logo
-                const logoUrl = "https://storage.googleapis.com/dairy-farm-record-system.appspot.com/Picture3.jpg?alt=media&token=c0bb53ff-e59b-4d7b-b5b1-bb7f8c8813cf";
-                try {
-                    const logoDataURL = await fetchImageAsDataURL(logoUrl);
-                    document.getElementById('logo-image').src = logoDataURL;
-                    window.correctLogoDataURL = logoDataURL; // Store globally for PDF generation
-                } catch (error) {
-                    console.error('Error fetching the correct logo:', error);
-                    // Fallback to default logo if needed
-                }
-
                 // Get all drafts from IndexedDB
                 let drafts = await db.drafts.toArray();
 
@@ -1253,7 +1252,7 @@
                 for (const draft of drafts) {
                     if (now - draft.timestamp > twoHoursInMillis) {
                         await db.drafts.delete(draft.id);
-                        console.log(`Deleted draft with ID ${draft.id} due to expiration.`);
+                        console.log(Deleted draft with ID ${draft.id} due to expiration.);
                     }
                 }
 
@@ -1282,7 +1281,7 @@
                 const offlineForms = await db.forms.where('dairyNumber').equals(dairyNumber).toArray();
 
                 offlineForms.forEach(record => {
-                    const fileName = `Offline Form - ${record.timestamp}`;
+                    const fileName = Offline Form - ${record.timestamp};
                     const fileLink = document.createElement('a');
                     fileLink.textContent = fileName;
                     fileLink.href = '#';
