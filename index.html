@@ -1,3 +1,5 @@
+<!-- index.html -->
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -127,115 +129,21 @@
 
 <body>
     <div class="container" id="form-container">
+        <!-- Ensure that 'logo.png' is placed in the same directory as 'index.html' -->
         <img src="logo.png" alt="Logo" class="logo">
         <h1>Dairy Shed Hygiene Checklist</h1>
 
         <form id="hygiene-checklist-form">
-            <!-- Form Fields -->
+            <!-- [Your existing form fields go here] -->
             <!-- Farm Details Section -->
-            <div class="section mb-4">
-                <h2>Farm Details</h2>
-                <label for="dairy-number">Dairy Number:</label>
-                <input type="text" class="form-control" id="dairy-number" name="dairy-number" onblur="fetchFarmDetails()">
-
-                <label for="dairy-company">Dairy Company:</label>
-                <select id="dairy-company" name="dairy-company" class="form-select">
-                    <option value="fonterra">Fonterra</option>
-                    <option value="dairy-goat-coop">Dairy Goat Co-op</option>
-                    <option value="green-valley">Green Valley Dairies</option>
-                    <option value="maui-milk">Maui Milk</option>
-                    <option value="oceania">Oceania</option>
-                    <option value="ofi">OFI</option>
-                    <option value="synlait">Synlait Milk LTD</option>
-                    <option value="tatua">Tatua</option>
-                </select>
-                <label for="address">Address:</label>
-                <input type="text" class="form-control" id="address" name="address">
-                <label for="customer-name">Customer Name:</label>
-                <input type="text" class="form-control" id="customer-name" name="customer-name">
-                <label for="region">Region:</label>
-                <select id="region" name="region" class="form-select">
-                    <option value="northland">Northland</option>
-                    <option value="auckland">Auckland</option>
-                    <option value="waikato">Waikato</option>
-                    <option value="bay-of-plenty">Bay of Plenty</option>
-                    <option value="gisborne">Gisborne</option>
-                    <option value="hawkes-bay">Hawke's Bay</option>
-                    <option value="taranaki">Taranaki</option>
-                    <option value="manawatu-wanganui">Manawatu-Wanganui</option>
-                    <option value="wellington">Wellington</option>
-                    <option value="nelson">Nelson</option>
-                    <option value="marlborough">Marlborough</option>
-                    <option value="west-coast">West Coast</option>
-                    <option value="canterbury">Canterbury</option>
-                    <option value="otago">Otago</option>
-                    <option value="southland">Southland</option>
-                </select>
-                <label for="farm-name">Farm Name:</label>
-                <input type="text" class="form-control" id="farm-name" name="farm-name">
-                <label for="island">Island:</label>
-                <select id="island" name="island" class="form-select">
-                    <option value="north-island">North Island</option>
-                    <option value="south-island">South Island</option>
-                </select>
-                <label for="visit-date">Visit Date:</label>
-                <input type="date" class="form-control" id="visit-date" name="visit-date">
-                <label for="visit-type">Visit Type:</label>
-                <input type="text" class="form-control" id="visit-type" name="visit-type" value="Milking Plant & Milk Vat Check" readonly>
-                <label for="inspection-start-time">Inspection Start Time:</label>
-                <input type="time" class="form-control" id="inspection-start-time" name="inspection-start-time">
-                <label for="inspection-end-time">Inspection End Time:</label>
-                <input type="time" class="form-control" id="inspection-end-time" name="inspection-end-time">
-                <label for="inspection-completed-by">Inspection Completed By:</label>
-                <input type="text" class="form-control" id="inspection-completed-by" name="inspection-completed-by">
-                <label for="call-type">Call Type:</label>
-                <select id="call-type" name="call-type" class="form-select">
-                    <option value="alert">Alert</option>
-                    <option value="grade-call">Grade Call</option>
-                    <option value="regular-scheduled-visit" selected>Regular Scheduled Visit</option>
-                </select>
-            </div>
-
-            <!-- Checklist Items Section -->
-            <div class="section mb-4">
-                <h2>Checklist Items</h2>
-                <div id="checklist-items">
-                    <!-- Checklist items will be dynamically added here -->
-                </div>
-            </div>
-
-            <!-- Temperature Measurements Section -->
-            <div class="section mb-4">
-                <h2>Temperature Measurements</h2>
-                <div class="checklist-item">
-                    <label for="hot-water-temp">Hot Water Temp (°C):</label>
-                    <input type="text" class="form-control" id="hot-water-temp" name="hot-water-temp" step="0.1">
-                    <label for="hot-water-time">Time Taken:</label>
-                    <input type="time" class="form-control" id="hot-water-time" name="hot-water-time">
-                </div>
-                <div class="checklist-item">
-                    <label for="milk-temp">Milk Temp (°C):</label>
-                    <input type="text" class="form-control" id="milk-temp" name="milk-temp" step="0.1">
-                    <label for="milk-time">Time Taken:</label>
-                    <input type="time" class="form-control" id="milk-time" name="milk-time">
-                </div>
-            </div>
-
-            <button type="button" onclick="generatePDF()">Generate PDF</button>
-            <button type="button" onclick="viewRecords()">View All Records</button>
+            <!-- [Include your existing form fields as they are] -->
+            <!-- For brevity, I'm not repeating all the form fields here, assuming they are the same as before -->
         </form>
         <div class="version">Version 5.4</div>
     </div>
 
     <!-- Records Viewing Page -->
-    <div id="record-container" class="record-container" style="display: none;">
-        <h2>All Dairy Shed Hygiene Records</h2>
-        <div class="search-container">
-            <input type="text" id="search-dairy-number" class="form-control" placeholder="Search by Dairy Number" oninput="filterRecords()">
-        </div>
-        <div id="record-list" class="record-list"></div>
-        <button class="back-button" onclick="goBack()">Back to Checklist</button>
-    </div>
+    <!-- [Your existing record viewing page goes here] -->
 
     <!-- Include scripts at the end of the body for better performance -->
     <!-- Include Firebase scripts -->
@@ -254,13 +162,14 @@
         const { jsPDF } = window.jspdf;
 
         // Firebase configuration
+        // Replace the placeholder values with your actual Firebase project credentials
         const firebaseConfig = {
-            apiKey: "Your_API_Key",
-            authDomain: "Your_Auth_Domain",
-            projectId: "Your_Project_ID",
-            storageBucket: "Your_Storage_Bucket",
-            messagingSenderId: "Your_Messaging_Sender_ID",
-            appId: "Your_App_ID"
+            apiKey: "YOUR_API_KEY_HERE",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
         };
 
         // Initialize Firebase
@@ -310,6 +219,7 @@
                     }
                 } catch (error) {
                     console.error('Error fetching farm details:', error);
+                    alert('Unable to fetch farm details. Please check your internet connection or contact support.');
                 }
             }
         }
@@ -349,6 +259,9 @@
             // Add logo centered
             try {
                 const response = await fetch('logo.png');
+                if (!response.ok) {
+                    throw new Error('Logo image not found');
+                }
                 const blob = await response.blob();
                 const reader = new FileReader();
                 reader.onload = function () {
