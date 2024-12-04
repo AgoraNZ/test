@@ -1,3 +1,5 @@
+// service-worker.js
+
 const CACHE_NAME = 'dairy-shed-cache-v2'; // Increment cache version
 const urlsToCache = [
     '/',
