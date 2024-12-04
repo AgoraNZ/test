@@ -131,6 +131,7 @@
         <h1>Dairy Shed Hygiene Checklist</h1>
 
         <form id="hygiene-checklist-form">
+            <!-- Form Fields -->
             <!-- Farm Details Section -->
             <div class="section mb-4">
                 <h2>Farm Details</h2>
@@ -269,12 +270,12 @@
 
         // Initialize IndexedDB using Dexie
         const db = new Dexie("OfflineData");
-        db.version(2).stores({
-            forms: "++id, dairyNumber, formData, pdfBlob",
-            formFields: "id, data"
+        db.version(3).stores({
+            forms: "++id, dairyNumber, formData, pdfBlob, timestamp",
+            formFields: "id, data, timestamp"
         });
 
-        // Register the service worker
+        // Service Worker Registration
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('service-worker.js')
                 .then(registration => {
@@ -337,10 +338,225 @@
         }
 
         async function generatePDF() {
-            // [Your existing generatePDF function code]
-            // This function will generate the PDF, handle images, and save or upload as needed
-            // Ensure all logic from your original code is included here
-            // ...
+            const form = document.getElementById('hygiene-checklist-form');
+            const formData = new FormData(form);
+            const dairyNumber = formData.get('dairy-number');
+
+            await saveFarmDetails(formData); // Save farm details if not found
+
+            const pdf = new jsPDF('p', 'pt', 'a4');
+
+            // Add logo centered
+            const logoUrl = 'https://i.postimg.cc/htZPjx5g/Picture3.jpg'; // Use cached logo URL
+            try {
+                const logo = await fetch(logoUrl).then((res) => res.blob());
+                const reader = new FileReader();
+                reader.readAsDataURL(logo);
+                reader.onload = function () {
+                    const imgData = reader.result;
+                    const pageWidth = pdf.internal.pageSize.getWidth();
+                    const imgProps = pdf.getImageProperties(imgData);
+                    const imgWidth = pageWidth - 80; // Leave some margins
+                    const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
+                    const x = (pageWidth - imgWidth) / 2; // Center the image
+                    pdf.addImage(imgData, 'JPEG', x, 40, imgWidth, imgHeight);
+
+                    pdf.setFontSize(12);
+                    pdf.setTextColor('#000000');
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text('Farm Details:', 40, imgHeight + 60);
+
+                    let currentY = imgHeight + 80;
+
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.text(`Dairy Company: ${formData.get('dairy-company')}`, 40, currentY);
+                    currentY += 15;
+                    pdf.text(`Dairy Number: ${formData.get('dairy-number')}`, 40, currentY);
+                    currentY += 15;
+                    pdf.text(`Address: ${formData.get('address')}`, 40, currentY);
+                    currentY += 15;
+                    pdf.text(`Customer Name: ${formData.get('customer-name')}`, 40, currentY);
+                    currentY += 15;
+                    pdf.text(`Region: ${formData.get('region')}`, 40, currentY);
+                    currentY += 15;
+                    pdf.text(`Farm Name: ${formData.get('farm-name')}`, 40, currentY);
+                    currentY += 15;
+                    pdf.text(`Island: ${formData.get('island')}`, 40, currentY);
+                    currentY += 15;
+                    pdf.text(`Visit Date: ${formData.get('visit-date')}`, 40, currentY);
+                    currentY += 15;
+                    pdf.text(`Visit Type: ${formData.get('visit-type')}`, 40, currentY);
+                    currentY += 15;
+                    pdf.text(`Inspection Start Time: ${formData.get('inspection-start-time')}`, 40, currentY);
+                    currentY += 15;
+                    pdf.text(`Inspection End Time: ${formData.get('inspection-end-time')}`, 40, currentY);
+                    currentY += 15;
+                    pdf.text(`Inspection Completed By: ${formData.get('inspection-completed-by')}`, 40, currentY);
+                    currentY += 15;
+                    pdf.text(`Call Type: ${formData.get('call-type')}`, 40, currentY);
+                    currentY += 30;
+
+                    // Checklist Items Section
+                    const checklistItemsDiv = document.getElementById('checklist-items').children;
+                    const checklistTable = [];
+                    const photos = [];
+
+                    let pendingImages = 0;
+
+                    for (let item of checklistItemsDiv) {
+                        const itemName = item.querySelector('label').textContent;
+                        const status = item.querySelector('select').value;
+                        let comments = item.querySelector('input[type="text"]').value;
+                        const imageUploads = item.querySelectorAll('input[type="file"]');
+                        const imageFile1 = imageUploads[0].files[0];
+                        const imageFile2 = imageUploads[1].files[0];
+
+                        if (status === 'attention-required') {
+                            if (imageFile1 || imageFile2) {
+                                comments += " (See attached photo below)";
+                            }
+                        }
+
+                        checklistTable.push([itemName, status, comments]);
+
+                        if (status === 'attention-required' && (imageFile1 || imageFile2)) {
+                            const photoItem = {
+                                itemName: itemName,
+                                images: []
+                            };
+
+                            if (imageFile1) {
+                                pendingImages++;
+                                const imgReader1 = new FileReader();
+                                imgReader1.onload = function (event) {
+                                    photoItem.images[0] = event.target.result;
+                                    pendingImages--;
+                                    if (pendingImages === 0) {
+                                        finalizePDF();
+                                    }
+                                };
+                                imgReader1.readAsDataURL(imageFile1);
+                            }
+
+                            if (imageFile2) {
+                                pendingImages++;
+                                const imgReader2 = new FileReader();
+                                imgReader2.onload = function (event) {
+                                    photoItem.images[1] = event.target.result;
+                                    pendingImages--;
+                                    if (pendingImages === 0) {
+                                        finalizePDF();
+                                    }
+                                };
+                                imgReader2.readAsDataURL(imageFile2);
+                            }
+
+                            photos.push(photoItem);
+                        }
+                    }
+
+                    if (pendingImages === 0) {
+                        finalizePDF();
+                    }
+
+                    function finalizePDF() {
+                        // Generate checklist items table
+                        pdf.autoTable({
+                            startY: currentY,
+                            head: [['Item', 'Status', 'Comments']],
+                            body: checklistTable,
+                            styles: {
+                                fontSize: 10,
+                                cellPadding: 5,
+                            },
+                            headStyles: {
+                                fillColor: '#002B5C',
+                                textColor: '#FFFFFF'
+                            }
+                        });
+
+                        // Add temperature data
+                        let tempY = pdf.lastAutoTable.finalY + 20;
+
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.text('Temperature Measurements:', 40, tempY);
+                        tempY += 20;
+
+                        pdf.setFont('helvetica', 'normal');
+
+                        const hotWaterTemp = document.getElementById('hot-water-temp').value;
+                        const hotWaterTime = document.getElementById('hot-water-time').value;
+
+                        pdf.text(`Hot Water Temp: ${hotWaterTemp} °C`, 40, tempY);
+                        tempY += 15;
+                        pdf.text(`Time Taken: ${hotWaterTime}`, 40, tempY);
+                        tempY += 20;
+
+                        const milkTemp = document.getElementById('milk-temp').value;
+                        const milkTime = document.getElementById('milk-time').value;
+
+                        pdf.text(`Milk Temp: ${milkTemp} °C`, 40, tempY);
+                        tempY += 15;
+                        pdf.text(`Time Taken: ${milkTime}`, 40, tempY);
+                        tempY += 20;
+
+                        // Add photos after the temperature data
+                        let photoY = tempY + 20; // Start placing photos after the temperature data
+                        const pageWidth = pdf.internal.pageSize.getWidth();
+
+                        photos.forEach(photoItem => {
+                            const images = photoItem.images;
+                            pdf.setFontSize(12);
+                            pdf.text(photoItem.itemName, 40, photoY - 10); // Add the title above the photo
+
+                            if (images.length === 1) {
+                                if (photoY > pdf.internal.pageSize.getHeight() - 220) {
+                                    pdf.addPage();
+                                    photoY = 60;
+                                }
+                                pdf.addImage(images[0], 'JPEG', 40, photoY, 250, 200);
+                                photoY += 220;
+                            } else if (images.length === 2) {
+                                if (photoY > pdf.internal.pageSize.getHeight() - 220) {
+                                    pdf.addPage();
+                                    photoY = 60;
+                                }
+                                const imageWidth = (pageWidth - 120) / 2; // Adjust margins
+                                pdf.addImage(images[0], 'JPEG', 40, photoY, imageWidth, 200);
+                                pdf.addImage(images[1], 'JPEG', 60 + imageWidth, photoY, imageWidth, 200);
+                                photoY += 220;
+                            }
+                        });
+
+                        // Save PDF and upload to Firebase
+                        const pdfBlob = pdf.output('blob');
+
+                        if (navigator.onLine) {
+                            uploadPDF(dairyNumber, pdfBlob);
+                        } else {
+                            // Save data to IndexedDB
+                            db.forms.add({
+                                dairyNumber: dairyNumber,
+                                formData: Object.fromEntries(formData.entries()),
+                                pdfBlob: pdfBlob,
+                                timestamp: new Date().getTime()
+                            }).then(() => {
+                                console.log('Data saved locally. Will sync when back online.');
+                            }).catch((error) => {
+                                console.error('Error saving data locally:', error);
+                            });
+                        }
+
+                        pdf.save('Dairy_Shed_Hygiene_Checklist.pdf');
+
+                        // Delete cached form data as form is complete
+                        db.formFields.delete('formData');
+                    }
+
+                };
+            } catch (error) {
+                console.error('Error fetching logo:', error);
+            }
         }
 
         function uploadPDF(dairyNumber, pdfBlob) {
@@ -377,7 +593,6 @@
 
         function createChecklistItems() {
             const checklistItems = [
-                // [Your existing checklist items]
                 "Pulsator Airline", "Long Bend Elbows", "Automatic Cup and Remover", "Diaphragm", "Receiving Can",
                 "Sanitary Trap", "Main Milk Line", "Milk Line Seals in Good Condition", "Stainless Droppers", "Long Milk Rubber",
                 "Liner", "Cluster", "Cluster Seal", "Cluster Button", "Non Return Valve at Milk Pump", "Milk Pump",
@@ -552,11 +767,12 @@
             }
         }
 
-        // Save form data locally
+        // Save form data locally with timestamp
         function saveFormData() {
             const form = document.getElementById('hygiene-checklist-form');
             const formData = new FormData(form);
             const data = Object.fromEntries(formData.entries());
+            data.timestamp = new Date().getTime(); // Add timestamp
 
             // Save data from dynamic checklist items
             const checklistItemsData = [];
@@ -577,47 +793,61 @@
             data.checklistItems = checklistItemsData;
 
             // Save data to IndexedDB
-            db.formFields.put({ id: 'formData', data: data });
+            db.formFields.put({ id: 'formData', data: data, timestamp: data.timestamp });
         }
 
-        // Load form data from local storage
+        // Load form data from local storage with prompt
         function loadFormData() {
             db.formFields.get('formData').then(record => {
                 if (record && record.data) {
-                    const data = record.data;
-                    const form = document.getElementById('hygiene-checklist-form');
-                    for (let key in data) {
-                        if (key !== 'checklistItems') {
-                            const field = form.elements[key];
-                            if (field) {
-                                field.value = data[key];
-                            }
-                        }
+                    const now = new Date().getTime();
+                    const twoHours = 2 * 60 * 60 * 1000;
+                    if (now - record.timestamp > twoHours) {
+                        // Data is older than 2 hours, delete it
+                        db.formFields.delete('formData');
+                        return;
                     }
 
-                    // Load the checklist items data
-                    if (data.checklistItems) {
-                        const checklistItemsData = data.checklistItems;
-                        const checklistItemsDiv = document.getElementById('checklist-items').children;
-                        for (let i = 0; i < checklistItemsData.length; i++) {
-                            const itemData = checklistItemsData[i];
-                            const item = checklistItemsDiv[i];
-
-                            if (item) {
-                                const statusSelect = item.querySelector('select');
-                                const commentsInput = item.querySelector('input[type="text"]');
-
-                                if (statusSelect) {
-                                    statusSelect.value = itemData.status;
-                                    // Trigger change event to show/hide image uploads if necessary
-                                    statusSelect.dispatchEvent(new Event('change'));
-                                }
-
-                                if (commentsInput) {
-                                    commentsInput.value = itemData.comments;
+                    const data = record.data;
+                    const dairyNumber = data['dairy-number'] || 'Unknown Dairy Number';
+                    if (confirm(`You have an unfinished form for Dairy Number: ${dairyNumber}. Do you want to continue?`)) {
+                        const form = document.getElementById('hygiene-checklist-form');
+                        for (let key in data) {
+                            if (key !== 'checklistItems' && key !== 'timestamp') {
+                                const field = form.elements[key];
+                                if (field) {
+                                    field.value = data[key];
                                 }
                             }
                         }
+
+                        // Load the checklist items data
+                        if (data.checklistItems) {
+                            const checklistItemsData = data.checklistItems;
+                            const checklistItemsDiv = document.getElementById('checklist-items').children;
+                            for (let i = 0; i < checklistItemsData.length; i++) {
+                                const itemData = checklistItemsData[i];
+                                const item = checklistItemsDiv[i];
+
+                                if (item) {
+                                    const statusSelect = item.querySelector('select');
+                                    const commentsInput = item.querySelector('input[type="text"]');
+
+                                    if (statusSelect) {
+                                        statusSelect.value = itemData.status;
+                                        // Trigger change event to show/hide image uploads if necessary
+                                        statusSelect.dispatchEvent(new Event('change'));
+                                    }
+
+                                    if (commentsInput) {
+                                        commentsInput.value = itemData.comments;
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        // User chose not to continue, delete the data
+                        db.formFields.delete('formData');
                     }
                 }
             }).catch(error => {
@@ -625,12 +855,29 @@
             });
         }
 
+        // Clean up old cached data
+        function cleanUpCachedData() {
+            db.formFields.get('formData').then(record => {
+                if (record && record.timestamp) {
+                    const now = new Date().getTime();
+                    const twoHours = 2 * 60 * 60 * 1000;
+                    if (now - record.timestamp > twoHours) {
+                        db.formFields.delete('formData');
+                    }
+                }
+            });
+        }
+
         document.addEventListener("DOMContentLoaded", () => {
             createChecklistItems();
             loadFormData();
+            cleanUpCachedData();
 
             const form = document.getElementById('hygiene-checklist-form');
             form.addEventListener('input', saveFormData);
+
+            // Periodically clean up old cached data
+            setInterval(cleanUpCachedData, 30 * 60 * 1000); // Every 30 minutes
         });
     </script>
 </body>
