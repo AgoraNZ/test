@@ -6,12 +6,7 @@ const urlsToCache = [
     'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css',
     'https://i.postimg.cc/htZPjx5g/logo-89.png',
     'https://i.postimg.cc/htZPjx5g/Picture3.jpg', // The logo used in the PDF
-
-    // Include all your CSS and JS files
-    // If you have separate CSS or JS files, include them here
-    // e.g., '/styles.css', '/main.js'
-
-    // Include the JS scripts
+    // Add the JS scripts
     'https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js',
     'https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js',
     'https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js',
@@ -54,9 +49,9 @@ self.addEventListener('fetch', function (event) {
                             });
                         return response;
                     }
-                );
-            }).catch(function () {
-                return caches.match('/index.html');
+                ).catch(function () {
+                    return caches.match('/index.html');
+                });
             })
     );
 });
@@ -69,7 +64,6 @@ self.addEventListener('activate', function (event) {
                 return Promise.all(
                     cacheNames.map(function (cacheName) {
                         if (cacheWhitelist.indexOf(cacheName) === -1) {
-                            console.log('Deleting cache:', cacheName);
                             return caches.delete(cacheName);
                         }
                     })
