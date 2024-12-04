@@ -1,11 +1,10 @@
-const CACHE_NAME = 'dairy-shed-cache-v2';
+const CACHE_NAME = 'dairy-shed-cache-v2'; // Increment cache version
 const urlsToCache = [
     '/',
     '/index.html',
+    '/logo.png', // Include the local logo image
     // Add any other local assets or URLs that need to be cached
     'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css',
-    'https://i.postimg.cc/htZPjx5g/logo-89.png',
-    'https://i.postimg.cc/htZPjx5g/Picture3.jpg', // The logo used in the PDF
     // Add the JS scripts
     'https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js',
     'https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js',
@@ -31,28 +30,29 @@ self.addEventListener('install', function (event) {
 
 self.addEventListener('fetch', function (event) {
     event.respondWith(
-        caches.match(event.request)
-            .then(function (response) {
-                if (response) {
+        caches.match(event.request).then(function (response) {
+            if (response) {
+                return response;
+            }
+            return fetch(event.request).then(function (response) {
+                if (!response || response.status !== 200) {
                     return response;
                 }
-                const fetchRequest = event.request.clone();
-                return fetch(fetchRequest).then(
-                    function (response) {
-                        if (!response || response.status !== 200) {
-                            return response;
-                        }
-                        const responseToCache = response.clone();
-                        caches.open(CACHE_NAME)
-                            .then(function (cache) {
-                                cache.put(event.request, responseToCache);
-                            });
-                        return response;
-                    }
-                ).catch(function () {
+                const responseToCache = response.clone();
+                caches.open(CACHE_NAME)
+                    .then(function (cache) {
+                        cache.put(event.request, responseToCache);
+                    });
+                return response;
+            }).catch(function () {
+                // If both cache and network fail, return fallback
+                if (event.request.destination === 'document') {
                     return caches.match('/index.html');
-                });
-            })
+                } else {
+                    return new Response();
+                }
+            });
+        })
     );
 });
 
