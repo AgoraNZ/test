@@ -1,12 +1,10 @@
-// service-worker.js
-
-const CACHE_NAME = 'dairy-shed-cache-v2'; // Increment cache version
+const CACHE_NAME = 'dairy-shed-cache-v1';
 const urlsToCache = [
     '/',
     '/index.html',
-    '/logo.png', // Include the local logo image
     // Add any other local assets or URLs that need to be cached
     'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css',
+    'https://i.postimg.cc/htZPjx5g/logo-89.png',
     // Add the JS scripts
     'https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js',
     'https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js',
@@ -30,6 +28,8 @@ self.addEventListener('install', function (event) {
     );
 });
 
+
+
 self.addEventListener('fetch', function (event) {
     event.respondWith(
         caches.match(event.request).then(function (response) {
@@ -46,14 +46,9 @@ self.addEventListener('fetch', function (event) {
                         cache.put(event.request, responseToCache);
                     });
                 return response;
-            }).catch(function () {
-                // If both cache and network fail, return fallback
-                if (event.request.destination === 'document') {
-                    return caches.match('/index.html');
-                } else {
-                    return new Response();
-                }
             });
+        }).catch(function () {
+            return caches.match('/index.html');
         })
     );
 });
