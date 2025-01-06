@@ -136,7 +136,14 @@
             <div class="section mb-4">
                 <h2>Farm Details</h2>
                 <label for="dairy-number">Dairy Number:</label>
-                <input type="text" class="form-control" id="dairy-number" name="dairy-number" onblur="fetchFarmDetails()">
+                <input type="text" 
+                       class="form-control" 
+                       id="dairy-number" 
+                       name="dairy-number" 
+                       onblur="fetchFarmDetails()"
+                       autocapitalize="words" 
+                       autocorrect="off" 
+                       spellcheck="false">
 
                 <label for="dairy-company">Dairy Company:</label>
                 <select id="dairy-company" name="dairy-company" class="form-select">
@@ -150,9 +157,21 @@
                     <option value="tatua">Tatua</option>
                 </select>
                 <label for="address">Address:</label>
-                <input type="text" class="form-control" id="address" name="address">
+                <input type="text" 
+                       class="form-control" 
+                       id="address" 
+                       name="address"
+                       autocapitalize="words" 
+                       autocorrect="off" 
+                       spellcheck="false">
                 <label for="customer-name">Customer Name:</label>
-                <input type="text" class="form-control" id="customer-name" name="customer-name">
+                <input type="text" 
+                       class="form-control" 
+                       id="customer-name" 
+                       name="customer-name"
+                       autocapitalize="words" 
+                       autocorrect="off" 
+                       spellcheck="false">
                 <label for="region">Region:</label>
                 <select id="region" name="region" class="form-select">
                     <option value="northland">Northland</option>
@@ -172,22 +191,56 @@
                     <option value="southland">Southland</option>
                 </select>
                 <label for="farm-name">Farm Name:</label>
-                <input type="text" class="form-control" id="farm-name" name="farm-name">
+                <input type="text" 
+                       class="form-control" 
+                       id="farm-name" 
+                       name="farm-name"
+                       autocapitalize="words" 
+                       autocorrect="off" 
+                       spellcheck="false">
                 <label for="island">Island:</label>
                 <select id="island" name="island" class="form-select">
                     <option value="north-island">North Island</option>
                     <option value="south-island">South Island</option>
                 </select>
                 <label for="visit-date">Visit Date:</label>
-                <input type="date" class="form-control" id="visit-date" name="visit-date">
+                <input type="date" 
+                       class="form-control" 
+                       id="visit-date" 
+                       name="visit-date">
+
                 <label for="visit-type">Visit Type:</label>
-                <input type="text" class="form-control" id="visit-type" name="visit-type" value="Milking Plant & Milk Vat Check" readonly>
+                <input type="text" 
+                       class="form-control" 
+                       id="visit-type" 
+                       name="visit-type" 
+                       value="Milking Plant & Milk Vat Check" 
+                       readonly
+                       autocapitalize="words" 
+                       autocorrect="off" 
+                       spellcheck="false">
+
                 <label for="inspection-start-time">Inspection Start Time:</label>
-                <input type="time" class="form-control" id="inspection-start-time" name="inspection-start-time">
+                <input type="time" 
+                       class="form-control" 
+                       id="inspection-start-time" 
+                       name="inspection-start-time">
+
                 <label for="inspection-end-time">Inspection End Time:</label>
-                <input type="time" class="form-control" id="inspection-end-time" name="inspection-end-time">
+                <input type="time" 
+                       class="form-control" 
+                       id="inspection-end-time" 
+                       name="inspection-end-time">
+
                 <label for="inspection-completed-by">Inspection Completed By:</label>
-                <input type="text" class="form-control" id="inspection-completed-by" name="inspection-completed-by">
+                <input type="text" 
+                       class="form-control" 
+                       id="inspection-completed-by" 
+                       name="inspection-completed-by"
+                       autocapitalize="words" 
+                       autocorrect="off" 
+                       spellcheck="false">
+
                 <label for="call-type">Call Type:</label>
                 <select id="call-type" name="call-type" class="form-select">
                     <option value="alert">Alert</option>
@@ -196,12 +249,30 @@
                 </select>
             </div>
 
+            <!-- NEW Health & Safety Section (above the main checklist items) -->
+            <div class="section mb-4">
+                <h2>Health & Safety</h2>
+                <div id="health-safety-top"></div>
+            </div>
+
             <!-- Checklist Items Section -->
             <div class="section mb-4">
                 <h2>Checklist Items</h2>
                 <div id="checklist-items">
-                    <!-- Checklist items will be dynamically added here -->
+                    <!-- Main Checklist items will be dynamically added here -->
                 </div>
+            </div>
+
+            <!-- Another Health & Safety Section (repeated at end as requested) -->
+            <div class="section mb-4">
+                <h2>Health & Safety (End)</h2>
+                <div id="health-safety-bottom"></div>
+            </div>
+
+            <!-- Additional Checks: Teat Spray Check & Chemical Check -->
+            <div class="section mb-4">
+                <h2>Additional Checks</h2>
+                <div id="additional-checks"></div>
             </div>
 
             <!-- Temperature Measurements Section -->
@@ -209,13 +280,27 @@
                 <h2>Temperature Measurements</h2>
                 <div class="checklist-item">
                     <label for="hot-water-temp">Hot Water Temp (°C):</label>
-                    <input type="text" class="form-control" id="hot-water-temp" name="hot-water-temp" step="0.1">
+                    <input type="text" 
+                           class="form-control" 
+                           id="hot-water-temp" 
+                           name="hot-water-temp" 
+                           step="0.1"
+                           autocapitalize="words" 
+                           autocorrect="off" 
+                           spellcheck="false">
                     <label for="hot-water-time">Time Taken:</label>
                     <input type="time" class="form-control" id="hot-water-time" name="hot-water-time">
                 </div>
                 <div class="checklist-item">
                     <label for="milk-temp">Milk Temp (°C):</label>
-                    <input type="text" class="form-control" id="milk-temp" name="milk-temp" step="0.1">
+                    <input type="text" 
+                           class="form-control" 
+                           id="milk-temp" 
+                           name="milk-temp" 
+                           step="0.1"
+                           autocapitalize="words" 
+                           autocorrect="off" 
+                           spellcheck="false">
                     <label for="milk-time">Time Taken:</label>
                     <input type="time" class="form-control" id="milk-time" name="milk-time">
                 </div>
@@ -272,7 +357,9 @@
         const db = new Dexie("OfflineData");
         db.version(2).stores({
             forms: "++id, dairyNumber, formData, pdfBlob",
-            formFields: "id, data"
+            formFields: "id, data",
+            // Optionally store custom fields such as dilution rates
+            teatSprayRatios: "++id, ratio"
         });
 
         // Service Worker Registration
@@ -292,7 +379,7 @@
             // Fetch farm details from Firebase Storage
             const dairyNumber = document.getElementById('dairy-number').value;
             if (dairyNumber) {
-                const storageRef = storage.ref(farm_details/${dairyNumber}.json);
+                const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
                 try {
                     const url = await storageRef.getDownloadURL();
                     const response = await fetch(url);
@@ -325,7 +412,7 @@
                 farmName: formData.get('farm-name'),
                 island: formData.get('island'),
             };
-            const storageRef = storage.ref(farm_details/${dairyNumber}.json);
+            const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
             const metadata = {
                 contentType: 'application/json',
             };
@@ -370,92 +457,132 @@
                     let currentY = imgHeight + 80;
 
                     pdf.setFont('helvetica', 'normal');
-                    pdf.text(Dairy Company: ${formData.get('dairy-company')}, 40, currentY);
+                    pdf.text(`Dairy Company: ${formData.get('dairy-company')}`, 40, currentY);
                     currentY += 15;
-                    pdf.text(Dairy Number: ${formData.get('dairy-number')}, 40, currentY);
+                    pdf.text(`Dairy Number: ${formData.get('dairy-number')}`, 40, currentY);
                     currentY += 15;
-                    pdf.text(Address: ${formData.get('address')}, 40, currentY);
+                    pdf.text(`Address: ${formData.get('address')}`, 40, currentY);
                     currentY += 15;
-                    pdf.text(Customer Name: ${formData.get('customer-name')}, 40, currentY);
+                    pdf.text(`Customer Name: ${formData.get('customer-name')}`, 40, currentY);
                     currentY += 15;
-                    pdf.text(Region: ${formData.get('region')}, 40, currentY);
+                    pdf.text(`Region: ${formData.get('region')}`, 40, currentY);
                     currentY += 15;
-                    pdf.text(Farm Name: ${formData.get('farm-name')}, 40, currentY);
+                    pdf.text(`Farm Name: ${formData.get('farm-name')}`, 40, currentY);
                     currentY += 15;
-                    pdf.text(Island: ${formData.get('island')}, 40, currentY);
+                    pdf.text(`Island: ${formData.get('island')}`, 40, currentY);
                     currentY += 15;
-                    pdf.text(Visit Date: ${formData.get('visit-date')}, 40, currentY);
+                    pdf.text(`Visit Date: ${formData.get('visit-date')}`, 40, currentY);
                     currentY += 15;
-                    pdf.text(Visit Type: ${formData.get('visit-type')}, 40, currentY);
+                    pdf.text(`Visit Type: ${formData.get('visit-type')}`, 40, currentY);
                     currentY += 15;
-                    pdf.text(Inspection Start Time: ${formData.get('inspection-start-time')}, 40, currentY);
+                    pdf.text(`Inspection Start Time: ${formData.get('inspection-start-time')}`, 40, currentY);
                     currentY += 15;
-                    pdf.text(Inspection End Time: ${formData.get('inspection-end-time')}, 40, currentY);
+                    pdf.text(`Inspection End Time: ${formData.get('inspection-end-time')}`, 40, currentY);
                     currentY += 15;
-                    pdf.text(Inspection Completed By: ${formData.get('inspection-completed-by')}, 40, currentY);
+                    pdf.text(`Inspection Completed By: ${formData.get('inspection-completed-by')}`, 40, currentY);
                     currentY += 15;
-                    pdf.text(Call Type: ${formData.get('call-type')}, 40, currentY);
+                    pdf.text(`Call Type: ${formData.get('call-type')}`, 40, currentY);
                     currentY += 30;
 
-                    // Checklist Items Section
-                    const checklistItemsDiv = document.getElementById('checklist-items').children;
+                    // Collect dynamic items (both Health & Safety + main items + additional checks)
+                    // We gather them from the container that holds them
+                    const containersToCheck = [
+                        document.getElementById('health-safety-top').children,
+                        document.getElementById('checklist-items').children,
+                        document.getElementById('health-safety-bottom').children,
+                        document.getElementById('additional-checks').children
+                    ];
+
                     const checklistTable = [];
                     const photos = [];
 
                     let pendingImages = 0;
 
-                    for (let item of checklistItemsDiv) {
+                    // Helper function to process each item container
+                    function processItemContainer(item) {
+                        // The first label is the item name:
                         const itemName = item.querySelector('label').textContent;
-                        const status = item.querySelector('select').value;
-                        let comments = item.querySelector('input[type="text"]').value;
-                        const imageUploads = item.querySelectorAll('input[type="file"]');
-                        const imageFile1 = imageUploads[0].files[0];
-                        const imageFile2 = imageUploads[1].files[0];
+                        const statusSelect = item.querySelector('select');
+                        if (!statusSelect) return; // Skip if no select found
+
+                        const status = statusSelect.value;
+                        // Comments may or may not exist (for Teat Spray, we might have more fields)
+                        // So let's find all text inputs that are not type="file"
+                        let commentsField = item.querySelector('input[type="text"]');
+                        let comments = commentsField ? commentsField.value : '';
 
                         if (status === 'attention-required') {
-                            if (imageFile1 || imageFile2) {
+                            // Check if there's an image or not
+                            const imageUploads = item.querySelectorAll('input[type="file"]');
+                            if (imageUploads[0].files[0] || imageUploads[1].files[0]) {
                                 comments += " (See attached photo below)";
                             }
                         }
 
+                        // For Teat Spray Check, we also have a dilution rate
+                        const dilutionRateSelect = item.querySelector('.teat-dilution-select');
+                        const dilutionRateInput = item.querySelector('.teat-dilution-input');
+                        if (dilutionRateSelect && dilutionRateInput) {
+                            let ratioText = `Ratio: ${dilutionRateSelect.value}`;
+                            if (dilutionRateInput.value) {
+                                ratioText += ` (New ratio: ${dilutionRateInput.value})`;
+                            }
+                            // Append ratio info to the comments for PDF
+                            comments += comments ? ` | ${ratioText}` : ratioText;
+                        }
+
                         checklistTable.push([itemName, status, comments]);
 
-                        if (status === 'attention-required' && (imageFile1 || imageFile2)) {
-                            const photoItem = {
-                                itemName: itemName,
-                                images: []
-                            };
+                        // If attention-required and images exist, handle them
+                        if (status === 'attention-required') {
+                            const imageUploads = item.querySelectorAll('input[type="file"]');
+                            const imageFile1 = imageUploads[0] ? imageUploads[0].files[0] : null;
+                            const imageFile2 = imageUploads[1] ? imageUploads[1].files[0] : null;
 
-                            if (imageFile1) {
-                                pendingImages++;
-                                const imgReader1 = new FileReader();
-                                imgReader1.onload = function (event) {
-                                    photoItem.images[0] = event.target.result;
-                                    pendingImages--;
-                                    if (pendingImages === 0) {
-                                        finalizePDF();
-                                    }
+                            if (imageFile1 || imageFile2) {
+                                const photoItem = {
+                                    itemName: itemName,
+                                    images: []
                                 };
-                                imgReader1.readAsDataURL(imageFile1);
-                            }
 
-                            if (imageFile2) {
-                                pendingImages++;
-                                const imgReader2 = new FileReader();
-                                imgReader2.onload = function (event) {
-                                    photoItem.images[1] = event.target.result;
-                                    pendingImages--;
-                                    if (pendingImages === 0) {
-                                        finalizePDF();
-                                    }
-                                };
-                                imgReader2.readAsDataURL(imageFile2);
-                            }
+                                if (imageFile1) {
+                                    pendingImages++;
+                                    const imgReader1 = new FileReader();
+                                    imgReader1.onload = function (event) {
+                                        photoItem.images[0] = event.target.result;
+                                        pendingImages--;
+                                        if (pendingImages === 0) {
+                                            finalizePDF();
+                                        }
+                                    };
+                                    imgReader1.readAsDataURL(imageFile1);
+                                }
 
-                            photos.push(photoItem);
+                                if (imageFile2) {
+                                    pendingImages++;
+                                    const imgReader2 = new FileReader();
+                                    imgReader2.onload = function (event) {
+                                        photoItem.images[1] = event.target.result;
+                                        pendingImages--;
+                                        if (pendingImages === 0) {
+                                            finalizePDF();
+                                        }
+                                    };
+                                    imgReader2.readAsDataURL(imageFile2);
+                                }
+                                photos.push(photoItem);
+                            }
                         }
                     }
 
+                    // Process each container
+                    containersToCheck.forEach(container => {
+                        for (let item of container) {
+                            processItemContainer(item);
+                        }
+                    });
+
+                    // If no images are pending, finalize right away
                     if (pendingImages === 0) {
                         finalizePDF();
                     }
@@ -488,17 +615,17 @@
                         const hotWaterTemp = document.getElementById('hot-water-temp').value;
                         const hotWaterTime = document.getElementById('hot-water-time').value;
 
-                        pdf.text(Hot Water Temp: ${hotWaterTemp} °C, 40, tempY);
+                        pdf.text(`Hot Water Temp: ${hotWaterTemp} °C`, 40, tempY);
                         tempY += 15;
-                        pdf.text(Time Taken: ${hotWaterTime}, 40, tempY);
+                        pdf.text(`Time Taken: ${hotWaterTime}`, 40, tempY);
                         tempY += 20;
 
                         const milkTemp = document.getElementById('milk-temp').value;
                         const milkTime = document.getElementById('milk-time').value;
 
-                        pdf.text(Milk Temp: ${milkTemp} °C, 40, tempY);
+                        pdf.text(`Milk Temp: ${milkTemp} °C`, 40, tempY);
                         tempY += 15;
-                        pdf.text(Time Taken: ${milkTime}, 40, tempY);
+                        pdf.text(`Time Taken: ${milkTime}`, 40, tempY);
                         tempY += 20;
 
                         // Add photos after the checklist
@@ -558,8 +685,8 @@
         function uploadPDF(dairyNumber, pdfBlob) {
             // Upload PDF to Firebase Storage
             const timestamp = new Date().toISOString().split('T')[0];
-            const fileName = ${dairyNumber}-form-${timestamp}.pdf;
-            const storageRef = storage.ref(customers/${dairyNumber}/${fileName});
+            const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
+            const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
 
             storageRef.put(pdfBlob).then(() => {
                 console.log('PDF uploaded successfully');
@@ -587,6 +714,67 @@
             console.log('All offline data has been synced with Firebase.');
         }
 
+        // ============ CREATE HEALTH & SAFETY ITEMS (top + bottom) ============
+        function createHealthSafetyItems(containerId) {
+            // We'll just create a single "Health & Safety" item for demonstration
+            // (If you want more, put them in an array).
+            const itemContainer = document.createElement('div');
+            itemContainer.classList.add('checklist-item');
+
+            const label = document.createElement('label');
+            label.textContent = "Health & Safety";
+            itemContainer.appendChild(label);
+
+            const statusSelect = document.createElement('select');
+            statusSelect.classList.add('form-select');
+            statusSelect.name = `status-health-safety-${containerId}`;
+            statusSelect.innerHTML = `
+                <option value="ok">OK</option>
+                <option value="attention-required">Attention Required</option>
+                <option value="na">N/A</option>
+                <option value="not-checked">Not Checked</option>
+            `;
+            itemContainer.appendChild(statusSelect);
+
+            const commentsInput = document.createElement('input');
+            commentsInput.type = 'text';
+            commentsInput.classList.add('form-control');
+            commentsInput.name = `comments-health-safety-${containerId}`;
+            commentsInput.placeholder = 'Comments';
+            // auto-cap / off
+            commentsInput.setAttribute('autocapitalize','words');
+            commentsInput.setAttribute('autocorrect','off');
+            commentsInput.setAttribute('spellcheck','false');
+            itemContainer.appendChild(commentsInput);
+
+            // Create first image upload input
+            const imageUpload1 = document.createElement('input');
+            imageUpload1.type = 'file';
+            imageUpload1.classList.add('form-control', 'image-upload');
+            imageUpload1.style.display = 'none';
+            itemContainer.appendChild(imageUpload1);
+
+            // Create second image upload input
+            const imageUpload2 = document.createElement('input');
+            imageUpload2.type = 'file';
+            imageUpload2.classList.add('form-control', 'image-upload');
+            imageUpload2.style.display = 'none';
+            itemContainer.appendChild(imageUpload2);
+
+            statusSelect.addEventListener('change', () => {
+                if (statusSelect.value === 'attention-required') {
+                    imageUpload1.style.display = 'block';
+                    imageUpload2.style.display = 'block';
+                } else {
+                    imageUpload1.style.display = 'none';
+                    imageUpload2.style.display = 'none';
+                }
+            });
+
+            document.getElementById(containerId).appendChild(itemContainer);
+        }
+
+        // ============ CREATE MAIN CHECKLIST ITEMS ============
         function createChecklistItems() {
             const checklistItems = [
                 "Pulsator Airline", "Long Bend Elbows", "Automatic Cup and Remover", "Diaphragm", "Receiving Can",
@@ -622,20 +810,24 @@
 
                 const statusSelect = document.createElement('select');
                 statusSelect.classList.add('form-select');
-                statusSelect.name = status-${item};
-                statusSelect.innerHTML = 
+                statusSelect.name = `status-${item}`;
+                statusSelect.innerHTML = `
                     <option value="ok">OK</option>
                     <option value="attention-required">Attention Required</option>
                     <option value="na">N/A</option>
                     <option value="not-checked">Not Checked</option>
-                ;
+                `;
                 itemContainer.appendChild(statusSelect);
 
                 const commentsInput = document.createElement('input');
                 commentsInput.type = 'text';
                 commentsInput.classList.add('form-control');
-                commentsInput.name = comments-${item};
+                commentsInput.name = `comments-${item}`;
                 commentsInput.placeholder = 'Comments';
+                // auto-cap / off
+                commentsInput.setAttribute('autocapitalize','words');
+                commentsInput.setAttribute('autocorrect','off');
+                commentsInput.setAttribute('spellcheck','false');
                 itemContainer.appendChild(commentsInput);
 
                 // Create first image upload input
@@ -672,6 +864,171 @@
             });
         }
 
+        // ============ CREATE ADDITIONAL CHECKS (Teat Spray & Chemical) ============
+        async function createAdditionalChecks() {
+            const additionalContainer = document.getElementById('additional-checks');
+            additionalContainer.innerHTML = '';
+
+            // -- Teat Spray Check --
+            const teatSprayContainer = document.createElement('div');
+            teatSprayContainer.classList.add('checklist-item');
+
+            const labelTeat = document.createElement('label');
+            labelTeat.textContent = "Teat Spray Check";
+            teatSprayContainer.appendChild(labelTeat);
+
+            const statusSelectTeat = document.createElement('select');
+            statusSelectTeat.classList.add('form-select');
+            statusSelectTeat.name = "status-teat-spray-check";
+            statusSelectTeat.innerHTML = `
+                <option value="ok">OK</option>
+                <option value="attention-required">Attention Required</option>
+                <option value="na">N/A</option>
+                <option value="not-checked">Not Checked</option>
+            `;
+            teatSprayContainer.appendChild(statusSelectTeat);
+
+            // Teat spray - Comments
+            const commentsInputTeat = document.createElement('input');
+            commentsInputTeat.type = 'text';
+            commentsInputTeat.classList.add('form-control');
+            commentsInputTeat.name = "comments-teat-spray-check";
+            commentsInputTeat.placeholder = 'Comments';
+            // auto-cap / off
+            commentsInputTeat.setAttribute('autocapitalize','words');
+            commentsInputTeat.setAttribute('autocorrect','off');
+            commentsInputTeat.setAttribute('spellcheck','false');
+            teatSprayContainer.appendChild(commentsInputTeat);
+
+            // Image uploads
+            const imageUploadTeat1 = document.createElement('input');
+            imageUploadTeat1.type = 'file';
+            imageUploadTeat1.classList.add('form-control', 'image-upload');
+            imageUploadTeat1.style.display = 'none';
+            teatSprayContainer.appendChild(imageUploadTeat1);
+
+            const imageUploadTeat2 = document.createElement('input');
+            imageUploadTeat2.type = 'file';
+            imageUploadTeat2.classList.add('form-control', 'image-upload');
+            imageUploadTeat2.style.display = 'none';
+            teatSprayContainer.appendChild(imageUploadTeat2);
+
+            statusSelectTeat.addEventListener('change', () => {
+                if (statusSelectTeat.value === 'attention-required') {
+                    imageUploadTeat1.style.display = 'block';
+                    imageUploadTeat2.style.display = 'block';
+                } else {
+                    imageUploadTeat1.style.display = 'none';
+                    imageUploadTeat2.style.display = 'none';
+                }
+            });
+
+            // Teat spray - Dilution rate
+            const ratioContainer = document.createElement('div');
+            ratioContainer.classList.add('mt-2');
+
+            // The dropdown for previously used ratios
+            const ratioSelect = document.createElement('select');
+            ratioSelect.classList.add('form-select', 'teat-dilution-select');
+            ratioSelect.innerHTML = `<option value="1:4">1:4</option>`;
+            // Load existing ratios from IndexedDB
+            const existingRatios = await db.teatSprayRatios.toArray();
+            existingRatios.forEach(r => {
+                if (r.ratio !== '1:4') {
+                    const opt = document.createElement('option');
+                    opt.value = r.ratio;
+                    opt.textContent = r.ratio;
+                    ratioSelect.appendChild(opt);
+                }
+            });
+            ratioContainer.appendChild(ratioSelect);
+
+            // The text input to add a new ratio
+            const ratioInput = document.createElement('input');
+            ratioInput.type = 'text';
+            ratioInput.placeholder = 'Enter new ratio e.g. 1:5';
+            ratioInput.classList.add('form-control', 'mt-2', 'teat-dilution-input');
+            // auto-cap / off (not strictly needed for ratio, but we’ll do it for consistency)
+            ratioInput.setAttribute('autocapitalize','words');
+            ratioInput.setAttribute('autocorrect','off');
+            ratioInput.setAttribute('spellcheck','false');
+
+            ratioInput.addEventListener('blur', async () => {
+                const newRatio = ratioInput.value.trim();
+                if (newRatio && !Array.from(ratioSelect.options).some(opt => opt.value === newRatio)) {
+                    // Save to IndexedDB
+                    await db.teatSprayRatios.add({ ratio: newRatio });
+                    // Then add to select
+                    const newOpt = document.createElement('option');
+                    newOpt.value = newRatio;
+                    newOpt.textContent = newRatio;
+                    ratioSelect.appendChild(newOpt);
+                    ratioSelect.value = newRatio;
+                }
+            });
+
+            ratioContainer.appendChild(ratioInput);
+
+            teatSprayContainer.appendChild(ratioContainer);
+
+            additionalContainer.appendChild(teatSprayContainer);
+
+            // -- Chemical Check --
+            const chemicalContainer = document.createElement('div');
+            chemicalContainer.classList.add('checklist-item');
+
+            const labelChemical = document.createElement('label');
+            labelChemical.textContent = "Chemical Check";
+            chemicalContainer.appendChild(labelChemical);
+
+            const statusSelectChemical = document.createElement('select');
+            statusSelectChemical.classList.add('form-select');
+            statusSelectChemical.name = "status-chemical-check";
+            statusSelectChemical.innerHTML = `
+                <option value="ok">OK</option>
+                <option value="attention-required">Attention Required</option>
+                <option value="na">N/A</option>
+                <option value="not-checked">Not Checked</option>
+            `;
+            chemicalContainer.appendChild(statusSelectChemical);
+
+            const commentsInputChemical = document.createElement('input');
+            commentsInputChemical.type = 'text';
+            commentsInputChemical.classList.add('form-control');
+            commentsInputChemical.name = "comments-chemical-check";
+            commentsInputChemical.placeholder = 'Comments';
+            // auto-cap / off
+            commentsInputChemical.setAttribute('autocapitalize','words');
+            commentsInputChemical.setAttribute('autocorrect','off');
+            commentsInputChemical.setAttribute('spellcheck','false');
+            chemicalContainer.appendChild(commentsInputChemical);
+
+            // Dual image (if needed)
+            const imageUploadChem1 = document.createElement('input');
+            imageUploadChem1.type = 'file';
+            imageUploadChem1.classList.add('form-control', 'image-upload');
+            imageUploadChem1.style.display = 'none';
+            chemicalContainer.appendChild(imageUploadChem1);
+
+            const imageUploadChem2 = document.createElement('input');
+            imageUploadChem2.type = 'file';
+            imageUploadChem2.classList.add('form-control', 'image-upload');
+            imageUploadChem2.style.display = 'none';
+            chemicalContainer.appendChild(imageUploadChem2);
+
+            statusSelectChemical.addEventListener('change', () => {
+                if (statusSelectChemical.value === 'attention-required') {
+                    imageUploadChem1.style.display = 'block';
+                    imageUploadChem2.style.display = 'block';
+                } else {
+                    imageUploadChem1.style.display = 'none';
+                    imageUploadChem2.style.display = 'none';
+                }
+            });
+
+            additionalContainer.appendChild(chemicalContainer);
+        }
+
         // View Records Functions
 
         function viewRecords() {
@@ -705,7 +1062,7 @@
         async function loadRecordFiles(dairyNumber) {
             const recordList = document.getElementById('record-list');
             recordList.innerHTML = '';
-            const storageRef = storage.ref(customers/${dairyNumber});
+            const storageRef = storage.ref(`customers/${dairyNumber}`);
 
             try {
                 const fileSnapshot = await storageRef.listAll();
@@ -771,18 +1128,38 @@
 
             // Save data from dynamic checklist items
             const checklistItemsData = [];
-            const checklistItemsDiv = document.getElementById('checklist-items').children;
 
-            for (let item of checklistItemsDiv) {
-                const itemName = item.querySelector('label').textContent;
-                const status = item.querySelector('select').value;
-                const comments = item.querySelector('input[type="text"]').value;
+            // Containers
+            const containersToCheck = [
+                document.getElementById('health-safety-top').children,
+                document.getElementById('checklist-items').children,
+                document.getElementById('health-safety-bottom').children,
+                document.getElementById('additional-checks').children
+            ];
 
-                checklistItemsData.push({
-                    itemName: itemName,
-                    status: status,
-                    comments: comments
-                });
+            for (let container of containersToCheck) {
+                for (let item of container) {
+                    const label = item.querySelector('label');
+                    if (!label) continue;
+                    const itemName = label.textContent;
+                    const statusSelect = item.querySelector('select');
+                    let status = '';
+                    let comments = '';
+
+                    if (statusSelect) {
+                        status = statusSelect.value;
+                    }
+                    const commentsInput = item.querySelector('input[type="text"]');
+                    if (commentsInput) {
+                        comments = commentsInput.value;
+                    }
+
+                    checklistItemsData.push({
+                        itemName: itemName,
+                        status: status,
+                        comments: comments
+                    });
+                }
             }
 
             data.checklistItems = checklistItemsData;
@@ -797,6 +1174,7 @@
                 if (record && record.data) {
                     const data = record.data;
                     const form = document.getElementById('hygiene-checklist-form');
+
                     for (let key in data) {
                         if (key !== 'checklistItems') {
                             const field = form.elements[key];
@@ -808,13 +1186,18 @@
 
                     // Load the checklist items data
                     if (data.checklistItems) {
-                        const checklistItemsData = data.checklistItems;
-                        const checklistItemsDiv = document.getElementById('checklist-items').children;
-                        for (let i = 0; i < checklistItemsData.length; i++) {
-                            const itemData = checklistItemsData[i];
-                            const item = checklistItemsDiv[i];
+                        const containersToCheck = [
+                            document.getElementById('health-safety-top').children,
+                            document.getElementById('checklist-items').children,
+                            document.getElementById('health-safety-bottom').children,
+                            document.getElementById('additional-checks').children
+                        ];
 
-                            if (item) {
+                        let i = 0;
+                        for (let container of containersToCheck) {
+                            for (let item of container) {
+                                if (!data.checklistItems[i]) break;
+                                const itemData = data.checklistItems[i];
                                 const statusSelect = item.querySelector('select');
                                 const commentsInput = item.querySelector('input[type="text"]');
 
@@ -827,6 +1210,7 @@
                                 if (commentsInput) {
                                     commentsInput.value = itemData.comments;
                                 }
+                                i++;
                             }
                         }
                     }
@@ -836,8 +1220,20 @@
             });
         }
 
-        document.addEventListener("DOMContentLoaded", () => {
+        document.addEventListener("DOMContentLoaded", async () => {
+            // Create the top Health & Safety item
+            createHealthSafetyItems('health-safety-top');
+
+            // Create the main checklist items
             createChecklistItems();
+
+            // Create the bottom Health & Safety item
+            createHealthSafetyItems('health-safety-bottom');
+
+            // Create additional checks (Teat Spray & Chemical)
+            await createAdditionalChecks();
+
+            // Load any saved data
             loadFormData();
 
             const form = document.getElementById('hygiene-checklist-form');
@@ -846,4 +1242,4 @@
     </script>
 </body>
 
-</html
+</html>
