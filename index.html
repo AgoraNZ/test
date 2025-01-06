@@ -141,7 +141,7 @@
                        class="form-control"
                        id="dairy-number"
                        name="dairy-number"
-                       onblur="onDairyNumberBlur()"
+                       onblur="fetchFarmDetails()"
                        autocapitalize="words"
                        autocorrect="off"
                        spellcheck="false">
@@ -337,7 +337,7 @@
 
     <!-- Your main script -->
     <script>
-        // Ensure that jsPDF is properly initialized
+        /****************** Firebase + Dexie Setup ******************/
         const { jsPDF } = window.jspdf;
 
         // Firebase configuration
@@ -349,35 +349,32 @@
             messagingSenderId: "422124188212",
             appId: "1:422124188212:web:1bd31bee8d6e91e301d061"
         };
-
-        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const storage = firebase.storage();
         const firestore = firebase.firestore();
 
-        // Initialize IndexedDB using Dexie
-        // We'll store forms by dairyNumber as the 'id', plus creationTime for 1hr expiry
-        // Also store user-defined dairy companies in a separate table
-        // Also store teatSprayRatios for new ratios
+        // Dexie DB
+        // We'll store forms by dairyNumber as the key, plus creationTime
+        // Also store user-defined dairy companies, plus teat spray ratios
         const db = new Dexie("OfflineData");
         db.version(3).stores({
-            forms: "dairyNumber",       // each record: { dairyNumber, formData, images, creationTime }
+            forms: "dairyNumber", // each record: { dairyNumber, formData, creationTime }
             dairyCompanies: "++id, name",
             teatSprayRatios: "++id, ratio"
         });
 
-        // Service Worker Registration
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('service-worker.js')
                 .then(registration => {
-                    console.log('Service Worker registered with scope:', registration.scope);
+                    console.log('Service Worker registered:', registration.scope);
                 })
                 .catch(err => {
                     console.error('Service Worker registration failed:', err);
                 });
         }
 
-        /****************** 1. DAIRY COMPANY DATALIST SETUP ******************/
+
+        /****************** 1. DAIRY COMPANY DATALIST ******************/
         async function setupDairyCompanyDatalist() {
             // Default companies
             const defaultCompanies = [
@@ -390,34 +387,29 @@
                 "Synlait Milk LTD",
                 "Tatua"
             ];
-            // Load user-added companies from Dexie
             const userCompanies = await db.dairyCompanies.toArray();
             const allCompanies = [...defaultCompanies];
-
             userCompanies.forEach(u => {
                 if (!allCompanies.includes(u.name)) {
                     allCompanies.push(u.name);
                 }
             });
 
-            // Populate the datalist
             const datalist = document.getElementById('dairy-company-list');
-            datalist.innerHTML = ""; // Clear old
+            datalist.innerHTML = "";
             allCompanies.forEach(c => {
                 const opt = document.createElement('option');
                 opt.value = c;
                 datalist.appendChild(opt);
             });
 
-            // On blur, if new value not in allCompanies, add it
+            // When user enters something new, add to DB
             const dairyCompanyInput = document.getElementById('dairy-company');
             dairyCompanyInput.addEventListener('blur', async () => {
                 const typedValue = dairyCompanyInput.value.trim();
                 if (typedValue && !allCompanies.includes(typedValue)) {
-                    // Save to Dexie
                     await db.dairyCompanies.add({ name: typedValue });
                     allCompanies.push(typedValue);
-                    // Also add to datalist
                     const newOpt = document.createElement('option');
                     newOpt.value = typedValue;
                     datalist.appendChild(newOpt);
@@ -425,7 +417,33 @@
             });
         }
 
-        /****************** 2. CREATE CHECKLIST ITEMS ******************/
+        /****************** 2. FETCH FARM DETAILS ******************/
+        async function fetchFarmDetails() {
+            // Called onblur of #dairy-number
+            const dairyNumber = document.getElementById('dairy-number').value.trim();
+            if (!dairyNumber) return;
+
+            // Attempt to fetch from Firebase Storage
+            const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
+            try {
+                const url = await storageRef.getDownloadURL();
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Failed to fetch the farm details');
+                const data = await response.json();
+                if (data) {
+                    document.getElementById('dairy-company').value = data.dairyCompany || '';
+                    document.getElementById('address').value = data.address || '';
+                    document.getElementById('customer-name').value = data.customerName || '';
+                    document.getElementById('region').value = data.region || '';
+                    document.getElementById('farm-name').value = data.farmName || '';
+                    document.getElementById('island').value = data.island || '';
+                }
+            } catch (error) {
+                console.log('No farm details found or error fetching from Firebase.');
+            }
+        }
+
+        /****************** 3. CHECKLIST CREATION ******************/
         function createHealthSafetyItems(containerId) {
             const itemContainer = document.createElement('div');
             itemContainer.classList.add('checklist-item');
@@ -455,7 +473,7 @@
             commentsInput.setAttribute('spellcheck','false');
             itemContainer.appendChild(commentsInput);
 
-            // Image upload
+            // Images
             const imageUpload1 = document.createElement('input');
             imageUpload1.type = 'file';
             imageUpload1.classList.add('form-control', 'image-upload');
@@ -535,14 +553,12 @@
                 commentsInput.setAttribute('spellcheck','false');
                 itemContainer.appendChild(commentsInput);
 
-                // Create first image upload input
                 const imageUpload1 = document.createElement('input');
                 imageUpload1.type = 'file';
                 imageUpload1.classList.add('form-control', 'image-upload');
                 imageUpload1.style.display = 'none';
                 itemContainer.appendChild(imageUpload1);
 
-                // Create second image upload input
                 const imageUpload2 = document.createElement('input');
                 imageUpload2.type = 'file';
                 imageUpload2.classList.add('form-control', 'image-upload');
@@ -557,10 +573,11 @@
                         imageUpload1.style.display = 'none';
                         imageUpload2.style.display = 'none';
                     }
+
                     if (statusSelect.value === 'not-checked' && itemsToAutoFill.includes(item)) {
                         commentsInput.value = "Milk in Vat";
                     } else if (commentsInput.value === "Milk in Vat") {
-                        commentsInput.value = ""; // Clear if it was auto-filled
+                        commentsInput.value = "";
                     }
                 });
 
@@ -629,7 +646,6 @@
             const ratioSelect = document.createElement('select');
             ratioSelect.classList.add('form-select', 'teat-dilution-select');
             ratioSelect.innerHTML = `<option value="1:4">1:4</option>`;
-            // Load existing ratios
             const existingRatios = await db.teatSprayRatios.toArray();
             existingRatios.forEach(r => {
                 if (r.ratio !== '1:4') {
@@ -717,42 +733,7 @@
             additionalContainer.appendChild(chemicalContainer);
         }
 
-        /****************** 3. FORM CACHING (1 HOUR EXPIRY) ******************/
-        // Called when user enters/changes the dairy number field
-        async function onDairyNumberBlur() {
-            const dairyNumber = document.getElementById('dairy-number').value.trim();
-            if (!dairyNumber) return;
-
-            // Clean up old forms older than 1 hour
-            await cleanupExpiredForms();
-
-            // Check if there's an active form for this dairyNumber
-            const existingForm = await db.forms.get(dairyNumber);
-            if (existingForm) {
-                // It's within 1 hour or it wouldn't exist now
-                const continueForm = confirm(`Would you like to continue form #${dairyNumber}?`);
-                if (continueForm) {
-                    // Load existing data
-                    loadFormDataFromRecord(existingForm);
-                } else {
-                    // Discard
-                    await db.forms.delete(dairyNumber);
-                    // Clear out the form visually
-                    clearEntireForm();
-                }
-            } else {
-                // If no existing form, just create a new record with creationTime now
-                // We'll store an empty stub so we can track start time
-                await db.forms.put({
-                    dairyNumber: dairyNumber,
-                    formData: {},   // will fill in as user types
-                    images: {},     // optional if needed
-                    creationTime: Date.now()
-                });
-            }
-        }
-
-        // Removes any form older than 1 hour from Dexie
+        /****************** 4. ONE-HOUR CACHING & LOADING ON PAGE LOAD ******************/
         async function cleanupExpiredForms() {
             const oneHour = 60 * 60 * 1000;
             const now = Date.now();
@@ -764,15 +745,43 @@
             }
         }
 
-        // Load form data from an existing Dexie record
+        // Called only on page load / refresh to see if there's exactly one unexpired form
+        // If so, prompt to continue. If yes, load it. If no, remove it.
+        async function checkForExistingForm() {
+            await cleanupExpiredForms();
+
+            // We'll see if there's exactly one (or more) forms in Dexie
+            const allForms = await db.forms.toArray();
+            if (allForms.length === 1) {
+                // We have a single form; prompt to continue
+                const existing = allForms[0];
+                const confirmContinue = confirm(`Would you like to continue form #${existing.dairyNumber}?`);
+                if (confirmContinue) {
+                    // Load that data into the form
+                    loadFormDataFromRecord(existing);
+                } else {
+                    // Discard
+                    await db.forms.delete(existing.dairyNumber);
+                    clearEntireForm();
+                }
+            } else if (allForms.length > 1) {
+                // If multiple forms exist, you could handle accordingly
+                // For simplicity, we can pick the most recent or skip
+                // We'll skip for now
+            }
+        }
+
+        // Overwrite fields from Dexie record
         function loadFormDataFromRecord(record) {
-            // Overwrite fields in the DOM
             const data = record.formData || {};
-            const form = document.getElementById('hygiene-checklist-form');
+            // Insert dairyNumber to show on screen
+            document.getElementById('dairy-number').value = record.dairyNumber;
 
             // Basic fields
             for (let key in data) {
-                const field = form.elements[key];
+                // Exclude 'checklistItems' from direct approach
+                if (key === 'checklistItems') continue;
+                const field = document.getElementById(key) || document.getElementsByName(key)[0];
                 if (field) {
                     field.value = data[key];
                 }
@@ -784,20 +793,7 @@
             }
         }
 
-        // Clear entire form visually
-        function clearEntireForm() {
-            document.getElementById('hygiene-checklist-form').reset();
-            // Also hide any images or re-hide inputs
-            const imageUploads = document.querySelectorAll('.image-upload');
-            imageUploads.forEach((inp) => {
-                inp.style.display = 'none';
-            });
-        }
-
-        // Provide a helper to load the checklist items from data
         function loadChecklistItemsData(checklistData) {
-            // Our checklist items (health-safety-top, main items, additional-checks)
-            // We'll assume the order matches what we stored
             const containers = [
                 ...document.getElementById('health-safety-top').children,
                 ...document.getElementById('checklist-items').children,
@@ -819,29 +815,33 @@
             }
         }
 
-        // On each input, we save to Dexie
+        function clearEntireForm() {
+            document.getElementById('hygiene-checklist-form').reset();
+            const imageUploads = document.querySelectorAll('.image-upload');
+            imageUploads.forEach(inp => { inp.style.display = 'none'; });
+        }
+
+
+        /****************** 5. SAVE FORM DATA AS USER TYPES ******************/
         async function saveFormData() {
             const dairyNumber = document.getElementById('dairy-number').value.trim();
-            if (!dairyNumber) return;
+            if (!dairyNumber) return; // can't save if empty
 
-            // Get existing record
-            const record = await db.forms.get(dairyNumber);
+            // See if record exists
+            let record = await db.forms.get(dairyNumber);
             if (!record) {
-                // Means user typed dairy number, but it wasn't set or we cleaned it up
-                // Let's create a new one
-                await db.forms.put({
+                record = {
                     dairyNumber: dairyNumber,
                     formData: {},
-                    images: {},
                     creationTime: Date.now()
-                });
+                };
             }
-            // Gather data
+            // Gather current form data
             const form = document.getElementById('hygiene-checklist-form');
             const formData = new FormData(form);
             const data = Object.fromEntries(formData.entries());
 
-            // Gather checklist items
+            // Collect checklist items
             const containersToCheck = [
                 document.getElementById('health-safety-top').children,
                 document.getElementById('checklist-items').children,
@@ -868,156 +868,134 @@
             }
             data.checklistItems = checklistItemsData;
 
-            // Update record
             record.formData = data;
-            // Optionally, if you want to store images, you can store them here in record.images
-            // but that can be large. For now, we skip storing actual images to Dexie for brevity.
-
             await db.forms.put(record);
         }
 
-        /****************** 4. GENERATE PDF (removes record from Dexie) ******************/
+
+        /****************** 6. GENERATE PDF ******************/
         async function generatePDF() {
             const dairyNumber = document.getElementById('dairy-number').value.trim();
             if (!dairyNumber) {
                 alert("Please enter a Dairy Number.");
                 return;
             }
-            // We'll finalize the PDF, then remove from Dexie so the user can't continue it
-            await finalizePDF(); 
-            // Remove from Dexie
-            await db.forms.delete(dairyNumber);
-            // Clear the form
-            clearEntireForm();
-        }
 
-        async function finalizePDF() {
-            // (Existing PDF generation logic)
-            const form = document.getElementById('hygiene-checklist-form');
-            const formData = new FormData(form);
-            const dairyNumber = formData.get('dairy-number');
-
-            // ... Save to Firebase if needed
-            // ... Then do the PDF creation as in your original code
-
+            // Create PDF
             const pdf = new jsPDF('p', 'pt', 'a4');
-            // Attempt to load logo from Firebase storage
-            const logoStorageRef = storage.ref('Picture3.jpg');
             try {
+                const logoStorageRef = storage.ref('Picture3.jpg');
                 const logoUrl = await logoStorageRef.getDownloadURL();
                 const logo = await fetch(logoUrl).then((res) => res.blob());
                 const reader = new FileReader();
                 reader.readAsDataURL(logo);
                 reader.onload = function () {
-                    const imgData = reader.result;
-                    const pageWidth = pdf.internal.pageSize.getWidth();
-                    const imgProps = pdf.getImageProperties(imgData);
-                    const imgWidth = pageWidth - 80; 
-                    const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
-                    const x = (pageWidth - imgWidth) / 2; 
-                    pdf.addImage(imgData, 'JPEG', x, 40, imgWidth, imgHeight);
+                    finalizePDF(reader.result);
+                };
+            } catch (err) {
+                console.error('Error fetching logo:', err);
+                // If no logo, just finalize
+                finalizePDF(null);
+            }
 
+            async function finalizePDF(imgData) {
+                const form = document.getElementById('hygiene-checklist-form');
+                const formDataObj = new FormData(form);
+                const dairyNumber = formDataObj.get('dairy-number');
+                const pageWidth = pdf.internal.pageSize.getWidth();
+
+                if (imgData) {
+                    const imgProps = pdf.getImageProperties(imgData);
+                    const imgWidth = pageWidth - 80;
+                    const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
+                    const x = (pageWidth - imgWidth) / 2;
+                    pdf.addImage(imgData, 'JPEG', x, 40, imgWidth, imgHeight);
                     pdf.setFontSize(12);
                     pdf.setTextColor('#000000');
                     pdf.setFont('helvetica', 'bold');
                     pdf.text('Farm Details:', 40, imgHeight + 60);
-                    let currentY = imgHeight + 80;
-
-                    pdf.setFont('helvetica', 'normal');
-                    pdf.text(`Dairy Company: ${formData.get('dairy-company')}`, 40, currentY);
-                    currentY += 15;
-                    pdf.text(`Dairy Number: ${formData.get('dairy-number')}`, 40, currentY);
-                    currentY += 15;
-                    pdf.text(`Address: ${formData.get('address')}`, 40, currentY);
-                    currentY += 15;
-                    pdf.text(`Customer Name: ${formData.get('customer-name')}`, 40, currentY);
-                    currentY += 15;
-                    pdf.text(`Region: ${formData.get('region')}`, 40, currentY);
-                    currentY += 15;
-                    pdf.text(`Farm Name: ${formData.get('farm-name')}`, 40, currentY);
-                    currentY += 15;
-                    pdf.text(`Island: ${formData.get('island')}`, 40, currentY);
-                    currentY += 15;
-                    pdf.text(`Visit Date: ${formData.get('visit-date')}`, 40, currentY);
-                    currentY += 15;
-                    pdf.text(`Visit Type: ${formData.get('visit-type')}`, 40, currentY);
-                    currentY += 15;
-                    pdf.text(`Inspection Start Time: ${formData.get('inspection-start-time')}`, 40, currentY);
-                    currentY += 15;
-                    pdf.text(`Inspection End Time: ${formData.get('inspection-end-time')}`, 40, currentY);
-                    currentY += 15;
-                    pdf.text(`Inspection Completed By: ${formData.get('inspection-completed-by')}`, 40, currentY);
-                    currentY += 15;
-                    pdf.text(`Call Type: ${formData.get('call-type')}`, 40, currentY);
-                    currentY += 30;
-
-                    // Gather items for table
-                    const containersToCheck = [
-                        document.getElementById('health-safety-top').children,
-                        document.getElementById('checklist-items').children,
-                        document.getElementById('additional-checks').children
-                    ];
-                    const checklistTable = [];
-                    for (let container of containersToCheck) {
-                        for (let item of container) {
-                            const name = item.querySelector('label').textContent;
-                            const sel = item.querySelector('select');
-                            const status = sel ? sel.value : '';
-                            const inp = item.querySelector('input[type="text"]');
-                            let comments = inp ? inp.value : '';
-                            // If needed, handle image logic
-                            // For brevity, we'll skip attaching images here
-                            checklistTable.push([name, status, comments]);
-                        }
-                    }
-
-                    pdf.autoTable({
-                        startY: currentY,
-                        head: [['Item', 'Status', 'Comments']],
-                        body: checklistTable,
-                        styles: {
-                            fontSize: 10,
-                            cellPadding: 5
-                        },
-                        headStyles: {
-                            fillColor: '#002B5C',
-                            textColor: '#FFFFFF'
-                        }
-                    });
-
-                    let tempY = pdf.lastAutoTable.finalY + 20;
+                    var currentY = imgHeight + 80;
+                } else {
+                    pdf.setFontSize(12);
+                    pdf.setTextColor('#000000');
                     pdf.setFont('helvetica', 'bold');
-                    pdf.text('Temperature Measurements:', 40, tempY);
-                    tempY += 20;
+                    pdf.text('Farm Details:', 40, 80);
+                    var currentY = 100;
+                }
 
-                    pdf.setFont('helvetica', 'normal');
-                    const hotWaterTemp = formData.get('hot-water-temp') || '';
-                    const hotWaterTime = formData.get('hot-water-time') || '';
-                    pdf.text(`Hot Water Temp: ${hotWaterTemp} °C`, 40, tempY);
-                    tempY += 15;
-                    pdf.text(`Time Taken: ${hotWaterTime}`, 40, tempY);
-                    tempY += 20;
+                pdf.setFont('helvetica', 'normal');
+                pdf.text(`Dairy Company: ${formDataObj.get('dairy-company')}`, 40, currentY); currentY += 15;
+                pdf.text(`Dairy Number: ${dairyNumber}`, 40, currentY); currentY += 15;
+                pdf.text(`Address: ${formDataObj.get('address')}`, 40, currentY); currentY += 15;
+                pdf.text(`Customer Name: ${formDataObj.get('customer-name')}`, 40, currentY); currentY += 15;
+                pdf.text(`Region: ${formDataObj.get('region')}`, 40, currentY); currentY += 15;
+                pdf.text(`Farm Name: ${formDataObj.get('farm-name')}`, 40, currentY); currentY += 15;
+                pdf.text(`Island: ${formDataObj.get('island')}`, 40, currentY); currentY += 15;
+                pdf.text(`Visit Date: ${formDataObj.get('visit-date')}`, 40, currentY); currentY += 15;
+                pdf.text(`Visit Type: ${formDataObj.get('visit-type')}`, 40, currentY); currentY += 15;
+                pdf.text(`Inspection Start Time: ${formDataObj.get('inspection-start-time')}`, 40, currentY); currentY += 15;
+                pdf.text(`Inspection End Time: ${formDataObj.get('inspection-end-time')}`, 40, currentY); currentY += 15;
+                pdf.text(`Inspection Completed By: ${formDataObj.get('inspection-completed-by')}`, 40, currentY); currentY += 15;
+                pdf.text(`Call Type: ${formDataObj.get('call-type')}`, 40, currentY); currentY += 30;
 
-                    const milkTemp = formData.get('milk-temp') || '';
-                    const milkTime = formData.get('milk-time') || '';
-                    pdf.text(`Milk Temp: ${milkTemp} °C`, 40, tempY);
-                    tempY += 15;
-                    pdf.text(`Time Taken: ${milkTime}`, 40, tempY);
-                    tempY += 20;
-
-                    // Output PDF
-                    const pdfBlob = pdf.output('blob');
-                    pdf.save(`Dairy_Shed_Hygiene_Checklist_${dairyNumber}.pdf`);
-
-                    // If desired, upload to Firebase
-                    if (navigator.onLine) {
-                        uploadPDF(dairyNumber, pdfBlob);
-                    } else {
-                        console.log("Offline: PDF not uploaded, but user has saved file locally.");
+                // Checklist items
+                const containersToCheck = [
+                    document.getElementById('health-safety-top').children,
+                    document.getElementById('checklist-items').children,
+                    document.getElementById('additional-checks').children
+                ];
+                const checklistTable = [];
+                containersToCheck.forEach(container => {
+                    for (let item of container) {
+                        const name = item.querySelector('label').textContent;
+                        const sel = item.querySelector('select');
+                        const status = sel ? sel.value : '';
+                        const inp = item.querySelector('input[type="text"]');
+                        const comments = inp ? inp.value : '';
+                        checklistTable.push([name, status, comments]);
                     }
-                };
-            } catch (err) {
-                console.error('Error fetching logo:', err);
+                });
+
+                pdf.autoTable({
+                    startY: currentY,
+                    head: [['Item', 'Status', 'Comments']],
+                    body: checklistTable,
+                    styles: { fontSize: 10, cellPadding: 5 },
+                    headStyles: { fillColor: '#002B5C', textColor: '#FFFFFF' }
+                });
+                let tempY = pdf.lastAutoTable.finalY + 20;
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('Temperature Measurements:', 40, tempY);
+                tempY += 20;
+
+                pdf.setFont('helvetica', 'normal');
+                const hotWaterTemp = formDataObj.get('hot-water-temp') || '';
+                const hotWaterTime = formDataObj.get('hot-water-time') || '';
+                pdf.text(`Hot Water Temp: ${hotWaterTemp} °C`, 40, tempY);
+                tempY += 15;
+                pdf.text(`Time Taken: ${hotWaterTime}`, 40, tempY);
+                tempY += 20;
+
+                const milkTemp = formDataObj.get('milk-temp') || '';
+                const milkTime = formDataObj.get('milk-time') || '';
+                pdf.text(`Milk Temp: ${milkTemp} °C`, 40, tempY);
+                tempY += 15;
+                pdf.text(`Time Taken: ${milkTime}`, 40, tempY);
+                tempY += 20;
+
+                // Finish PDF
+                const pdfBlob = pdf.output('blob');
+                pdf.save(`Dairy_Shed_Hygiene_Checklist_${dairyNumber}.pdf`);
+
+                // Remove from Dexie so user can't continue
+                await db.forms.delete(dairyNumber);
+
+                // If online, optionally upload to Firebase
+                if (navigator.onLine) {
+                    uploadPDF(dairyNumber, pdfBlob);
+                }
+                // Clear form
+                clearEntireForm();
             }
         }
 
@@ -1025,22 +1003,16 @@
             const timestamp = new Date().toISOString().split('T')[0];
             const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
             const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
-
-            storageRef.put(pdfBlob).then(() => {
-                console.log('PDF uploaded successfully');
-            }).catch((error) => {
-                console.error('Error uploading PDF:', error);
-            });
+            storageRef.put(pdfBlob)
+                .then(() => {
+                    console.log('PDF uploaded successfully');
+                })
+                .catch((error) => {
+                    console.error('Error uploading PDF:', error);
+                });
         }
 
-        window.addEventListener('online', syncDataWithFirebase);
-        async function syncDataWithFirebase() {
-            // Not strictly needed for your 1 hour logic,
-            // but if you want to handle offline -> online uploading, do so here
-            console.log("Back online - No immediate form upload needed unless storing offline PDFs");
-        }
-
-        // View Records Functions
+        /****************** 7. VIEW RECORDS PAGE ******************/
         function viewRecords() {
             document.getElementById('form-container').style.display = 'none';
             document.getElementById('record-container').style.display = 'block';
@@ -1051,7 +1023,6 @@
             const recordList = document.getElementById('record-list');
             recordList.innerHTML = '';
             const storageRef = storage.ref('customers');
-
             try {
                 const folderSnapshot = await storageRef.listAll();
                 folderSnapshot.prefixes.forEach(folderRef => {
@@ -1073,7 +1044,6 @@
             const recordList = document.getElementById('record-list');
             recordList.innerHTML = '';
             const storageRef = storage.ref(`customers/${dairyNumber}`);
-
             try {
                 const fileSnapshot = await storageRef.listAll();
                 fileSnapshot.items.forEach(fileRef => {
@@ -1094,7 +1064,6 @@
                     });
                     recordList.appendChild(fileLink);
                 });
-
                 const backButton = document.createElement('button');
                 backButton.textContent = 'Back to Records';
                 backButton.className = 'back-button';
@@ -1118,7 +1087,6 @@
             const searchInput = document.getElementById('search-dairy-number').value.toLowerCase();
             const recordList = document.getElementById('record-list');
             const records = recordList.getElementsByTagName('a');
-
             for (let i = 0; i < records.length; i++) {
                 const record = records[i];
                 const textValue = record.textContent || record.innerText;
@@ -1130,13 +1098,18 @@
             }
         }
 
+        /****************** 8. DOMContentLoaded ******************/
         document.addEventListener("DOMContentLoaded", async () => {
             await setupDairyCompanyDatalist();
+
             createHealthSafetyItems('health-safety-top');
             createChecklistItems();
             await createAdditionalChecks();
 
-            // Add event listeners for form caching
+            // 1) Clean up expired forms & possibly prompt user if there's an existing unexpired form
+            await checkForExistingForm();
+
+            // 2) Whenever user changes something, we save
             const form = document.getElementById('hygiene-checklist-form');
             form.addEventListener('input', saveFormData);
         });
