@@ -523,16 +523,20 @@
             document.getElementById(containerId).appendChild(itemContainer);
         }
 
-        function createChecklistItems() {
-            const checklistItems = [
+        function createPlantChecklistItems() {
+            const PlantChecklist = [
                 "Pulsator Airline", "Long Bend Elbows", "Automatic Cup and Remover", "Diaphragm", "Receiving Can",
                 "Sanitary Trap", "Main Milk Line", "Milk Line Seals in Good Condition", "Stainless Droppers", "Long Milk Rubber",
                 "Liner", "Cluster", "Cluster Seal", "Cluster Button", "Non Return Valve at Milk Pump", "Milk Pump",
                 "Filter Housing", "Plate Cooler", "Interceptor", "Receiver Airline", "Flushing Pulsator", "Air Purge Valve",
                 "Vacuum Level", "Main Airline", "Plant Drainage - Milk Pump", "Plant Drainage - Filter/s", "Plant Drainage - Plate Cooler",
-                "Plant Drainage - Vat Entry", "Plant Wash Tap", "Wash Jetters", "Centre Gland", "Test Bucket",
-                "Inlet Valve", "Non-Return Valve", "Spray Ball", "Agitator", "Silo Door", "Manhole Seal", "Vat Outlet", "Walls in Silo"
+                "Plant Drainage - Vat Entry", "Plant Wash Tap", "Wash Jetters", "Centre Gland", "Test Bucket"
             ];
+
+            const SiloChecklist = [
+  "Inlet Valve", "Non-Return Valve", "Spray Ball", 
+  "Agitator", "Silo Door", "Manhole Seal", "Vat Outlet", "Walls in Silo"
+];
 
             const itemsToAutoFill = [
                 "Inlet Valve",
