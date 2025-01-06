@@ -270,11 +270,24 @@
             </div>
 
             <!-- 
-            Main Checklist
+            Plant Checklist
+            (previously called "Checklist Items")
             -->
             <div class="section mb-4">
-                <h2>Checklist Items</h2>
-                <div id="checklist-items"></div>
+                <h2>Plant Checklist</h2>
+                <!-- 
+                NOTE: We'll exclude the silo-related items from here
+                and handle them in the new "Silo Checklist" section.
+                -->
+                <div id="plant-checklist"></div>
+            </div>
+
+            <!-- 
+            Silo Checklist
+            -->
+            <div class="section mb-4">
+                <h2>Silo Checklist</h2>
+                <div id="silo-checklist"></div>
             </div>
 
             <!-- 
@@ -467,92 +480,74 @@
         }
 
         /*******************************************
-         * E: CREATE CHECKLIST ITEMS (HEALTH, MAIN, ADDITIONAL)
+         * E: CREATE CHECKLIST ITEMS
          *******************************************/
-        function createHealthSafetyItems(containerId) {
-            const itemContainer = document.createElement('div');
-            itemContainer.classList.add('checklist-item');
+        // We'll define separate arrays for "Plant" vs. "Silo" items
 
-            const label = document.createElement('label');
-            label.textContent = "Health & Safety";
-            itemContainer.appendChild(label);
+        // Plant Items (excluding the silo-related ones)
+        const plantItems = [
+            "Pulsator Airline",
+            "Long Bend Elbows",
+            "Automatic Cup and Remover",
+            "Diaphragm",
+            "Receiving Can",
+            "Sanitary Trap",
+            "Main Milk Line",
+            "Milk Line Seals in Good Condition",
+            "Stainless Droppers",
+            "Long Milk Rubber",
+            "Liner",
+            "Cluster",
+            "Cluster Seal",
+            "Cluster Button",
+            "Non Return Valve at Milk Pump",
+            "Milk Pump",
+            "Filter Housing",
+            "Plate Cooler",
+            "Interceptor",
+            "Receiver Airline",
+            "Flushing Pulsator",
+            "Air Purge Valve",
+            "Vacuum Level",
+            "Main Airline",
+            "Plant Drainage - Milk Pump",
+            "Plant Drainage - Filter/s",
+            "Plant Drainage - Plate Cooler",
+            "Plant Drainage - Vat Entry",
+            "Plant Wash Tap",
+            "Wash Jetters",
+            "Centre Gland",
+            "Test Bucket"
+        ];
 
-            const statusSelect = document.createElement('select');
-            statusSelect.classList.add('form-select');
-            statusSelect.name = `status-health-safety-${containerId}`;
-            statusSelect.innerHTML = `
-                <option value="ok">OK</option>
-                <option value="attention-required">Attention Required</option>
-                <option value="na">N/A</option>
-                <option value="not-checked">Not Checked</option>
-            `;
-            itemContainer.appendChild(statusSelect);
+        // Silo Items
+        const siloItems = [
+            "Inlet Valve",
+            "Non-Return Valve",
+            "Spray Ball",
+            "Agitator",
+            "Silo Door",
+            "Manhole Seal",
+            "Vat Outlet",
+            "Walls in Silo"
+        ];
 
-            const commentsInput = document.createElement('input');
-            commentsInput.type = 'text';
-            commentsInput.classList.add('form-control');
-            commentsInput.name = `comments-health-safety-${containerId}`;
-            commentsInput.placeholder = 'Comments';
-            commentsInput.setAttribute('autocapitalize','words');
-            commentsInput.setAttribute('autocorrect','off');
-            commentsInput.setAttribute('spellcheck','false');
-            itemContainer.appendChild(commentsInput);
-
-            const imageUpload1 = document.createElement('input');
-            imageUpload1.type = 'file';
-            imageUpload1.classList.add('form-control', 'image-upload');
-            imageUpload1.style.display = 'none';
-            itemContainer.appendChild(imageUpload1);
-
-            const imageUpload2 = document.createElement('input');
-            imageUpload2.type = 'file';
-            imageUpload2.classList.add('form-control', 'image-upload');
-            imageUpload2.style.display = 'none';
-            itemContainer.appendChild(imageUpload2);
-
-            statusSelect.addEventListener('change', () => {
-                if (statusSelect.value === 'attention-required') {
-                    imageUpload1.style.display = 'block';
-                    imageUpload2.style.display = 'block';
-                } else {
-                    imageUpload1.style.display = 'none';
-                    imageUpload2.style.display = 'none';
-                }
-            });
-
-            document.getElementById(containerId).appendChild(itemContainer);
-        }
+        const itemsToAutoFill = [
+            "Inlet Valve",
+            "Non-Return Valve",
+            "Spray Ball",
+            "Agitator",
+            "Silo Door",
+            "Manhole Seal",
+            "Vat Outlet",
+            "Walls in Silo"
+        ];
 
         function createPlantChecklistItems() {
-            const PlantChecklist = [
-                "Pulsator Airline", "Long Bend Elbows", "Automatic Cup and Remover", "Diaphragm", "Receiving Can",
-                "Sanitary Trap", "Main Milk Line", "Milk Line Seals in Good Condition", "Stainless Droppers", "Long Milk Rubber",
-                "Liner", "Cluster", "Cluster Seal", "Cluster Button", "Non Return Valve at Milk Pump", "Milk Pump",
-                "Filter Housing", "Plate Cooler", "Interceptor", "Receiver Airline", "Flushing Pulsator", "Air Purge Valve",
-                "Vacuum Level", "Main Airline", "Plant Drainage - Milk Pump", "Plant Drainage - Filter/s", "Plant Drainage - Plate Cooler",
-                "Plant Drainage - Vat Entry", "Plant Wash Tap", "Wash Jetters", "Centre Gland", "Test Bucket"
-            ];
-
-            const SiloChecklist = [
-  "Inlet Valve", "Non-Return Valve", "Spray Ball", 
-  "Agitator", "Silo Door", "Manhole Seal", "Vat Outlet", "Walls in Silo"
-];
-
-            const itemsToAutoFill = [
-                "Inlet Valve",
-                "Non-Return Valve",
-                "Spray Ball",
-                "Agitator",
-                "Silo Door",
-                "Manhole Seal",
-                "Vat Outlet",
-                "Walls in Silo"
-            ];
-
-            const container = document.getElementById('checklist-items');
+            const container = document.getElementById('plant-checklist');
             container.innerHTML = '';
 
-            checklistItems.forEach(item => {
+            plantItems.forEach(item => {
                 const itemContainer = document.createElement('div');
                 itemContainer.classList.add('checklist-item');
 
@@ -601,6 +596,66 @@
                         imageUpload1.style.display = 'none';
                         imageUpload2.style.display = 'none';
                     }
+                });
+
+                container.appendChild(itemContainer);
+            });
+        }
+
+        function createSiloChecklistItems() {
+            const container = document.getElementById('silo-checklist');
+            container.innerHTML = '';
+
+            siloItems.forEach(item => {
+                const itemContainer = document.createElement('div');
+                itemContainer.classList.add('checklist-item');
+
+                const label = document.createElement('label');
+                label.textContent = item;
+                itemContainer.appendChild(label);
+
+                const statusSelect = document.createElement('select');
+                statusSelect.classList.add('form-select');
+                statusSelect.name = `status-${item}`;
+                statusSelect.innerHTML = `
+                    <option value="ok">OK</option>
+                    <option value="attention-required">Attention Required</option>
+                    <option value="na">N/A</option>
+                    <option value="not-checked">Not Checked</option>
+                `;
+                itemContainer.appendChild(statusSelect);
+
+                const commentsInput = document.createElement('input');
+                commentsInput.type = 'text';
+                commentsInput.classList.add('form-control');
+                commentsInput.name = `comments-${item}`;
+                commentsInput.placeholder = 'Comments';
+                commentsInput.setAttribute('autocapitalize','words');
+                commentsInput.setAttribute('autocorrect','off');
+                commentsInput.setAttribute('spellcheck','false');
+                itemContainer.appendChild(commentsInput);
+
+                const imageUpload1 = document.createElement('input');
+                imageUpload1.type = 'file';
+                imageUpload1.classList.add('form-control', 'image-upload');
+                imageUpload1.style.display = 'none';
+                itemContainer.appendChild(imageUpload1);
+
+                const imageUpload2 = document.createElement('input');
+                imageUpload2.type = 'file';
+                imageUpload2.classList.add('form-control', 'image-upload');
+                imageUpload2.style.display = 'none';
+                itemContainer.appendChild(imageUpload2);
+
+                statusSelect.addEventListener('change', () => {
+                    if (statusSelect.value === 'attention-required') {
+                        imageUpload1.style.display = 'block';
+                        imageUpload2.style.display = 'block';
+                    } else {
+                        imageUpload1.style.display = 'none';
+                        imageUpload2.style.display = 'none';
+                    }
+
                     if (statusSelect.value === 'not-checked' && itemsToAutoFill.includes(item)) {
                         commentsInput.value = "Milk in Vat";
                     } else if (commentsInput.value === "Milk in Vat") {
@@ -612,6 +667,9 @@
             });
         }
 
+        /*******************************************
+         * F: ADDITIONAL CHECKS
+         *******************************************/
         async function createAdditionalChecks() {
             const container = document.getElementById('additional-checks');
             container.innerHTML = '';
@@ -771,7 +829,7 @@
         }
 
         /*******************************************
-         * F: ONE-HOUR CACHING & PROMPT ON PAGE LOAD
+         * G: ONE-HOUR CACHING & PROMPT ON PAGE LOAD
          *******************************************/
         async function cleanupExpiredForms() {
             const oneHour = 60 * 60 * 1000;
@@ -810,9 +868,11 @@
                 }
             }
             if (data.checklistItems) {
+                // We'll gather ALL item containers (Health, Plant, Silo, Additional)
                 const containers = [
                     ...document.getElementById('health-safety-top').children,
-                    ...document.getElementById('checklist-items').children,
+                    ...document.getElementById('plant-checklist').children,
+                    ...document.getElementById('silo-checklist').children,
                     ...document.getElementById('additional-checks').children
                 ];
                 let idx = 0;
@@ -839,7 +899,7 @@
         }
 
         /*******************************************
-         * G: SAVE FORM DATA ON INPUT
+         * H: SAVE FORM DATA ON INPUT
          *******************************************/
         async function saveFormData() {
             const dairyNumber = document.getElementById('dairy-number').value.trim();
@@ -852,10 +912,11 @@
             const formDataObj = new FormData(form);
             const data = Object.fromEntries(formDataObj.entries());
 
-            // Build checklist items
+            // Build checklist items (including Silo items)
             const containersToCheck = [
                 document.getElementById('health-safety-top').children,
-                document.getElementById('checklist-items').children,
+                document.getElementById('plant-checklist').children,
+                document.getElementById('silo-checklist').children,
                 document.getElementById('additional-checks').children
             ];
             const checklistItemsData = [];
@@ -880,11 +941,10 @@
         }
 
         /*******************************************
-         * H: SAVE FARM DETAILS TO FIREBASE
+         * I: SAVE FARM DETAILS TO FIREBASE
          *******************************************/
         async function saveFarmDetailsToFirebase(fd) {
-            // This function uploads JSON to farm_details/<dairyNumber>.json
-            // so that future forms for the same # can be auto-filled
+            // Uploads farm details to farm_details/<dairyNumber>.json
             const dairyNumber = fd.get('dairy-number') || '';
             if (!dairyNumber) return;
 
@@ -910,9 +970,8 @@
             }
         }
 
-
         /*******************************************
-         * I: GENERATE PDF (WITH PHOTOS & TEAT RATIO)
+         * J: GENERATE PDF (WITH PHOTOS & TEAT RATIO)
          *******************************************/
         async function generatePDF() {
             const dairyNumber = document.getElementById('dairy-number').value.trim();
@@ -921,15 +980,16 @@
                 return;
             }
 
-            // Before generating the PDF, save the farm details for future auto-fill
+            // Save farm details so future forms get auto-filled
             const form = document.getElementById('hygiene-checklist-form');
             const fd = new FormData(form);
             await saveFarmDetailsToFirebase(fd);
 
-            // Now proceed with PDF creation (including photos)
+            // Now proceed with PDF creation
             const containers = [
                 ...document.getElementById('health-safety-top').children,
-                ...document.getElementById('checklist-items').children,
+                ...document.getElementById('plant-checklist').children,
+                ...document.getElementById('silo-checklist').children,
                 ...document.getElementById('additional-checks').children
             ];
             const itemDataArray = [];
@@ -1126,7 +1186,7 @@
         }
 
         /*******************************************
-         * J: RECORDS VIEW PAGE
+         * K: RECORDS VIEW PAGE
          *******************************************/
         function viewRecords() {
             document.getElementById('form-container').style.display = 'none';
@@ -1207,21 +1267,22 @@
         }
 
         /*******************************************
-         * K: DOMContentLoaded
+         * L: DOMContentLoaded
          *******************************************/
         document.addEventListener("DOMContentLoaded", async () => {
-            // Set up dairy-company datalist
+            // 1) Setup Dairy Company List
             await setupDairyCompanyDatalist();
 
-            // Create sections
+            // 2) Create all checklists
             createHealthSafetyItems('health-safety-top');
-            createChecklistItems();
+            createPlantChecklistItems();   // The renamed 'Plant Checklist' items
+            createSiloChecklistItems();    // The new 'Silo Checklist' items
             await createAdditionalChecks();
 
-            // Prompt if 1 existing form
+            // 3) Check for existing form
             await checkForExistingForm();
 
-            // Save data on input
+            // 4) Save data on input
             const form = document.getElementById('hygiene-checklist-form');
             form.addEventListener('input', saveFormData);
         });
