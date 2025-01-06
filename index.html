@@ -135,6 +135,7 @@
             <!-- Farm Details Section -->
             <div class="section mb-4">
                 <h2>Farm Details</h2>
+
                 <label for="dairy-number">Dairy Number:</label>
                 <input type="text" 
                        class="form-control" 
@@ -145,17 +146,25 @@
                        autocorrect="off" 
                        spellcheck="false">
 
+                <!-- Dynamic Dairy Company field: pre-populated dropdown + text input -->
                 <label for="dairy-company">Dairy Company:</label>
-                <select id="dairy-company" name="dairy-company" class="form-select">
-                    <option value="fonterra">Fonterra</option>
-                    <option value="dairy-goat-coop">Dairy Goat Co-op</option>
-                    <option value="green-valley">Green Valley Dairies</option>
-                    <option value="maui-milk">Maui Milk</option>
-                    <option value="oceania">Oceania</option>
-                    <option value="ofi">OFI</option>
-                    <option value="synlait">Synlait Milk LTD</option>
-                    <option value="tatua">Tatua</option>
-                </select>
+                <div style="display: flex; gap: 5px;">
+                    <!-- Dropdown -->
+                    <select id="dairy-company-select" name="dairy-company-select" class="form-select" style="max-width: 50%;">
+                        <!-- Default options will be loaded by script, plus any user-added companies -->
+                    </select>
+                    <!-- Text input for new/typed entry -->
+                    <input type="text" 
+                           class="form-control" 
+                           id="dairy-company-input" 
+                           name="dairy-company-input" 
+                           placeholder="Type or select..."
+                           autocapitalize="words" 
+                           autocorrect="off" 
+                           spellcheck="false"
+                           style="max-width: 50%;">
+                </div>
+
                 <label for="address">Address:</label>
                 <input type="text" 
                        class="form-control" 
@@ -164,6 +173,7 @@
                        autocapitalize="words" 
                        autocorrect="off" 
                        spellcheck="false">
+
                 <label for="customer-name">Customer Name:</label>
                 <input type="text" 
                        class="form-control" 
@@ -172,6 +182,7 @@
                        autocapitalize="words" 
                        autocorrect="off" 
                        spellcheck="false">
+
                 <label for="region">Region:</label>
                 <select id="region" name="region" class="form-select">
                     <option value="northland">Northland</option>
@@ -190,6 +201,7 @@
                     <option value="otago">Otago</option>
                     <option value="southland">Southland</option>
                 </select>
+
                 <label for="farm-name">Farm Name:</label>
                 <input type="text" 
                        class="form-control" 
@@ -198,11 +210,13 @@
                        autocapitalize="words" 
                        autocorrect="off" 
                        spellcheck="false">
+
                 <label for="island">Island:</label>
                 <select id="island" name="island" class="form-select">
                     <option value="north-island">North Island</option>
                     <option value="south-island">South Island</option>
                 </select>
+
                 <label for="visit-date">Visit Date:</label>
                 <input type="date" 
                        class="form-control" 
@@ -249,7 +263,7 @@
                 </select>
             </div>
 
-            <!-- NEW Health & Safety Section (above the main checklist items) -->
+            <!-- NEW Health & Safety Section (only top, end one removed) -->
             <div class="section mb-4">
                 <h2>Health & Safety</h2>
                 <div id="health-safety-top"></div>
@@ -261,12 +275,6 @@
                 <div id="checklist-items">
                     <!-- Main Checklist items will be dynamically added here -->
                 </div>
-            </div>
-
-            <!-- Another Health & Safety Section (repeated at end as requested) -->
-            <div class="section mb-4">
-                <h2>Health & Safety (End)</h2>
-                <div id="health-safety-bottom"></div>
             </div>
 
             <!-- Additional Checks: Teat Spray Check & Chemical Check -->
@@ -354,12 +362,13 @@
         const firestore = firebase.firestore();
 
         // Initialize IndexedDB using Dexie
+        // Note: We increment to version(3) to add new store for dairyCompanies
         const db = new Dexie("OfflineData");
-        db.version(2).stores({
+        db.version(3).stores({
             forms: "++id, dairyNumber, formData, pdfBlob",
             formFields: "id, data",
-            // Optionally store custom fields such as dilution rates
-            teatSprayRatios: "++id, ratio"
+            teatSprayRatios: "++id, ratio",
+            dairyCompanies: "++id, name"
         });
 
         // Service Worker Registration
@@ -388,7 +397,9 @@
                     }
                     const data = await response.json();
                     if (data) {
-                        document.getElementById('dairy-company').value = data.dairyCompany || '';
+                        // If there's a known dairyCompany from the JSON, set it in the input
+                        const dairyCompanyInput = document.getElementById('dairy-company-input');
+                        dairyCompanyInput.value = data.dairyCompany || '';
                         document.getElementById('address').value = data.address || '';
                         document.getElementById('customer-name').value = data.customerName || '';
                         document.getElementById('region').value = data.region || '';
@@ -404,23 +415,28 @@
         async function saveFarmDetails(formData) {
             // Save farm details to Firebase Storage
             const dairyNumber = formData.get('dairy-number');
+            // We'll grab the typed or selected dairy company from combined logic
+            const typedCompany = formData.get('dairy-company-input');
+
             const farmDetails = {
-                dairyCompany: formData.get('dairy-company'),
+                dairyCompany: typedCompany,
                 address: formData.get('address'),
                 customerName: formData.get('customer-name'),
                 region: formData.get('region'),
                 farmName: formData.get('farm-name'),
                 island: formData.get('island'),
             };
-            const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
-            const metadata = {
-                contentType: 'application/json',
-            };
-            try {
-                await storageRef.put(new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }), metadata);
-                console.log('Farm details saved successfully.');
-            } catch (error) {
-                console.error('Error saving farm details:', error);
+            if (dairyNumber) {
+                const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
+                const metadata = {
+                    contentType: 'application/json',
+                };
+                try {
+                    await storageRef.put(new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }), metadata);
+                    console.log('Farm details saved successfully.');
+                } catch (error) {
+                    console.error('Error saving farm details:', error);
+                }
             }
         }
 
@@ -457,7 +473,9 @@
                     let currentY = imgHeight + 80;
 
                     pdf.setFont('helvetica', 'normal');
-                    pdf.text(`Dairy Company: ${formData.get('dairy-company')}`, 40, currentY);
+                    // We'll display the typed/selected dairy company
+                    const typedCompany = formData.get('dairy-company-input') || '';
+                    pdf.text(`Dairy Company: ${typedCompany}`, 40, currentY);
                     currentY += 15;
                     pdf.text(`Dairy Number: ${formData.get('dairy-number')}`, 40, currentY);
                     currentY += 15;
@@ -484,12 +502,10 @@
                     pdf.text(`Call Type: ${formData.get('call-type')}`, 40, currentY);
                     currentY += 30;
 
-                    // Collect dynamic items (both Health & Safety + main items + additional checks)
-                    // We gather them from the container that holds them
+                    // Gather dynamic items (Health & Safety top + main items + additional checks)
                     const containersToCheck = [
                         document.getElementById('health-safety-top').children,
                         document.getElementById('checklist-items').children,
-                        document.getElementById('health-safety-bottom').children,
                         document.getElementById('additional-checks').children
                     ];
 
@@ -498,21 +514,16 @@
 
                     let pendingImages = 0;
 
-                    // Helper function to process each item container
                     function processItemContainer(item) {
-                        // The first label is the item name:
                         const itemName = item.querySelector('label').textContent;
                         const statusSelect = item.querySelector('select');
-                        if (!statusSelect) return; // Skip if no select found
+                        if (!statusSelect) return;
 
                         const status = statusSelect.value;
-                        // Comments may or may not exist (for Teat Spray, we might have more fields)
-                        // So let's find all text inputs that are not type="file"
                         let commentsField = item.querySelector('input[type="text"]');
                         let comments = commentsField ? commentsField.value : '';
 
                         if (status === 'attention-required') {
-                            // Check if there's an image or not
                             const imageUploads = item.querySelectorAll('input[type="file"]');
                             if (imageUploads[0].files[0] || imageUploads[1].files[0]) {
                                 comments += " (See attached photo below)";
@@ -527,7 +538,6 @@
                             if (dilutionRateInput.value) {
                                 ratioText += ` (New ratio: ${dilutionRateInput.value})`;
                             }
-                            // Append ratio info to the comments for PDF
                             comments += comments ? ` | ${ratioText}` : ratioText;
                         }
 
@@ -582,13 +592,11 @@
                         }
                     });
 
-                    // If no images are pending, finalize right away
                     if (pendingImages === 0) {
                         finalizePDF();
                     }
 
                     function finalizePDF() {
-                        // Generate checklist items table
                         pdf.autoTable({
                             startY: currentY,
                             head: [['Item', 'Status', 'Comments']],
@@ -603,18 +611,14 @@
                             }
                         });
 
-                        // Add temperature data
                         let tempY = pdf.lastAutoTable.finalY + 20;
-
                         pdf.setFont('helvetica', 'bold');
                         pdf.text('Temperature Measurements:', 40, tempY);
                         tempY += 20;
 
                         pdf.setFont('helvetica', 'normal');
-
                         const hotWaterTemp = document.getElementById('hot-water-temp').value;
                         const hotWaterTime = document.getElementById('hot-water-time').value;
-
                         pdf.text(`Hot Water Temp: ${hotWaterTemp} °C`, 40, tempY);
                         tempY += 15;
                         pdf.text(`Time Taken: ${hotWaterTime}`, 40, tempY);
@@ -622,20 +626,19 @@
 
                         const milkTemp = document.getElementById('milk-temp').value;
                         const milkTime = document.getElementById('milk-time').value;
-
                         pdf.text(`Milk Temp: ${milkTemp} °C`, 40, tempY);
                         tempY += 15;
                         pdf.text(`Time Taken: ${milkTime}`, 40, tempY);
                         tempY += 20;
 
                         // Add photos after the checklist
-                        let photoY = tempY + 20; // Start placing photos after the temperature data
+                        let photoY = tempY + 20;
                         const pageWidth = pdf.internal.pageSize.getWidth();
 
                         photos.forEach(photoItem => {
                             const images = photoItem.images;
                             pdf.setFontSize(12);
-                            pdf.text(photoItem.itemName, 40, photoY - 10); // Add the title above the photo
+                            pdf.text(photoItem.itemName, 40, photoY - 10);
 
                             if (images.length === 1) {
                                 if (photoY > pdf.internal.pageSize.getHeight() - 220) {
@@ -649,7 +652,7 @@
                                     pdf.addPage();
                                     photoY = 60;
                                 }
-                                const imageWidth = (pageWidth - 120) / 2; // Adjust margins
+                                const imageWidth = (pageWidth - 120) / 2;
                                 pdf.addImage(images[0], 'JPEG', 40, photoY, imageWidth, 200);
                                 pdf.addImage(images[1], 'JPEG', 60 + imageWidth, photoY, imageWidth, 200);
                                 photoY += 220;
@@ -683,7 +686,6 @@
         }
 
         function uploadPDF(dairyNumber, pdfBlob) {
-            // Upload PDF to Firebase Storage
             const timestamp = new Date().toISOString().split('T')[0];
             const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
             const storageRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
@@ -700,24 +702,18 @@
         async function syncDataWithFirebase() {
             // Sync offline data with Firebase when back online
             const offlineForms = await db.forms.toArray();
-
             for (const record of offlineForms) {
                 const dairyNumber = record.dairyNumber;
                 const pdfBlob = record.pdfBlob;
-
                 uploadPDF(dairyNumber, pdfBlob);
-
                 // Remove the record from IndexedDB after uploading
                 db.forms.delete(record.id);
             }
-
             console.log('All offline data has been synced with Firebase.');
         }
 
-        // ============ CREATE HEALTH & SAFETY ITEMS (top + bottom) ============
+        // ============ CREATE HEALTH & SAFETY ITEMS (top only) ============
         function createHealthSafetyItems(containerId) {
-            // We'll just create a single "Health & Safety" item for demonstration
-            // (If you want more, put them in an array).
             const itemContainer = document.createElement('div');
             itemContainer.classList.add('checklist-item');
 
@@ -741,20 +737,18 @@
             commentsInput.classList.add('form-control');
             commentsInput.name = `comments-health-safety-${containerId}`;
             commentsInput.placeholder = 'Comments';
-            // auto-cap / off
             commentsInput.setAttribute('autocapitalize','words');
             commentsInput.setAttribute('autocorrect','off');
             commentsInput.setAttribute('spellcheck','false');
             itemContainer.appendChild(commentsInput);
 
-            // Create first image upload input
+            // Image upload
             const imageUpload1 = document.createElement('input');
             imageUpload1.type = 'file';
             imageUpload1.classList.add('form-control', 'image-upload');
             imageUpload1.style.display = 'none';
             itemContainer.appendChild(imageUpload1);
 
-            // Create second image upload input
             const imageUpload2 = document.createElement('input');
             imageUpload2.type = 'file';
             imageUpload2.classList.add('form-control', 'image-upload');
@@ -824,7 +818,6 @@
                 commentsInput.classList.add('form-control');
                 commentsInput.name = `comments-${item}`;
                 commentsInput.placeholder = 'Comments';
-                // auto-cap / off
                 commentsInput.setAttribute('autocapitalize','words');
                 commentsInput.setAttribute('autocorrect','off');
                 commentsInput.setAttribute('spellcheck','false');
@@ -888,13 +881,11 @@
             `;
             teatSprayContainer.appendChild(statusSelectTeat);
 
-            // Teat spray - Comments
             const commentsInputTeat = document.createElement('input');
             commentsInputTeat.type = 'text';
             commentsInputTeat.classList.add('form-control');
             commentsInputTeat.name = "comments-teat-spray-check";
             commentsInputTeat.placeholder = 'Comments';
-            // auto-cap / off
             commentsInputTeat.setAttribute('autocapitalize','words');
             commentsInputTeat.setAttribute('autocorrect','off');
             commentsInputTeat.setAttribute('spellcheck','false');
@@ -948,7 +939,6 @@
             ratioInput.type = 'text';
             ratioInput.placeholder = 'Enter new ratio e.g. 1:5';
             ratioInput.classList.add('form-control', 'mt-2', 'teat-dilution-input');
-            // auto-cap / off (not strictly needed for ratio, but we’ll do it for consistency)
             ratioInput.setAttribute('autocapitalize','words');
             ratioInput.setAttribute('autocorrect','off');
             ratioInput.setAttribute('spellcheck','false');
@@ -968,7 +958,6 @@
             });
 
             ratioContainer.appendChild(ratioInput);
-
             teatSprayContainer.appendChild(ratioContainer);
 
             additionalContainer.appendChild(teatSprayContainer);
@@ -997,13 +986,12 @@
             commentsInputChemical.classList.add('form-control');
             commentsInputChemical.name = "comments-chemical-check";
             commentsInputChemical.placeholder = 'Comments';
-            // auto-cap / off
             commentsInputChemical.setAttribute('autocapitalize','words');
             commentsInputChemical.setAttribute('autocorrect','off');
             commentsInputChemical.setAttribute('spellcheck','false');
             chemicalContainer.appendChild(commentsInputChemical);
 
-            // Dual image (if needed)
+            // Dual image
             const imageUploadChem1 = document.createElement('input');
             imageUploadChem1.type = 'file';
             imageUploadChem1.classList.add('form-control', 'image-upload');
@@ -1126,16 +1114,16 @@
             const formData = new FormData(form);
             const data = Object.fromEntries(formData.entries());
 
-            // Save data from dynamic checklist items
-            const checklistItemsData = [];
+            // We'll store whichever company is typed in the input
+            data["dairy-company"] = data["dairy-company-input"];
 
-            // Containers
+            // Save data from dynamic checklist items
             const containersToCheck = [
                 document.getElementById('health-safety-top').children,
                 document.getElementById('checklist-items').children,
-                document.getElementById('health-safety-bottom').children,
                 document.getElementById('additional-checks').children
             ];
+            const checklistItemsData = [];
 
             for (let container of containersToCheck) {
                 for (let item of container) {
@@ -1189,7 +1177,6 @@
                         const containersToCheck = [
                             document.getElementById('health-safety-top').children,
                             document.getElementById('checklist-items').children,
-                            document.getElementById('health-safety-bottom').children,
                             document.getElementById('additional-checks').children
                         ];
 
@@ -1206,7 +1193,6 @@
                                     // Trigger change event to show/hide image uploads if necessary
                                     statusSelect.dispatchEvent(new Event('change'));
                                 }
-
                                 if (commentsInput) {
                                     commentsInput.value = itemData.comments;
                                 }
@@ -1220,15 +1206,77 @@
             });
         }
 
+        // ============ DAIRY COMPANY: load from Dexie, populate dropdown, handle new entries ============
+        async function setupDairyCompanyDropdown() {
+            // Existing defaults for immediate display
+            const defaultCompanies = [
+                "Fonterra",
+                "Dairy Goat Co-op",
+                "Green Valley Dairies",
+                "Maui Milk",
+                "Oceania",
+                "OFI",
+                "Synlait Milk LTD",
+                "Tatua"
+            ];
+
+            const select = document.getElementById('dairy-company-select');
+            const input = document.getElementById('dairy-company-input');
+
+            // 1) Load user-added companies from Dexie
+            const userCompanies = await db.dairyCompanies.toArray();
+            const allCompanies = [...defaultCompanies];
+
+            // Add user companies if not already in list
+            userCompanies.forEach(u => {
+                if (!allCompanies.includes(u.name)) {
+                    allCompanies.push(u.name);
+                }
+            });
+
+            // Clear out existing <select> options
+            select.innerHTML = '';
+            // Populate <select> with combined unique items
+            allCompanies.forEach(company => {
+                const option = document.createElement('option');
+                option.value = company;
+                option.textContent = company;
+                select.appendChild(option);
+            });
+
+            // 2) Whenever user selects an option, update input field
+            select.addEventListener('change', () => {
+                input.value = select.value;
+            });
+
+            // 3) Whenever user leaves the input field, if it's something new, store it
+            input.addEventListener('blur', async () => {
+                const typedValue = input.value.trim();
+                if (typedValue && !allCompanies.includes(typedValue)) {
+                    // Add to Dexie
+                    await db.dairyCompanies.add({ name: typedValue });
+                    // Also add it to the <select>
+                    const newOption = document.createElement('option');
+                    newOption.value = typedValue;
+                    newOption.textContent = typedValue;
+                    select.appendChild(newOption);
+                    // Update local array
+                    allCompanies.push(typedValue);
+                    // Make sure <select> matches typed
+                    select.value = typedValue;
+                }
+            });
+        }
+
         document.addEventListener("DOMContentLoaded", async () => {
+            // Setup dynamic dairy company dropdown
+            await setupDairyCompanyDropdown();
+
             // Create the top Health & Safety item
             createHealthSafetyItems('health-safety-top');
 
             // Create the main checklist items
             createChecklistItems();
-
-            // Create the bottom Health & Safety item
-            createHealthSafetyItems('health-safety-bottom');
 
             // Create additional checks (Teat Spray & Chemical)
             await createAdditionalChecks();
