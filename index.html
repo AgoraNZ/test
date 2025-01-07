@@ -409,7 +409,9 @@
             const allCompanies = [...defaultCompanies];
 
             userCompanies.forEach(u => {
-                if (!allCompanies.includes(u.name)) allCompanies.push(u.name);
+                if (!allCompanies.includes(u.name)) {
+                    allCompanies.push(u.name);
+                }
             });
 
             const datalist = document.getElementById('dairy-company-list');
@@ -471,15 +473,17 @@
                     formData: {},
                     creationTime: Date.now()
                 });
+                console.log(`Created new Dexie form record for #${dairyNumber}`);
+            } else {
+                console.log(`Form record for #${dairyNumber} already exists in Dexie.`);
             }
         }
 
         /*******************************************
          * E: CREATE CHECKLIST ITEMS
          *******************************************/
-        // All items are split: some go under Plant Checklist, some under Silo Checklist
+        // Plant vs. Silo
 
-        // Plant Items
         const plantItems = [
             "Pulsator Airline",
             "Long Bend Elbows",
@@ -515,7 +519,6 @@
             "Test Bucket"
         ];
 
-        // Silo Items
         const siloItems = [
             "Inlet Valve",
             "Non-Return Valve",
@@ -527,7 +530,6 @@
             "Walls in Silo"
         ];
 
-        // For 'Milk in Vat' auto-fill (if status = "not-checked")
         const itemsToAutoFill = [
             "Inlet Valve",
             "Non-Return Valve",
@@ -654,7 +656,6 @@
                         imageUpload2.style.display = 'none';
                     }
 
-                    // "Milk in Vat" auto-fill if not-checked
                     if (statusSelect.value === 'not-checked' && itemsToAutoFill.includes(item)) {
                         commentsInput.value = "Milk in Vat";
                     } else if (commentsInput.value === "Milk in Vat") {
@@ -836,6 +837,7 @@
             const allForms = await db.forms.toArray();
             for (let f of allForms) {
                 if (now - f.creationTime > oneHour) {
+                    console.log(`Deleting expired form #${f.dairyNumber}`);
                     await db.forms.delete(f.dairyNumber);
                 }
             }
@@ -844,12 +846,15 @@
         async function checkForExistingForm() {
             await cleanupExpiredForms();
             const allForms = await db.forms.toArray();
+            console.log(`Found ${allForms.length} forms in Dexie:`, allForms);
             if (allForms.length === 1) {
                 const existing = allForms[0];
+                console.log(`One form found (#${existing.dairyNumber}), asking user to continue...`);
                 const confirmContinue = confirm(`Would you like to continue form #${existing.dairyNumber}?`);
                 if (confirmContinue) {
                     loadFormDataFromRecord(existing);
                 } else {
+                    console.log(`User declined, deleting form #${existing.dairyNumber}`);
                     await db.forms.delete(existing.dairyNumber);
                     clearEntireForm();
                 }
@@ -858,26 +863,26 @@
 
         /*******************************************
          * H: LOAD + CLEAR FORM
-         *  -- KEY FIX: We match items by "itemName" so data reappears
          *******************************************/
         function loadFormDataFromRecord(record) {
-            // Basic field data
+            console.log(`Loading data from Dexie record:`, record);
             const data = record.formData || {};
-            // Put the Dairy Number into the input
             document.getElementById('dairy-number').value = record.dairyNumber;
 
-            // For everything except the checklist items
+            // Basic fields
             for (let key in data) {
                 if (key === 'checklistItems') continue;
                 const field = document.getElementById(key) || document.getElementsByName(key)[0];
                 if (field) {
+                    console.log(`Setting field [${key}] to: ${data[key]}`);
                     field.value = data[key];
                 }
             }
 
-            // Now handle the checklist items
+            // Checklist items
             if (data.checklistItems) {
-                // Grab ALL items from these sections
+                console.log(`Found ${data.checklistItems.length} checklist items in Dexie data`);
+                // Gather item elements from all sections
                 const containers = [
                     ...document.getElementById('health-safety-top').children,
                     ...document.getElementById('plant-checklist').children,
@@ -885,30 +890,33 @@
                     ...document.getElementById('additional-checks').children
                 ];
 
-                // For each container item, find the matching itemName in the saved data
                 containers.forEach(itemEl => {
                     const labelEl = itemEl.querySelector('label');
                     if (!labelEl) return;
                     const itemName = labelEl.textContent;
-                    // Find the object from data.checklistItems
+                    // find the matching itemName in data.checklistItems
                     const found = data.checklistItems.find(ci => ci.itemName === itemName);
                     if (found) {
+                        console.log(`Restoring [${itemName}] => status: ${found.status}, comments: ${found.comments}`);
                         const statusSelect = itemEl.querySelector('select');
                         const commentsInput = itemEl.querySelector('input[type="text"]');
                         if (statusSelect) {
                             statusSelect.value = found.status;
-                            // Trigger 'change' so photo fields appear if needed
+                            // trigger change so images appear if needed
                             statusSelect.dispatchEvent(new Event('change'));
                         }
                         if (commentsInput) {
                             commentsInput.value = found.comments;
                         }
+                    } else {
+                        console.log(`No data found for itemName [${itemName}] in Dexie.`);
                     }
                 });
             }
         }
 
         function clearEntireForm() {
+            console.log(`Clearing the form entirely...`);
             document.getElementById('hygiene-checklist-form').reset();
             const imageUploads = document.querySelectorAll('.image-upload');
             imageUploads.forEach(inp => { inp.style.display = 'none'; });
@@ -928,14 +936,15 @@
                     formData: {},
                     creationTime: Date.now()
                 };
+                console.log(`Creating record for #${dairyNumber} on input event`);
             }
 
-            // Gather data from the form
+            // Grab current form data
             const form = document.getElementById('hygiene-checklist-form');
             const formDataObj = new FormData(form);
             const data = Object.fromEntries(formDataObj.entries());
 
-            // Build the array of checklist items
+            // Gather checklist items
             const containersToCheck = [
                 document.getElementById('health-safety-top').children,
                 document.getElementById('plant-checklist').children,
@@ -960,8 +969,8 @@
             data.checklistItems = checklistItemsData;
             record.formData = data;
 
-            // Save to Dexie
             await db.forms.put(record);
+            console.log(`Saved form data in Dexie for #${dairyNumber}:`, record);
         }
 
         /*******************************************
@@ -987,7 +996,7 @@
                     new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }),
                     metadata
                 );
-                console.log('Farm details saved to Firebase successfully.');
+                console.log('Farm details saved to Firebase successfully.', farmDetails);
             } catch (err) {
                 console.error('Error saving farm details to Firebase:', err);
             }
@@ -999,13 +1008,14 @@
                 alert("Please enter a Dairy Number.");
                 return;
             }
+            console.log(`Generating PDF for #${dairyNumber}...`);
 
             // Save farm details for future auto-fill
             const form = document.getElementById('hygiene-checklist-form');
             const fd = new FormData(form);
             await saveFarmDetailsToFirebase(fd);
 
-            // Build the item data (including photos)
+            // Build item data
             const containers = [
                 ...document.getElementById('health-safety-top').children,
                 ...document.getElementById('plant-checklist').children,
@@ -1022,7 +1032,6 @@
                 let commentsInput = itemEl.querySelector('input[type="text"]');
                 let comments = commentsInput ? commentsInput.value : '';
 
-                // If item is "Teat Spray Check", also fetch ratio
                 if (itemName === "Teat Spray Check") {
                     const ratioField = itemEl.querySelector('#teat-dilution');
                     if (ratioField && ratioField.value.trim()) {
@@ -1032,7 +1041,6 @@
                     }
                 }
 
-                // Gather images
                 const imgs = itemEl.querySelectorAll('input[type="file"]');
                 const imageFiles = [];
                 if (imgs.length > 0) {
@@ -1040,7 +1048,6 @@
                     if (imgs[1].files[0]) imageFiles.push(imgs[1].files[0]);
                 }
 
-                // If attention-required + images => add note
                 if (status === 'attention-required' && imageFiles.length > 0) {
                     comments += comments
                       ? ` (Photo Attached Below)`
@@ -1049,8 +1056,9 @@
 
                 itemDataArray.push({ itemName, status, comments, imageFiles });
             });
+            console.log(`Found ${itemDataArray.length} items for PDF.`, itemDataArray);
 
-            // Convert images asynchronously, then finalize PDF
+            // Convert images
             let pendingImages = 0;
             let photoStore = []; 
             itemDataArray.forEach(obj => {
@@ -1062,6 +1070,7 @@
                         reader.onload = evt => {
                             photoObj.images[idx] = evt.target.result;
                             pendingImages--;
+                            console.log(`Converted image for item [${obj.itemName}] (remaining: ${pendingImages})`);
                             if (pendingImages === 0) finalizePDF();
                         };
                         reader.readAsDataURL(file);
@@ -1074,10 +1083,11 @@
             if (pendingImages === 0) finalizePDF();
 
             async function finalizePDF() {
+                console.log("All images loaded, finalizing PDF...");
                 const pdf = new jsPDF('p', 'pt', 'a4');
                 let currentY = 80;
 
-                // Attempt to load the logo
+                // Try loading logo
                 try {
                     const logoRef = storage.ref('Picture3.jpg');
                     const logoUrl = await logoRef.getDownloadURL();
@@ -1096,7 +1106,7 @@
                     pdf.text('Farm Details:', 40, imgHeight + 60);
                     currentY = imgHeight + 80;
                 } catch (err) {
-                    console.error('No logo found or error retrieving logo. Generating PDF without logo.');
+                    console.error('No logo found or error retrieving logo. PDF continues without logo.', err);
                     pdf.setFontSize(12);
                     pdf.setTextColor('#000000');
                     pdf.setFont('helvetica', 'bold');
@@ -1104,7 +1114,6 @@
                     currentY += 20;
                 }
 
-                // Insert form fields (basic farm info)
                 pdf.setFont('helvetica', 'normal');
                 function addLine(text) {
                     pdf.text(text, 40, currentY);
@@ -1125,7 +1134,7 @@
                 addLine(`Call Type: ${fd.get('call-type') || ''}`);
                 currentY += 15;
 
-                // Create table of items
+                // Table
                 const tableData = itemDataArray.map(obj => [obj.itemName, obj.status, obj.comments]);
                 pdf.autoTable({
                     startY: currentY,
@@ -1136,7 +1145,7 @@
                 });
                 let afterTableY = pdf.lastAutoTable.finalY + 20;
 
-                // Temperature Measurements
+                // Temperature
                 pdf.setFont('helvetica', 'bold');
                 pdf.text('Temperature Measurements:', 40, afterTableY);
                 afterTableY += 20;
@@ -1154,7 +1163,7 @@
                 pdf.text(`Time Taken: ${milkTime}`, 40, afterTableY);
                 afterTableY += 20;
 
-                // Add photos after table
+                // Photos
                 let photoY = afterTableY + 20;
                 const pageWidth = pdf.internal.pageSize.getWidth();
                 photoStore.forEach(photoObj => {
@@ -1184,15 +1193,14 @@
                 const pdfBlob = pdf.output('blob');
                 pdf.save(`Dairy_Shed_Hygiene_Checklist_${dairyNumber}.pdf`);
 
-                // Remove from Dexie so no prompt next time
+                // Remove from Dexie
                 await db.forms.delete(dairyNumber);
+                console.log(`Removed #${dairyNumber} from Dexie after PDF generation.`);
 
                 // If online, upload
                 if (navigator.onLine) {
                     uploadPDF(dairyNumber, pdfBlob);
                 }
-
-                // Clear the form
                 clearEntireForm();
             }
 
@@ -1211,7 +1219,7 @@
             const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
             const uploadRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
             uploadRef.put(pdfBlob)
-                .then(() => console.log('PDF uploaded successfully'))
+                .then(() => console.log(`PDF for #${dairyNumber} uploaded successfully.`))
                 .catch(err => console.error('Error uploading PDF:', err));
         }
 
@@ -1300,21 +1308,25 @@
          * L: DOMContentLoaded
          *******************************************/
         document.addEventListener("DOMContentLoaded", async () => {
+            console.log("DOM fully loaded, setting up the form...");
+
             // 1) Setup Dairy Company List
             await setupDairyCompanyDatalist();
 
-            // 2) Create all checklists
+            // 2) Create checklists
             createHealthSafetyItems('health-safety-top');
-            createPlantChecklistItems();   // The "Plant Checklist"
-            createSiloChecklistItems();    // The "Silo Checklist"
+            createPlantChecklistItems();
+            createSiloChecklistItems();
             await createAdditionalChecks();
 
-            // 3) Check for existing form
+            // 3) Check if we have exactly one unexpired form => prompt
             await checkForExistingForm();
 
-            // 4) Save data on any input
+            // 4) Save data on input
             const form = document.getElementById('hygiene-checklist-form');
             form.addEventListener('input', saveFormData);
+
+            console.log("Setup complete. If you have any data in Dexie, it should be loaded now.");
         });
     </script>
 </body>
