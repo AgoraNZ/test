@@ -270,19 +270,11 @@
             </div>
 
             <!-- 
-            Plant Checklist
+            Main Checklist
             -->
             <div class="section mb-4">
-                <h2>Plant Checklist</h2>
-                <div id="plant-checklist"></div>
-            </div>
-
-            <!-- 
-            Silo Checklist
-            -->
-            <div class="section mb-4">
-                <h2>Silo Checklist</h2>
-                <div id="silo-checklist"></div>
+                <h2>Checklist Items</h2>
+                <div id="checklist-items"></div>
             </div>
 
             <!-- 
@@ -409,9 +401,7 @@
             const allCompanies = [...defaultCompanies];
 
             userCompanies.forEach(u => {
-                if (!allCompanies.includes(u.name)) {
-                    allCompanies.push(u.name);
-                }
+                if (!allCompanies.includes(u.name)) allCompanies.push(u.name);
             });
 
             const datalist = document.getElementById('dairy-company-list');
@@ -473,139 +463,92 @@
                     formData: {},
                     creationTime: Date.now()
                 });
-                console.log(`Created new Dexie form record for #${dairyNumber}`);
-            } else {
-                console.log(`Form record for #${dairyNumber} already exists in Dexie.`);
             }
         }
 
         /*******************************************
-         * E: CREATE CHECKLIST ITEMS
+         * E: CREATE CHECKLIST ITEMS (HEALTH, MAIN, ADDITIONAL)
          *******************************************/
-        // Plant vs. Silo
+        function createHealthSafetyItems(containerId) {
+            const itemContainer = document.createElement('div');
+            itemContainer.classList.add('checklist-item');
 
-        const plantItems = [
-            "Pulsator Airline",
-            "Long Bend Elbows",
-            "Automatic Cup and Remover",
-            "Diaphragm",
-            "Receiving Can",
-            "Sanitary Trap",
-            "Main Milk Line",
-            "Milk Line Seals in Good Condition",
-            "Stainless Droppers",
-            "Long Milk Rubber",
-            "Liner",
-            "Cluster",
-            "Cluster Seal",
-            "Cluster Button",
-            "Non Return Valve at Milk Pump",
-            "Milk Pump",
-            "Filter Housing",
-            "Plate Cooler",
-            "Interceptor",
-            "Receiver Airline",
-            "Flushing Pulsator",
-            "Air Purge Valve",
-            "Vacuum Level",
-            "Main Airline",
-            "Plant Drainage - Milk Pump",
-            "Plant Drainage - Filter/s",
-            "Plant Drainage - Plate Cooler",
-            "Plant Drainage - Vat Entry",
-            "Plant Wash Tap",
-            "Wash Jetters",
-            "Centre Gland",
-            "Test Bucket"
-        ];
+            const label = document.createElement('label');
+            label.textContent = "Health & Safety";
+            itemContainer.appendChild(label);
 
-        const siloItems = [
-            "Inlet Valve",
-            "Non-Return Valve",
-            "Spray Ball",
-            "Agitator",
-            "Silo Door",
-            "Manhole Seal",
-            "Vat Outlet",
-            "Walls in Silo"
-        ];
+            const statusSelect = document.createElement('select');
+            statusSelect.classList.add('form-select');
+            statusSelect.name = `status-health-safety-${containerId}`;
+            statusSelect.innerHTML = `
+                <option value="ok">OK</option>
+                <option value="attention-required">Attention Required</option>
+                <option value="na">N/A</option>
+                <option value="not-checked">Not Checked</option>
+            `;
+            itemContainer.appendChild(statusSelect);
 
-        const itemsToAutoFill = [
-            "Inlet Valve",
-            "Non-Return Valve",
-            "Spray Ball",
-            "Agitator",
-            "Silo Door",
-            "Manhole Seal",
-            "Vat Outlet",
-            "Walls in Silo"
-        ];
+            const commentsInput = document.createElement('input');
+            commentsInput.type = 'text';
+            commentsInput.classList.add('form-control');
+            commentsInput.name = `comments-health-safety-${containerId}`;
+            commentsInput.placeholder = 'Comments';
+            commentsInput.setAttribute('autocapitalize','words');
+            commentsInput.setAttribute('autocorrect','off');
+            commentsInput.setAttribute('spellcheck','false');
+            itemContainer.appendChild(commentsInput);
 
-        function createPlantChecklistItems() {
-            const container = document.getElementById('plant-checklist');
-            container.innerHTML = '';
+            const imageUpload1 = document.createElement('input');
+            imageUpload1.type = 'file';
+            imageUpload1.classList.add('form-control', 'image-upload');
+            imageUpload1.style.display = 'none';
+            itemContainer.appendChild(imageUpload1);
 
-            plantItems.forEach(item => {
-                const itemContainer = document.createElement('div');
-                itemContainer.classList.add('checklist-item');
+            const imageUpload2 = document.createElement('input');
+            imageUpload2.type = 'file';
+            imageUpload2.classList.add('form-control', 'image-upload');
+            imageUpload2.style.display = 'none';
+            itemContainer.appendChild(imageUpload2);
 
-                const label = document.createElement('label');
-                label.textContent = item;
-                itemContainer.appendChild(label);
-
-                const statusSelect = document.createElement('select');
-                statusSelect.classList.add('form-select');
-                statusSelect.name = `status-${item}`;
-                statusSelect.innerHTML = `
-                    <option value="ok">OK</option>
-                    <option value="attention-required">Attention Required</option>
-                    <option value="na">N/A</option>
-                    <option value="not-checked">Not Checked</option>
-                `;
-                itemContainer.appendChild(statusSelect);
-
-                const commentsInput = document.createElement('input');
-                commentsInput.type = 'text';
-                commentsInput.classList.add('form-control');
-                commentsInput.name = `comments-${item}`;
-                commentsInput.placeholder = 'Comments';
-                commentsInput.setAttribute('autocapitalize','words');
-                commentsInput.setAttribute('autocorrect','off');
-                commentsInput.setAttribute('spellcheck','false');
-                itemContainer.appendChild(commentsInput);
-
-                // Image fields
-                const imageUpload1 = document.createElement('input');
-                imageUpload1.type = 'file';
-                imageUpload1.classList.add('form-control', 'image-upload');
-                imageUpload1.style.display = 'none';
-                itemContainer.appendChild(imageUpload1);
-
-                const imageUpload2 = document.createElement('input');
-                imageUpload2.type = 'file';
-                imageUpload2.classList.add('form-control', 'image-upload');
-                imageUpload2.style.display = 'none';
-                itemContainer.appendChild(imageUpload2);
-
-                statusSelect.addEventListener('change', () => {
-                    if (statusSelect.value === 'attention-required') {
-                        imageUpload1.style.display = 'block';
-                        imageUpload2.style.display = 'block';
-                    } else {
-                        imageUpload1.style.display = 'none';
-                        imageUpload2.style.display = 'none';
-                    }
-                });
-
-                container.appendChild(itemContainer);
+            statusSelect.addEventListener('change', () => {
+                if (statusSelect.value === 'attention-required') {
+                    imageUpload1.style.display = 'block';
+                    imageUpload2.style.display = 'block';
+                } else {
+                    imageUpload1.style.display = 'none';
+                    imageUpload2.style.display = 'none';
+                }
             });
+
+            document.getElementById(containerId).appendChild(itemContainer);
         }
 
-        function createSiloChecklistItems() {
-            const container = document.getElementById('silo-checklist');
+        function createChecklistItems() {
+            const checklistItems = [
+                "Pulsator Airline", "Long Bend Elbows", "Automatic Cup and Remover", "Diaphragm", "Receiving Can",
+                "Sanitary Trap", "Main Milk Line", "Milk Line Seals in Good Condition", "Stainless Droppers", "Long Milk Rubber",
+                "Liner", "Cluster", "Cluster Seal", "Cluster Button", "Non Return Valve at Milk Pump", "Milk Pump",
+                "Filter Housing", "Plate Cooler", "Interceptor", "Receiver Airline", "Flushing Pulsator", "Air Purge Valve",
+                "Vacuum Level", "Main Airline", "Plant Drainage - Milk Pump", "Plant Drainage - Filter/s", "Plant Drainage - Plate Cooler",
+                "Plant Drainage - Vat Entry", "Plant Wash Tap", "Wash Jetters", "Centre Gland", "Test Bucket",
+                "Inlet Valve", "Non-Return Valve", "Spray Ball", "Agitator", "Silo Door", "Manhole Seal", "Vat Outlet", "Walls in Silo"
+            ];
+
+            const itemsToAutoFill = [
+                "Inlet Valve",
+                "Non-Return Valve",
+                "Spray Ball",
+                "Agitator",
+                "Silo Door",
+                "Manhole Seal",
+                "Vat Outlet",
+                "Walls in Silo"
+            ];
+
+            const container = document.getElementById('checklist-items');
             container.innerHTML = '';
 
-            siloItems.forEach(item => {
+            checklistItems.forEach(item => {
                 const itemContainer = document.createElement('div');
                 itemContainer.classList.add('checklist-item');
 
@@ -634,7 +577,6 @@
                 commentsInput.setAttribute('spellcheck','false');
                 itemContainer.appendChild(commentsInput);
 
-                // Image fields
                 const imageUpload1 = document.createElement('input');
                 imageUpload1.type = 'file';
                 imageUpload1.classList.add('form-control', 'image-upload');
@@ -655,7 +597,6 @@
                         imageUpload1.style.display = 'none';
                         imageUpload2.style.display = 'none';
                     }
-
                     if (statusSelect.value === 'not-checked' && itemsToAutoFill.includes(item)) {
                         commentsInput.value = "Milk in Vat";
                     } else if (commentsInput.value === "Milk in Vat") {
@@ -667,9 +608,6 @@
             });
         }
 
-        /*******************************************
-         * F: ADDITIONAL CHECKS
-         *******************************************/
         async function createAdditionalChecks() {
             const container = document.getElementById('additional-checks');
             container.innerHTML = '';
@@ -829,7 +767,7 @@
         }
 
         /*******************************************
-         * G: ONE-HOUR CACHING & PROMPT ON PAGE LOAD
+         * F: ONE-HOUR CACHING & PROMPT ON PAGE LOAD
          *******************************************/
         async function cleanupExpiredForms() {
             const oneHour = 60 * 60 * 1000;
@@ -837,7 +775,6 @@
             const allForms = await db.forms.toArray();
             for (let f of allForms) {
                 if (now - f.creationTime > oneHour) {
-                    console.log(`Deleting expired form #${f.dairyNumber}`);
                     await db.forms.delete(f.dairyNumber);
                 }
             }
@@ -846,137 +783,104 @@
         async function checkForExistingForm() {
             await cleanupExpiredForms();
             const allForms = await db.forms.toArray();
-            console.log(`Found ${allForms.length} forms in Dexie:`, allForms);
             if (allForms.length === 1) {
                 const existing = allForms[0];
-                console.log(`One form found (#${existing.dairyNumber}), asking user to continue...`);
                 const confirmContinue = confirm(`Would you like to continue form #${existing.dairyNumber}?`);
                 if (confirmContinue) {
                     loadFormDataFromRecord(existing);
                 } else {
-                    console.log(`User declined, deleting form #${existing.dairyNumber}`);
                     await db.forms.delete(existing.dairyNumber);
                     clearEntireForm();
                 }
             }
         }
 
-        /*******************************************
-         * H: LOAD + CLEAR FORM
-         *******************************************/
         function loadFormDataFromRecord(record) {
-            console.log(`Loading data from Dexie record:`, record);
             const data = record.formData || {};
             document.getElementById('dairy-number').value = record.dairyNumber;
-
-            // Basic fields
             for (let key in data) {
                 if (key === 'checklistItems') continue;
                 const field = document.getElementById(key) || document.getElementsByName(key)[0];
                 if (field) {
-                    console.log(`Setting field [${key}] to: ${data[key]}`);
                     field.value = data[key];
                 }
             }
-
-            // Checklist items
             if (data.checklistItems) {
-                console.log(`Found ${data.checklistItems.length} checklist items in Dexie data`);
-                // Gather item elements from all sections
                 const containers = [
                     ...document.getElementById('health-safety-top').children,
-                    ...document.getElementById('plant-checklist').children,
-                    ...document.getElementById('silo-checklist').children,
+                    ...document.getElementById('checklist-items').children,
                     ...document.getElementById('additional-checks').children
                 ];
-
-                containers.forEach(itemEl => {
-                    const labelEl = itemEl.querySelector('label');
-                    if (!labelEl) return;
-                    const itemName = labelEl.textContent;
-                    // find the matching itemName in data.checklistItems
-                    const found = data.checklistItems.find(ci => ci.itemName === itemName);
-                    if (found) {
-                        console.log(`Restoring [${itemName}] => status: ${found.status}, comments: ${found.comments}`);
-                        const statusSelect = itemEl.querySelector('select');
-                        const commentsInput = itemEl.querySelector('input[type="text"]');
-                        if (statusSelect) {
-                            statusSelect.value = found.status;
-                            // trigger change so images appear if needed
-                            statusSelect.dispatchEvent(new Event('change'));
-                        }
-                        if (commentsInput) {
-                            commentsInput.value = found.comments;
-                        }
-                    } else {
-                        console.log(`No data found for itemName [${itemName}] in Dexie.`);
+                let idx = 0;
+                for (let item of containers) {
+                    if (!data.checklistItems[idx]) break;
+                    const statusSelect = item.querySelector('select');
+                    const commentsInput = item.querySelector('input[type="text"]');
+                    if (statusSelect) {
+                        statusSelect.value = data.checklistItems[idx].status;
+                        statusSelect.dispatchEvent(new Event('change'));
                     }
-                });
+                    if (commentsInput) {
+                        commentsInput.value = data.checklistItems[idx].comments;
+                    }
+                    idx++;
+                }
             }
         }
 
         function clearEntireForm() {
-            console.log(`Clearing the form entirely...`);
             document.getElementById('hygiene-checklist-form').reset();
             const imageUploads = document.querySelectorAll('.image-upload');
             imageUploads.forEach(inp => { inp.style.display = 'none'; });
         }
 
         /*******************************************
-         * I: SAVE FORM DATA
+         * G: SAVE FORM DATA ON INPUT
          *******************************************/
         async function saveFormData() {
             const dairyNumber = document.getElementById('dairy-number').value.trim();
             if (!dairyNumber) return;
-
             let record = await db.forms.get(dairyNumber);
             if (!record) {
-                record = {
-                    dairyNumber: dairyNumber,
-                    formData: {},
-                    creationTime: Date.now()
-                };
-                console.log(`Creating record for #${dairyNumber} on input event`);
+                record = { dairyNumber, formData:{}, creationTime: Date.now() };
             }
-
-            // Grab current form data
             const form = document.getElementById('hygiene-checklist-form');
             const formDataObj = new FormData(form);
             const data = Object.fromEntries(formDataObj.entries());
 
-            // Gather checklist items
+            // Build checklist items
             const containersToCheck = [
                 document.getElementById('health-safety-top').children,
-                document.getElementById('plant-checklist').children,
-                document.getElementById('silo-checklist').children,
+                document.getElementById('checklist-items').children,
                 document.getElementById('additional-checks').children
             ];
             const checklistItemsData = [];
             for (let container of containersToCheck) {
-                for (let itemEl of container) {
-                    const labelEl = itemEl.querySelector('label');
-                    if (!labelEl) continue;
-                    const itemName = labelEl.textContent;
-                    const statusSelect = itemEl.querySelector('select');
+                for (let item of container) {
+                    const label = item.querySelector('label');
+                    if (!label) continue;
+                    const itemName = label.textContent;
+                    const statusSelect = item.querySelector('select');
                     let status = '';
                     let comments = '';
                     if (statusSelect) status = statusSelect.value;
-                    const commentsInput = itemEl.querySelector('input[type="text"]');
+                    const commentsInput = item.querySelector('input[type="text"]');
                     if (commentsInput) comments = commentsInput.value;
                     checklistItemsData.push({ itemName, status, comments });
                 }
             }
             data.checklistItems = checklistItemsData;
-            record.formData = data;
 
+            record.formData = data;
             await db.forms.put(record);
-            console.log(`Saved form data in Dexie for #${dairyNumber}:`, record);
         }
 
         /*******************************************
-         * J: SAVE FARM DETAILS & GENERATE PDF
+         * H: SAVE FARM DETAILS TO FIREBASE
          *******************************************/
         async function saveFarmDetailsToFirebase(fd) {
+            // This function uploads JSON to farm_details/<dairyNumber>.json
+            // so that future forms for the same # can be auto-filled
             const dairyNumber = fd.get('dairy-number') || '';
             if (!dairyNumber) return;
 
@@ -996,52 +900,53 @@
                     new Blob([JSON.stringify(farmDetails)], { type: 'application/json' }),
                     metadata
                 );
-                console.log('Farm details saved to Firebase successfully.', farmDetails);
+                console.log('Farm details saved to Firebase successfully.');
             } catch (err) {
                 console.error('Error saving farm details to Firebase:', err);
             }
         }
 
+
+        /*******************************************
+         * I: GENERATE PDF (WITH PHOTOS & TEAT RATIO)
+         *******************************************/
         async function generatePDF() {
             const dairyNumber = document.getElementById('dairy-number').value.trim();
             if (!dairyNumber) {
                 alert("Please enter a Dairy Number.");
                 return;
             }
-            console.log(`Generating PDF for #${dairyNumber}...`);
 
-            // Save farm details for future auto-fill
+            // Before generating the PDF, save the farm details for future auto-fill
             const form = document.getElementById('hygiene-checklist-form');
             const fd = new FormData(form);
             await saveFarmDetailsToFirebase(fd);
 
-            // Build item data
+            // Now proceed with PDF creation (including photos)
             const containers = [
                 ...document.getElementById('health-safety-top').children,
-                ...document.getElementById('plant-checklist').children,
-                ...document.getElementById('silo-checklist').children,
+                ...document.getElementById('checklist-items').children,
                 ...document.getElementById('additional-checks').children
             ];
             const itemDataArray = [];
-            containers.forEach(itemEl => {
-                const labelEl = itemEl.querySelector('label');
+            containers.forEach((item) => {
+                const labelEl = item.querySelector('label');
                 if (!labelEl) return;
                 const itemName = labelEl.textContent;
-                const statusSelect = itemEl.querySelector('select');
+                const statusSelect = item.querySelector('select');
                 const status = statusSelect ? statusSelect.value : '';
-                let commentsInput = itemEl.querySelector('input[type="text"]');
+                let commentsInput = item.querySelector('input[type="text"]');
                 let comments = commentsInput ? commentsInput.value : '';
 
+                // If item is "Teat Spray Check", also fetch ratio
                 if (itemName === "Teat Spray Check") {
-                    const ratioField = itemEl.querySelector('#teat-dilution');
+                    const ratioField = item.querySelector('#teat-dilution');
                     if (ratioField && ratioField.value.trim()) {
-                        comments += comments
-                          ? ` | Ratio: ${ratioField.value}`
-                          : `Ratio: ${ratioField.value}`;
+                        comments += comments ? ` | Ratio: ${ratioField.value}` : `Ratio: ${ratioField.value}`;
                     }
                 }
 
-                const imgs = itemEl.querySelectorAll('input[type="file"]');
+                const imgs = item.querySelectorAll('input[type="file"]');
                 const imageFiles = [];
                 if (imgs.length > 0) {
                     if (imgs[0].files[0]) imageFiles.push(imgs[0].files[0]);
@@ -1049,51 +954,43 @@
                 }
 
                 if (status === 'attention-required' && imageFiles.length > 0) {
-                    comments += comments
-                      ? ` (Photo Attached Below)`
-                      : `(Photo Attached Below)`;
+                    comments += comments ? ` (Photo Attached Below)` : `(Photo Attached Below)`;
                 }
 
                 itemDataArray.push({ itemName, status, comments, imageFiles });
             });
-            console.log(`Found ${itemDataArray.length} items for PDF.`, itemDataArray);
 
-            // Convert images
             let pendingImages = 0;
             let photoStore = []; 
-            itemDataArray.forEach(obj => {
+            itemDataArray.forEach((obj) => {
                 if (obj.imageFiles.length > 0) {
-                    const photoObj = { itemName: obj.itemName, images: [] };
+                    const p = { itemName: obj.itemName, images: [] };
                     obj.imageFiles.forEach((file, idx) => {
                         pendingImages++;
                         const reader = new FileReader();
-                        reader.onload = evt => {
-                            photoObj.images[idx] = evt.target.result;
+                        reader.onload = (evt) => {
+                            p.images[idx] = evt.target.result;
                             pendingImages--;
-                            console.log(`Converted image for item [${obj.itemName}] (remaining: ${pendingImages})`);
                             if (pendingImages === 0) finalizePDF();
                         };
                         reader.readAsDataURL(file);
                     });
-                    photoStore.push(photoObj);
+                    photoStore.push(p);
                 }
             });
 
-            // If no images, finalize immediately
             if (pendingImages === 0) finalizePDF();
 
             async function finalizePDF() {
-                console.log("All images loaded, finalizing PDF...");
                 const pdf = new jsPDF('p', 'pt', 'a4');
                 let currentY = 80;
 
-                // Try loading logo
+                // Attempt to load the logo
                 try {
                     const logoRef = storage.ref('Picture3.jpg');
                     const logoUrl = await logoRef.getDownloadURL();
                     const logoBlob = await fetch(logoUrl).then(res => res.blob());
                     const logoBase64 = await blobToBase64(logoBlob);
-
                     const pageWidth = pdf.internal.pageSize.getWidth();
                     const imgProps = pdf.getImageProperties(logoBase64);
                     const imgWidth = pageWidth - 80;
@@ -1106,7 +1003,7 @@
                     pdf.text('Farm Details:', 40, imgHeight + 60);
                     currentY = imgHeight + 80;
                 } catch (err) {
-                    console.error('No logo found or error retrieving logo. PDF continues without logo.', err);
+                    console.error('No logo found or error retrieving logo. Generating PDF without logo.');
                     pdf.setFontSize(12);
                     pdf.setTextColor('#000000');
                     pdf.setFont('helvetica', 'bold');
@@ -1114,6 +1011,7 @@
                     currentY += 20;
                 }
 
+                // Insert form fields
                 pdf.setFont('helvetica', 'normal');
                 function addLine(text) {
                     pdf.text(text, 40, currentY);
@@ -1134,7 +1032,7 @@
                 addLine(`Call Type: ${fd.get('call-type') || ''}`);
                 currentY += 15;
 
-                // Table
+                // Table of items
                 const tableData = itemDataArray.map(obj => [obj.itemName, obj.status, obj.comments]);
                 pdf.autoTable({
                     startY: currentY,
@@ -1145,7 +1043,7 @@
                 });
                 let afterTableY = pdf.lastAutoTable.finalY + 20;
 
-                // Temperature
+                // Temp measurements
                 pdf.setFont('helvetica', 'bold');
                 pdf.text('Temperature Measurements:', 40, afterTableY);
                 afterTableY += 20;
@@ -1163,7 +1061,7 @@
                 pdf.text(`Time Taken: ${milkTime}`, 40, afterTableY);
                 afterTableY += 20;
 
-                // Photos
+                // Add images
                 let photoY = afterTableY + 20;
                 const pageWidth = pdf.internal.pageSize.getWidth();
                 photoStore.forEach(photoObj => {
@@ -1189,18 +1087,18 @@
                     }
                 });
 
-                // Output final PDF
+                // Output PDF
                 const pdfBlob = pdf.output('blob');
                 pdf.save(`Dairy_Shed_Hygiene_Checklist_${dairyNumber}.pdf`);
 
-                // Remove from Dexie
+                // Remove Dexie record
                 await db.forms.delete(dairyNumber);
-                console.log(`Removed #${dairyNumber} from Dexie after PDF generation.`);
 
-                // If online, upload
+                // If online, upload to firebase
                 if (navigator.onLine) {
                     uploadPDF(dairyNumber, pdfBlob);
                 }
+
                 clearEntireForm();
             }
 
@@ -1219,12 +1117,12 @@
             const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
             const uploadRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
             uploadRef.put(pdfBlob)
-                .then(() => console.log(`PDF for #${dairyNumber} uploaded successfully.`))
+                .then(() => console.log('PDF uploaded successfully'))
                 .catch(err => console.error('Error uploading PDF:', err));
         }
 
         /*******************************************
-         * K: RECORDS VIEW PAGE
+         * J: RECORDS VIEW PAGE
          *******************************************/
         function viewRecords() {
             document.getElementById('form-container').style.display = 'none';
@@ -1305,28 +1203,23 @@
         }
 
         /*******************************************
-         * L: DOMContentLoaded
+         * K: DOMContentLoaded
          *******************************************/
         document.addEventListener("DOMContentLoaded", async () => {
-            console.log("DOM fully loaded, setting up the form...");
-
-            // 1) Setup Dairy Company List
+            // Set up dairy-company datalist
             await setupDairyCompanyDatalist();
 
-            // 2) Create checklists
+            // Create sections
             createHealthSafetyItems('health-safety-top');
-            createPlantChecklistItems();
-            createSiloChecklistItems();
+            createChecklistItems();
             await createAdditionalChecks();
 
-            // 3) Check if we have exactly one unexpired form => prompt
+            // Prompt if 1 existing form
             await checkForExistingForm();
 
-            // 4) Save data on input
+            // Save data on input
             const form = document.getElementById('hygiene-checklist-form');
             form.addEventListener('input', saveFormData);
-
-            console.log("Setup complete. If you have any data in Dexie, it should be loaded now.");
         });
     </script>
 </body>
