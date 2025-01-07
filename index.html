@@ -880,7 +880,6 @@
          *******************************************/
         async function saveFarmDetailsToFirebase(fd) {
             // This function uploads JSON to farm_details/<dairyNumber>.json
-            // so that future forms for the same # can be auto-filled
             const dairyNumber = fd.get('dairy-number') || '';
             if (!dairyNumber) return;
 
@@ -906,9 +905,9 @@
             }
         }
 
-
         /*******************************************
          * I: GENERATE PDF (WITH PHOTOS & TEAT RATIO)
+         * Also uploads PDF to customers/<dairyNumber> folder
          *******************************************/
         async function generatePDF() {
             const dairyNumber = document.getElementById('dairy-number').value.trim();
@@ -917,12 +916,12 @@
                 return;
             }
 
-            // Before generating the PDF, save the farm details for future auto-fill
+            // Save the farm details (JSON) for auto-fill
             const form = document.getElementById('hygiene-checklist-form');
             const fd = new FormData(form);
             await saveFarmDetailsToFirebase(fd);
 
-            // Now proceed with PDF creation (including photos)
+            // Now proceed to gather item data + images, then create PDF
             const containers = [
                 ...document.getElementById('health-safety-top').children,
                 ...document.getElementById('checklist-items').children,
@@ -942,10 +941,13 @@
                 if (itemName === "Teat Spray Check") {
                     const ratioField = item.querySelector('#teat-dilution');
                     if (ratioField && ratioField.value.trim()) {
-                        comments += comments ? ` | Ratio: ${ratioField.value}` : `Ratio: ${ratioField.value}`;
+                        comments += comments 
+                          ? ` | Ratio: ${ratioField.value}` 
+                          : `Ratio: ${ratioField.value}`;
                     }
                 }
 
+                // Photos
                 const imgs = item.querySelectorAll('input[type="file"]');
                 const imageFiles = [];
                 if (imgs.length > 0) {
@@ -953,6 +955,7 @@
                     if (imgs[1].files[0]) imageFiles.push(imgs[1].files[0]);
                 }
 
+                // If attention-required + photos, note
                 if (status === 'attention-required' && imageFiles.length > 0) {
                     comments += comments ? ` (Photo Attached Below)` : `(Photo Attached Below)`;
                 }
@@ -961,7 +964,7 @@
             });
 
             let pendingImages = 0;
-            let photoStore = []; 
+            let photoStore = [];
             itemDataArray.forEach((obj) => {
                 if (obj.imageFiles.length > 0) {
                     const p = { itemName: obj.itemName, images: [] };
@@ -985,7 +988,7 @@
                 const pdf = new jsPDF('p', 'pt', 'a4');
                 let currentY = 80;
 
-                // Attempt to load the logo
+                // Attempt to load the logo from Firebase
                 try {
                     const logoRef = storage.ref('Picture3.jpg');
                     const logoUrl = await logoRef.getDownloadURL();
@@ -1011,7 +1014,7 @@
                     currentY += 20;
                 }
 
-                // Insert form fields
+                // Basic fields
                 pdf.setFont('helvetica', 'normal');
                 function addLine(text) {
                     pdf.text(text, 40, currentY);
@@ -1043,7 +1046,7 @@
                 });
                 let afterTableY = pdf.lastAutoTable.finalY + 20;
 
-                // Temp measurements
+                // Temperature
                 pdf.setFont('helvetica', 'bold');
                 pdf.text('Temperature Measurements:', 40, afterTableY);
                 afterTableY += 20;
@@ -1061,7 +1064,7 @@
                 pdf.text(`Time Taken: ${milkTime}`, 40, afterTableY);
                 afterTableY += 20;
 
-                // Add images
+                // Photos
                 let photoY = afterTableY + 20;
                 const pageWidth = pdf.internal.pageSize.getWidth();
                 photoStore.forEach(photoObj => {
@@ -1094,7 +1097,7 @@
                 // Remove Dexie record
                 await db.forms.delete(dairyNumber);
 
-                // If online, upload to firebase
+                // Upload PDF to customers/<dairyNumber> folder (record-keeping)
                 if (navigator.onLine) {
                     uploadPDF(dairyNumber, pdfBlob);
                 }
@@ -1113,11 +1116,12 @@
         }
 
         function uploadPDF(dairyNumber, pdfBlob) {
+            // Save PDF to customers/<dairyNumber>/<fileName>.pdf
             const timestamp = new Date().toISOString().split('T')[0];
             const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
             const uploadRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
             uploadRef.put(pdfBlob)
-                .then(() => console.log('PDF uploaded successfully'))
+                .then(() => console.log('PDF uploaded successfully to customers folder.'))
                 .catch(err => console.error('Error uploading PDF:', err));
         }
 
