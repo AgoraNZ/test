@@ -170,7 +170,7 @@
                        name="address"
                        autocapitalize="words"
                        autocorrect="off"
-                       spellcheck="true">
+                       spellcheck="false">
 
                 <label for="customer-name">Customer Name:</label>
                 <input type="text"
@@ -179,7 +179,7 @@
                        name="customer-name"
                        autocapitalize="words"
                        autocorrect="off"
-                       spellcheck="true">
+                       spellcheck="false">
 
                 <label for="region">Region:</label>
                 <select id="region" name="region" class="form-select">
@@ -251,7 +251,7 @@
                        name="inspection-completed-by"
                        autocapitalize="words"
                        autocorrect="off"
-                       spellcheck="true">
+                       spellcheck="false">
 
                 <label for="call-type">Call Type:</label>
                 <select id="call-type" name="call-type" class="form-select">
@@ -270,20 +270,19 @@
             </div>
 
             <!-- 
-            Plant Checklist
+            Main Checklist
             -->
-            <div class="section mb-4">
-                <h2>Plant Checklist</h2>
-                <div id="checklist-items"></div>
-            </div>
+            
+<div class="section mb-4">
+    <h2>Plant Checklist</h2>
+    <div id="checklist-items"></div>
+</div>
 
-            <!-- 
-            Silo Checklist
-            -->
-            <div class="section mb-4">
-                <h2>Silo Checklist</h2>
-                <div id="silo-checklist"></div>
-            </div>
+<div class="section mb-4">
+    <h2>Silo Checklist</h2>
+    <div id="silo-checklist"></div>
+</div>
+
 
             <!-- 
             Additional Checks
@@ -410,15 +409,15 @@
                 "Mataura Valley Milk",
                 "Open Country Dairy LTD",
                 "Waiu",
-                "Westland Milk Products",
+                "Westland Milk Products"
+            
+
             ];
             const userCompanies = await db.dairyCompanies.toArray();
             const allCompanies = [...defaultCompanies];
 
             userCompanies.forEach(u => {
-                if (!allCompanies.includes(u.name)) {
-                    allCompanies.push(u.name);
-                }
+                if (!allCompanies.includes(u.name)) allCompanies.push(u.name);
             });
 
             const datalist = document.getElementById('dairy-company-list');
@@ -448,7 +447,7 @@
         async function fetchFarmDetails() {
             const dairyNumber = document.getElementById('dairy-number').value.trim();
             if (!dairyNumber) return;
-            const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
+            const storageRef = storage.ref(farm_details/${dairyNumber}.json);
             try {
                 const url = await storageRef.getDownloadURL();
                 const response = await fetch(url);
@@ -484,91 +483,64 @@
         }
 
         /*******************************************
-         * E1: CREATE SILO CHECKLIST
+         * E: CREATE CHECKLIST ITEMS (HEALTH, MAIN, ADDITIONAL)
          *******************************************/
-        function createSiloChecklist() {
-            const siloItems = [
-                "Inlet Valve", "Non-Return Valve", "Spray Ball", "Agitator",
-                "Silo Door", "Manhole Seal", "Vat Outlet", "Walls in Silo"
-            ];
+        function createHealthSafetyItems(containerId) {
+            const itemContainer = document.createElement('div');
+            itemContainer.classList.add('checklist-item');
 
-            const siloItemsToAutoFill = [
-                "Inlet Valve", "Non-Return Valve", "Spray Ball", "Agitator",
-                "Silo Door", "Manhole Seal", "Vat Outlet", "Walls in Silo"
-            ];
+            const label = document.createElement('label');
+            label.textContent = "Health & Safety";
+            itemContainer.appendChild(label);
 
-            const container = document.getElementById('silo-checklist');
-            container.innerHTML = '';
+            const statusSelect = document.createElement('select');
+            statusSelect.classList.add('form-select');
+            statusSelect.name = status-health-safety-${containerId};
+            statusSelect.innerHTML = 
+                <option value="ok">OK</option>
+                <option value="attention-required">Attention Required</option>
+                <option value="na">N/A</option>
+                <option value="not-checked">Not Checked</option>
+            ;
+            itemContainer.appendChild(statusSelect);
 
-            siloItems.forEach(item => {
-                const itemContainer = document.createElement('div');
-                itemContainer.classList.add('checklist-item');
+            const commentsInput = document.createElement('input');
+            commentsInput.type = 'text';
+            commentsInput.classList.add('form-control');
+            commentsInput.name = comments-health-safety-${containerId};
+            commentsInput.placeholder = 'Comments';
+            commentsInput.setAttribute('autocapitalize','words');
+            commentsInput.setAttribute('autocorrect','off');
+            commentsInput.setAttribute('spellcheck','true');
+            itemContainer.appendChild(commentsInput);
 
-                const label = document.createElement('label');
-                label.textContent = item;
-                itemContainer.appendChild(label);
+            const imageUpload1 = document.createElement('input');
+            imageUpload1.type = 'file';
+            imageUpload1.classList.add('form-control', 'image-upload');
+            imageUpload1.style.display = 'none';
+            itemContainer.appendChild(imageUpload1);
 
-                const statusSelect = document.createElement('select');
-                statusSelect.classList.add('form-select');
-                statusSelect.name = `status-${item}`;
-                statusSelect.innerHTML = `
-                    <option value="ok">OK</option>
-                    <option value="attention-required">Attention Required</option>
-                    <option value="na">N/A</option>
-                    <option value="not-checked">Not Checked</option>
-                `;
-                itemContainer.appendChild(statusSelect);
+            const imageUpload2 = document.createElement('input');
+            imageUpload2.type = 'file';
+            imageUpload2.classList.add('form-control', 'image-upload');
+            imageUpload2.style.display = 'none';
+            itemContainer.appendChild(imageUpload2);
 
-                const commentsInput = document.createElement('input');
-                commentsInput.type = 'text';
-                commentsInput.classList.add('form-control');
-                commentsInput.name = `comments-${item}`;
-                commentsInput.placeholder = 'Comments';
-                commentsInput.setAttribute('autocapitalize','words');
-                commentsInput.setAttribute('autocorrect','off');
-                commentsInput.setAttribute('spellcheck','true');
-                itemContainer.appendChild(commentsInput);
-
-                // Image uploads
-                const imageUpload1 = document.createElement('input');
-                imageUpload1.type = 'file';
-                imageUpload1.classList.add('form-control', 'image-upload');
-                imageUpload1.style.display = 'none';
-                itemContainer.appendChild(imageUpload1);
-
-                const imageUpload2 = document.createElement('input');
-                imageUpload2.type = 'file';
-                imageUpload2.classList.add('form-control', 'image-upload');
-                imageUpload2.style.display = 'none';
-                itemContainer.appendChild(imageUpload2);
-
-                statusSelect.addEventListener('change', () => {
-                    if (statusSelect.value === 'attention-required') {
-                        imageUpload1.style.display = 'block';
-                        imageUpload2.style.display = 'block';
-                    } else {
-                        imageUpload1.style.display = 'none';
-                        imageUpload2.style.display = 'none';
-                    }
-
-                    // Auto-fill logic
-                    if (statusSelect.value === 'not-checked' && siloItemsToAutoFill.includes(item)) {
-                        commentsInput.value = "Milk in Vat";
-                    } else if (commentsInput.value === "Milk in Vat") {
-                        commentsInput.value = "";
-                    }
-                });
-
-                container.appendChild(itemContainer);
+            statusSelect.addEventListener('change', () => {
+                if (statusSelect.value === 'attention-required') {
+                    imageUpload1.style.display = 'block';
+                    imageUpload2.style.display = 'block';
+                } else {
+                    imageUpload1.style.display = 'none';
+                    imageUpload2.style.display = 'none';
+                }
             });
+
+            document.getElementById(containerId).appendChild(itemContainer);
         }
 
-        /*******************************************
-         * E2: CREATE PLANT CHECKLIST (no silo items)
-         *******************************************/
         function createChecklistItems() {
             const checklistItems = [
-                // Plant items only:
                 "Pulsator Airline", "Long Bend Elbows", "Automatic Cup and Remover", "Diaphragm", "Receiving Can",
                 "Sanitary Trap", "Main Milk Line", "Milk Line Seals in Good Condition", "Stainless Droppers", "Long Milk Rubber",
                 "Liner", "Cluster", "Cluster Seal", "Cluster Button", "Non Return Valve at Milk Pump", "Milk Pump",
@@ -577,8 +549,22 @@
                 "Plant Drainage - Vat Entry", "Plant Wash Tap", "Wash Jetters", "Centre Gland", "Test Bucket"
             ];
 
-            // If you need auto-fill for "Milk in Vat" on some plant items, list them here:
-            const itemsToAutoFill = [];
+            
+
+        container.appendChild(itemContainer);
+    });
+}
+
+            const itemsToAutoFill = [
+                "Inlet Valve",
+                "Non-Return Valve",
+                "Spray Ball",
+                "Agitator",
+                "Silo Door",
+                "Manhole Seal",
+                "Vat Outlet",
+                "Walls in Silo"
+            ];
 
             const container = document.getElementById('checklist-items');
             container.innerHTML = '';
@@ -593,19 +579,19 @@
 
                 const statusSelect = document.createElement('select');
                 statusSelect.classList.add('form-select');
-                statusSelect.name = `status-${item}`;
-                statusSelect.innerHTML = `
+                statusSelect.name = status-${item};
+                statusSelect.innerHTML = 
                     <option value="ok">OK</option>
                     <option value="attention-required">Attention Required</option>
                     <option value="na">N/A</option>
                     <option value="not-checked">Not Checked</option>
-                `;
+                ;
                 itemContainer.appendChild(statusSelect);
 
                 const commentsInput = document.createElement('input');
                 commentsInput.type = 'text';
                 commentsInput.classList.add('form-control');
-                commentsInput.name = `comments-${item}`;
+                commentsInput.name = comments-${item};
                 commentsInput.placeholder = 'Comments';
                 commentsInput.setAttribute('autocapitalize','words');
                 commentsInput.setAttribute('autocorrect','off');
@@ -632,7 +618,6 @@
                         imageUpload1.style.display = 'none';
                         imageUpload2.style.display = 'none';
                     }
-
                     if (statusSelect.value === 'not-checked' && itemsToAutoFill.includes(item)) {
                         commentsInput.value = "Milk in Vat";
                     } else if (commentsInput.value === "Milk in Vat") {
@@ -644,9 +629,88 @@
             });
         }
 
-        /*******************************************
-         * E3: CREATE ADDITIONAL CHECKS
-         *******************************************/
+        function createSiloChecklist() {
+   
+    const siloItems = [
+        "Inlet Valve", "Non-Return Valve", "Spray Ball", "Agitator",
+        "Silo Door", "Manhole Seal", "Vat Outlet", "Walls in Silo"
+    ];
+
+    // If you need auto-fill logic for "not-checked" => "Milk in Vat", do it here:
+    const siloItemsToAutoFill = [
+        "Inlet Valve",
+        "Non-Return Valve",
+        "Spray Ball",
+        "Agitator",
+        "Silo Door",
+        "Manhole Seal",
+        "Vat Outlet",
+        "Walls in Silo"
+    ];
+
+    // Grab the container
+    const container = document.getElementById('silo-checklist');
+    container.innerHTML = '';
+
+    siloItems.forEach(item => {
+        const itemContainer = document.createElement('div');
+        itemContainer.classList.add('checklist-item');
+
+        const label = document.createElement('label');
+        label.textContent = item;
+        itemContainer.appendChild(label);
+
+        const statusSelect = document.createElement('select');
+        statusSelect.classList.add('form-select');
+        statusSelect.name = status-${item};
+        statusSelect.innerHTML = 
+            <option value="ok">OK</option>
+            <option value="attention-required">Attention Required</option>
+            <option value="na">N/A</option>
+            <option value="not-checked">Not Checked</option>
+        ;
+        itemContainer.appendChild(statusSelect);
+
+        const commentsInput = document.createElement('input');
+        commentsInput.type = 'text';
+        commentsInput.classList.add('form-control');
+        commentsInput.name = comments-${item};
+        commentsInput.placeholder = 'Comments';
+        commentsInput.setAttribute('autocapitalize','words');
+        commentsInput.setAttribute('autocorrect','off');
+        commentsInput.setAttribute('spellcheck','false');
+        itemContainer.appendChild(commentsInput);
+
+        // Create photo upload fields
+        const imageUpload1 = document.createElement('input');
+        imageUpload1.type = 'file';
+        imageUpload1.classList.add('form-control', 'image-upload');
+        imageUpload1.style.display = 'none';
+        itemContainer.appendChild(imageUpload1);
+
+        const imageUpload2 = document.createElement('input');
+        imageUpload2.type = 'file';
+        imageUpload2.classList.add('form-control', 'image-upload');
+        imageUpload2.style.display = 'none';
+        itemContainer.appendChild(imageUpload2);
+
+        statusSelect.addEventListener('change', () => {
+            if (statusSelect.value === 'attention-required') {
+                imageUpload1.style.display = 'block';
+                imageUpload2.style.display = 'block';
+            } else {
+                imageUpload1.style.display = 'none';
+                imageUpload2.style.display = 'none';
+            }
+
+            // Auto-fill logic for silo items
+            if (statusSelect.value === 'not-checked' && siloItemsToAutoFill.includes(item)) {
+                commentsInput.value = "Milk in Vat";
+            } else if (commentsInput.value === "Milk in Vat") {
+                commentsInput.value = "";
+            }
+        });
+
         async function createAdditionalChecks() {
             const container = document.getElementById('additional-checks');
             container.innerHTML = '';
@@ -662,12 +726,12 @@
             const statusSelectTeat = document.createElement('select');
             statusSelectTeat.classList.add('form-select');
             statusSelectTeat.name = "status-teat-spray-check";
-            statusSelectTeat.innerHTML = `
+            statusSelectTeat.innerHTML = 
                 <option value="ok">OK</option>
                 <option value="attention-required">Attention Required</option>
                 <option value="na">N/A</option>
                 <option value="not-checked">Not Checked</option>
-            `;
+            ;
             teatSprayContainer.appendChild(statusSelectTeat);
 
             const commentsInputTeat = document.createElement('input');
@@ -723,7 +787,7 @@
             ratioDataList.id = 'teat-dilution-list';
             teatSprayContainer.appendChild(ratioDataList);
 
-            // Load existing ratios from Dexie
+            // Load existing ratios
             const existingRatios = await db.teatSprayRatios.toArray();
             const allRatios = ["1:4"];
             existingRatios.forEach(r => {
@@ -762,12 +826,12 @@
             const statusSelectChemical = document.createElement('select');
             statusSelectChemical.classList.add('form-select');
             statusSelectChemical.name = "status-chemical-check";
-            statusSelectChemical.innerHTML = `
+            statusSelectChemical.innerHTML = 
                 <option value="ok">OK</option>
                 <option value="attention-required">Attention Required</option>
                 <option value="na">N/A</option>
                 <option value="not-checked">Not Checked</option>
-            `;
+            ;
             chemicalContainer.appendChild(statusSelectChemical);
 
             const commentsInputChemical = document.createElement('input');
@@ -777,7 +841,7 @@
             commentsInputChemical.placeholder = 'Comments';
             commentsInputChemical.setAttribute('autocapitalize','words');
             commentsInputChemical.setAttribute('autocorrect','off');
-            commentsInputChemical.setAttribute('spellcheck','true');
+            commentsInputChemical.setAttribute('spellcheck','false');
             chemicalContainer.appendChild(commentsInputChemical);
 
             const imageUploadChem1 = document.createElement('input');
@@ -824,7 +888,7 @@
             const allForms = await db.forms.toArray();
             if (allForms.length === 1) {
                 const existing = allForms[0];
-                const confirmContinue = confirm(`Would you like to continue form #${existing.dairyNumber}?`);
+                const confirmContinue = confirm(Would you like to continue form #${existing.dairyNumber}?);
                 if (confirmContinue) {
                     loadFormDataFromRecord(existing);
                 } else {
@@ -891,7 +955,6 @@
             const containersToCheck = [
                 document.getElementById('health-safety-top').children,
                 document.getElementById('checklist-items').children,
-                document.getElementById('silo-checklist').children,      /* <-- Include silo container */
                 document.getElementById('additional-checks').children
             ];
             const checklistItemsData = [];
@@ -932,7 +995,7 @@
                 island: fd.get('island') || ''
             };
 
-            const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
+            const storageRef = storage.ref(farm_details/${dairyNumber}.json);
             const metadata = { contentType: 'application/json' };
             try {
                 await storageRef.put(
@@ -947,6 +1010,7 @@
 
         /*******************************************
          * I: GENERATE PDF (WITH PHOTOS & TEAT RATIO)
+         * Also uploads PDF to customers/<dairyNumber> folder
          *******************************************/
         async function generatePDF() {
             const dairyNumber = document.getElementById('dairy-number').value.trim();
@@ -960,11 +1024,10 @@
             const fd = new FormData(form);
             await saveFarmDetailsToFirebase(fd);
 
-            // Gather item data + images from all sections (including silo!)
+            // Gather item data + images
             const containers = [
                 ...document.getElementById('health-safety-top').children,
                 ...document.getElementById('checklist-items').children,
-                ...document.getElementById('silo-checklist').children,   /* <-- Silo now included here */
                 ...document.getElementById('additional-checks').children
             ];
             const itemDataArray = [];
@@ -982,8 +1045,8 @@
                     const ratioField = item.querySelector('#teat-dilution');
                     if (ratioField && ratioField.value.trim()) {
                         comments += comments 
-                          ? ` | Ratio: ${ratioField.value}`
-                          : `Ratio: ${ratioField.value}`;
+                          ?  | Ratio: ${ratioField.value} 
+                          : Ratio: ${ratioField.value};
                     }
                 }
 
@@ -997,7 +1060,7 @@
 
                 // If attention-required + photos
                 if (status === 'attention-required' && imageFiles.length > 0) {
-                    comments += comments ? ` (Photo Attached Below)` : `(Photo Attached Below)`;
+                    comments += comments ?  (Photo Attached Below) : (Photo Attached Below);
                 }
 
                 itemDataArray.push({ itemName, status, comments, imageFiles });
@@ -1060,19 +1123,19 @@
                     pdf.text(text, 40, currentY);
                     currentY += 15;
                 }
-                addLine(`Dairy Company: ${fd.get('dairy-company') || ''}`);
-                addLine(`Dairy Number: ${fd.get('dairy-number') || ''}`);
-                addLine(`Address: ${fd.get('address') || ''}`);
-                addLine(`Customer Name: ${fd.get('customer-name') || ''}`);
-                addLine(`Region: ${fd.get('region') || ''}`);
-                addLine(`Farm Name: ${fd.get('farm-name') || ''}`);
-                addLine(`Island: ${fd.get('island') || ''}`);
-                addLine(`Visit Date: ${fd.get('visit-date') || ''}`);
-                addLine(`Visit Type: ${fd.get('visit-type') || ''}`);
-                addLine(`Inspection Start Time: ${fd.get('inspection-start-time') || ''}`);
-                addLine(`Inspection End Time: ${fd.get('inspection-end-time') || ''}`);
-                addLine(`Inspection Completed By: ${fd.get('inspection-completed-by') || ''}`);
-                addLine(`Call Type: ${fd.get('call-type') || ''}`);
+                addLine(Dairy Company: ${fd.get('dairy-company') || ''});
+                addLine(Dairy Number: ${fd.get('dairy-number') || ''});
+                addLine(Address: ${fd.get('address') || ''});
+                addLine(Customer Name: ${fd.get('customer-name') || ''});
+                addLine(Region: ${fd.get('region') || ''});
+                addLine(Farm Name: ${fd.get('farm-name') || ''});
+                addLine(Island: ${fd.get('island') || ''});
+                addLine(Visit Date: ${fd.get('visit-date') || ''});
+                addLine(Visit Type: ${fd.get('visit-type') || ''});
+                addLine(Inspection Start Time: ${fd.get('inspection-start-time') || ''});
+                addLine(Inspection End Time: ${fd.get('inspection-end-time') || ''});
+                addLine(Inspection Completed By: ${fd.get('inspection-completed-by') || ''});
+                addLine(Call Type: ${fd.get('call-type') || ''});
                 currentY += 15;
 
                 // Table of items
@@ -1093,15 +1156,15 @@
                 pdf.setFont('helvetica', 'normal');
                 const hotWaterTemp = fd.get('hot-water-temp') || '';
                 const hotWaterTime = fd.get('hot-water-time') || '';
-                pdf.text(`Hot Water Temp: ${hotWaterTemp} °C`, 40, afterTableY);
+                pdf.text(Hot Water Temp: ${hotWaterTemp} °C, 40, afterTableY);
                 afterTableY += 15;
-                pdf.text(`Time Taken: ${hotWaterTime}`, 40, afterTableY);
+                pdf.text(Time Taken: ${hotWaterTime}, 40, afterTableY);
                 afterTableY += 20;
                 const milkTemp = fd.get('milk-temp') || '';
                 const milkTime = fd.get('milk-time') || '';
-                pdf.text(`Milk Temp: ${milkTemp} °C`, 40, afterTableY);
+                pdf.text(Milk Temp: ${milkTemp} °C, 40, afterTableY);
                 afterTableY += 15;
-                pdf.text(`Time Taken: ${milkTime}`, 40, afterTableY);
+                pdf.text(Time Taken: ${milkTime}, 40, afterTableY);
                 afterTableY += 20;
 
                 // Photos
@@ -1132,7 +1195,7 @@
 
                 // Output PDF
                 const pdfBlob = pdf.output('blob');
-                pdf.save(`Dairy_Shed_Hygiene_Checklist_${dairyNumber}.pdf`);
+                pdf.save(Dairy_Shed_Hygiene_Checklist_${dairyNumber}.pdf);
 
                 // Remove Dexie record
                 await db.forms.delete(dairyNumber);
@@ -1158,8 +1221,8 @@
         function uploadPDF(dairyNumber, pdfBlob) {
             // Save PDF to customers/<dairyNumber>/<fileName>.pdf
             const timestamp = new Date().toISOString().split('T')[0];
-            const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
-            const uploadRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
+            const fileName = ${dairyNumber}-form-${timestamp}.pdf;
+            const uploadRef = storage.ref(customers/${dairyNumber}/${fileName});
             uploadRef.put(pdfBlob)
                 .then(() => console.log('PDF uploaded successfully to customers folder.'))
                 .catch(err => console.error('Error uploading PDF:', err));
@@ -1196,7 +1259,7 @@
         async function loadRecordFiles(dairyNumber) {
             const recordList = document.getElementById('record-list');
             recordList.innerHTML = '';
-            const folderRef = storage.ref(`customers/${dairyNumber}`);
+            const folderRef = storage.ref(customers/${dairyNumber});
             try {
                 const fileSnapshot = await folderRef.listAll();
                 fileSnapshot.items.forEach(fileRef => {
@@ -1250,19 +1313,19 @@
          * K: DOMContentLoaded
          *******************************************/
         document.addEventListener("DOMContentLoaded", async () => {
-            // 1) Setup dairy-company datalist
+            // Set up dairy-company datalist
             await setupDairyCompanyDatalist();
 
-            // 2) Create sections
+            // Create sections
             createHealthSafetyItems('health-safety-top');
-            createChecklistItems();    // Plant items
-            createSiloChecklist();     // Silo items
+            createChecklistItems();
+            createSiloChecklist();
             await createAdditionalChecks();
 
-            // 3) Prompt if 1 existing form
+            // Prompt if 1 existing form
             await checkForExistingForm();
 
-            // 4) Save data on input
+            // Save data on input
             const form = document.getElementById('hygiene-checklist-form');
             form.addEventListener('input', saveFormData);
         });
