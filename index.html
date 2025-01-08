@@ -323,7 +323,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 5.4</div>
+        <div class="version">Version 6.0</div>
     </div>
 
     <!-- 
@@ -377,6 +377,7 @@
             teatSprayRatios: "++id, ratio"
         });
 
+        // Register service worker
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('service-worker.js')
                 .then(reg => console.log('Service Worker registered:', reg.scope))
@@ -921,7 +922,7 @@
             const fd = new FormData(form);
             await saveFarmDetailsToFirebase(fd);
 
-            // Now proceed to gather item data + images, then create PDF
+            // Gather item data + images
             const containers = [
                 ...document.getElementById('health-safety-top').children,
                 ...document.getElementById('checklist-items').children,
@@ -955,7 +956,7 @@
                     if (imgs[1].files[0]) imageFiles.push(imgs[1].files[0]);
                 }
 
-                // If attention-required + photos, note
+                // If attention-required + photos
                 if (status === 'attention-required' && imageFiles.length > 0) {
                     comments += comments ? ` (Photo Attached Below)` : `(Photo Attached Below)`;
                 }
@@ -1097,7 +1098,7 @@
                 // Remove Dexie record
                 await db.forms.delete(dairyNumber);
 
-                // Upload PDF to customers/<dairyNumber> folder (record-keeping)
+                // Upload PDF to customers/<dairyNumber> folder
                 if (navigator.onLine) {
                     uploadPDF(dairyNumber, pdfBlob);
                 }
