@@ -1,4 +1,6 @@
-const CACHE_NAME = 'dairy-shed-cache-v1';
+// Bump the cache name version each time you release a new update:
+const CACHE_NAME = 'dairy-shed-cache-v6';  // <--- increment here for new releases
+
 const urlsToCache = [
     '/',
     '/index.html',
@@ -19,7 +21,7 @@ self.addEventListener('install', function (event) {
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(function (cache) {
-                console.log('Opened cache');
+                console.log('Opened cache:', CACHE_NAME);
                 return cache.addAll(urlsToCache);
             })
             .catch(function (error) {
@@ -27,8 +29,6 @@ self.addEventListener('install', function (event) {
             })
     );
 });
-
-
 
 self.addEventListener('fetch', function (event) {
     event.respondWith(
@@ -54,17 +54,17 @@ self.addEventListener('fetch', function (event) {
 });
 
 self.addEventListener('activate', function (event) {
-    const cacheWhitelist = [CACHE_NAME];
+    // Remove old caches if they don't match our current version
     event.waitUntil(
-        caches.keys()
-            .then(function (cacheNames) {
-                return Promise.all(
-                    cacheNames.map(function (cacheName) {
-                        if (cacheWhitelist.indexOf(cacheName) === -1) {
-                            return caches.delete(cacheName);
-                        }
-                    })
-                );
-            })
+        caches.keys().then(function (cacheNames) {
+            return Promise.all(
+                cacheNames.map(function (cacheName) {
+                    if (cacheName !== CACHE_NAME) {
+                        console.log('Deleting old cache:', cacheName);
+                        return caches.delete(cacheName);
+                    }
+                })
+            );
+        })
     );
 });
