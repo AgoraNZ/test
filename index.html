@@ -207,7 +207,7 @@
                        name="farm-name"
                        autocapitalize="words"
                        autocorrect="off"
-                       spellcheck="false">
+                       spellcheck="true">
 
                 <label for="island">Island:</label>
                 <select id="island" name="island" class="form-select">
@@ -306,7 +306,7 @@
                            step="0.1"
                            autocapitalize="words"
                            autocorrect="off"
-                           spellcheck="false">
+                           spellcheck="true">
 
                     <label for="hot-water-time">Time Taken:</label>
                     <input type="time" class="form-control" id="hot-water-time" name="hot-water-time">
@@ -318,9 +318,9 @@
                            id="milk-temp"
                            name="milk-temp"
                            step="0.1"
-                           autocapitalize="words"
+                           autocapitalize="first-words"
                            autocorrect="off"
-                           spellcheck="false">
+                           spellcheck="true">
 
                     <label for="milk-time">Time Taken:</label>
                     <input type="time" class="form-control" id="milk-time" name="milk-time">
@@ -404,6 +404,14 @@
                 "OFI",
                 "Synlait Milk LTD",
                 "Tatua"
+                "Danone"
+                "Fresha Valley LTD"
+                "Mataura Valley Milk"
+                "Open Country Dairy LTD"
+                "Waiu"
+                "Westland Milk Products"
+            
+
             ];
             const userCompanies = await db.dairyCompanies.toArray();
             const allCompanies = [...defaultCompanies];
@@ -503,7 +511,7 @@
             commentsInput.placeholder = 'Comments';
             commentsInput.setAttribute('autocapitalize','words');
             commentsInput.setAttribute('autocorrect','off');
-            commentsInput.setAttribute('spellcheck','false');
+            commentsInput.setAttribute('spellcheck','true');
             itemContainer.appendChild(commentsInput);
 
             const imageUpload1 = document.createElement('input');
@@ -667,7 +675,7 @@
                 commentsInput.placeholder = 'Comments';
                 commentsInput.setAttribute('autocapitalize','words');
                 commentsInput.setAttribute('autocorrect','off');
-                commentsInput.setAttribute('spellcheck','false');
+                commentsInput.setAttribute('spellcheck','true');
                 itemContainer.appendChild(commentsInput);
 
                 const imageUpload1 = document.createElement('input');
@@ -731,7 +739,7 @@
             commentsInputTeat.placeholder = 'Comments';
             commentsInputTeat.setAttribute('autocapitalize','words');
             commentsInputTeat.setAttribute('autocorrect','off');
-            commentsInputTeat.setAttribute('spellcheck','false');
+            commentsInputTeat.setAttribute('spellcheck','true');
             teatSprayContainer.appendChild(commentsInputTeat);
 
             const imageUploadTeat1 = document.createElement('input');
@@ -1309,6 +1317,7 @@
             // Create sections
             createHealthSafetyItems('health-safety-top');
             createChecklistItems();
+            createSiloChecklist();
             await createAdditionalChecks();
 
             // Prompt if 1 existing form
