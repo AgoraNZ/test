@@ -272,10 +272,17 @@
             <!-- 
             Main Checklist
             -->
-            <div class="section mb-4">
-                <h2>Checklist Items</h2>
-                <div id="checklist-items"></div>
-            </div>
+            
+<div class="section mb-4">
+    <h2>Plant Checklist</h2>
+    <div id="checklist-items"></div>
+</div>
+
+<div class="section mb-4">
+    <h2>Silo Checklist</h2>
+    <div id="silo-checklist"></div>
+</div>
+
 
             <!-- 
             Additional Checks
@@ -531,9 +538,94 @@
                 "Liner", "Cluster", "Cluster Seal", "Cluster Button", "Non Return Valve at Milk Pump", "Milk Pump",
                 "Filter Housing", "Plate Cooler", "Interceptor", "Receiver Airline", "Flushing Pulsator", "Air Purge Valve",
                 "Vacuum Level", "Main Airline", "Plant Drainage - Milk Pump", "Plant Drainage - Filter/s", "Plant Drainage - Plate Cooler",
-                "Plant Drainage - Vat Entry", "Plant Wash Tap", "Wash Jetters", "Centre Gland", "Test Bucket",
-                "Inlet Valve", "Non-Return Valve", "Spray Ball", "Agitator", "Silo Door", "Manhole Seal", "Vat Outlet", "Walls in Silo"
+                "Plant Drainage - Vat Entry", "Plant Wash Tap", "Wash Jetters", "Centre Gland", "Test Bucket"
             ];
+
+            function createSiloChecklist() {
+   
+    const siloItems = [
+        "Inlet Valve", "Non-Return Valve", "Spray Ball", "Agitator",
+        "Silo Door", "Manhole Seal", "Vat Outlet", "Walls in Silo"
+    ];
+
+    // If you need auto-fill logic for "not-checked" => "Milk in Vat", do it here:
+    const siloItemsToAutoFill = [
+        "Inlet Valve",
+        "Non-Return Valve",
+        "Spray Ball",
+        "Agitator",
+        "Silo Door",
+        "Manhole Seal",
+        "Vat Outlet",
+        "Walls in Silo"
+    ];
+
+    // Grab the container
+    const container = document.getElementById('silo-checklist');
+    container.innerHTML = '';
+
+    siloItems.forEach(item => {
+        const itemContainer = document.createElement('div');
+        itemContainer.classList.add('checklist-item');
+
+        const label = document.createElement('label');
+        label.textContent = item;
+        itemContainer.appendChild(label);
+
+        const statusSelect = document.createElement('select');
+        statusSelect.classList.add('form-select');
+        statusSelect.name = `status-${item}`;
+        statusSelect.innerHTML = `
+            <option value="ok">OK</option>
+            <option value="attention-required">Attention Required</option>
+            <option value="na">N/A</option>
+            <option value="not-checked">Not Checked</option>
+        `;
+        itemContainer.appendChild(statusSelect);
+
+        const commentsInput = document.createElement('input');
+        commentsInput.type = 'text';
+        commentsInput.classList.add('form-control');
+        commentsInput.name = `comments-${item}`;
+        commentsInput.placeholder = 'Comments';
+        commentsInput.setAttribute('autocapitalize','words');
+        commentsInput.setAttribute('autocorrect','off');
+        commentsInput.setAttribute('spellcheck','false');
+        itemContainer.appendChild(commentsInput);
+
+        // Create photo upload fields
+        const imageUpload1 = document.createElement('input');
+        imageUpload1.type = 'file';
+        imageUpload1.classList.add('form-control', 'image-upload');
+        imageUpload1.style.display = 'none';
+        itemContainer.appendChild(imageUpload1);
+
+        const imageUpload2 = document.createElement('input');
+        imageUpload2.type = 'file';
+        imageUpload2.classList.add('form-control', 'image-upload');
+        imageUpload2.style.display = 'none';
+        itemContainer.appendChild(imageUpload2);
+
+        statusSelect.addEventListener('change', () => {
+            if (statusSelect.value === 'attention-required') {
+                imageUpload1.style.display = 'block';
+                imageUpload2.style.display = 'block';
+            } else {
+                imageUpload1.style.display = 'none';
+                imageUpload2.style.display = 'none';
+            }
+
+            // Auto-fill logic for silo items
+            if (statusSelect.value === 'not-checked' && siloItemsToAutoFill.includes(item)) {
+                commentsInput.value = "Milk in Vat";
+            } else if (commentsInput.value === "Milk in Vat") {
+                commentsInput.value = "";
+            }
+        });
+
+        container.appendChild(itemContainer);
+    });
+}
 
             const itemsToAutoFill = [
                 "Inlet Valve",
