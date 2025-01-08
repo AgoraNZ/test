@@ -170,7 +170,7 @@
                        name="address"
                        autocapitalize="words"
                        autocorrect="off"
-                       spellcheck="false">
+                       spellcheck="true">
 
                 <label for="customer-name">Customer Name:</label>
                 <input type="text"
@@ -179,7 +179,7 @@
                        name="customer-name"
                        autocapitalize="words"
                        autocorrect="off"
-                       spellcheck="false">
+                       spellcheck="true">
 
                 <label for="region">Region:</label>
                 <select id="region" name="region" class="form-select">
@@ -251,7 +251,7 @@
                        name="inspection-completed-by"
                        autocapitalize="words"
                        autocorrect="off"
-                       spellcheck="false">
+                       spellcheck="true">
 
                 <label for="call-type">Call Type:</label>
                 <select id="call-type" name="call-type" class="form-select">
@@ -270,19 +270,20 @@
             </div>
 
             <!-- 
-            Main Checklist
+            Plant Checklist
             -->
-            
-<div class="section mb-4">
-    <h2>Plant Checklist</h2>
-    <div id="checklist-items"></div>
-</div>
+            <div class="section mb-4">
+                <h2>Plant Checklist</h2>
+                <div id="checklist-items"></div>
+            </div>
 
-<div class="section mb-4">
-    <h2>Silo Checklist</h2>
-    <div id="silo-checklist"></div>
-</div>
-
+            <!-- 
+            Silo Checklist
+            -->
+            <div class="section mb-4">
+                <h2>Silo Checklist</h2>
+                <div id="silo-checklist"></div>
+            </div>
 
             <!-- 
             Additional Checks
@@ -403,21 +404,21 @@
                 "Oceania",
                 "OFI",
                 "Synlait Milk LTD",
-                "Tatua"
-                "Danone"
-                "Fresha Valley LTD"
-                "Mataura Valley Milk"
-                "Open Country Dairy LTD"
-                "Waiu"
+                "Tatua",
+                "Danone",
+                "Fresha Valley LTD",
+                "Mataura Valley Milk",
+                "Open Country Dairy LTD",
+                "Waiu",
                 "Westland Milk Products"
-            
-
             ];
             const userCompanies = await db.dairyCompanies.toArray();
             const allCompanies = [...defaultCompanies];
 
             userCompanies.forEach(u => {
-                if (!allCompanies.includes(u.name)) allCompanies.push(u.name);
+                if (!allCompanies.includes(u.name)) {
+                    allCompanies.push(u.name);
+                }
             });
 
             const datalist = document.getElementById('dairy-company-list');
@@ -483,64 +484,91 @@
         }
 
         /*******************************************
-         * E: CREATE CHECKLIST ITEMS (HEALTH, MAIN, ADDITIONAL)
+         * E1: CREATE SILO CHECKLIST
          *******************************************/
-        function createHealthSafetyItems(containerId) {
-            const itemContainer = document.createElement('div');
-            itemContainer.classList.add('checklist-item');
+        function createSiloChecklist() {
+            const siloItems = [
+                "Inlet Valve", "Non-Return Valve", "Spray Ball", "Agitator",
+                "Silo Door", "Manhole Seal", "Vat Outlet", "Walls in Silo"
+            ];
 
-            const label = document.createElement('label');
-            label.textContent = "Health & Safety";
-            itemContainer.appendChild(label);
+            const siloItemsToAutoFill = [
+                "Inlet Valve", "Non-Return Valve", "Spray Ball", "Agitator",
+                "Silo Door", "Manhole Seal", "Vat Outlet", "Walls in Silo"
+            ];
 
-            const statusSelect = document.createElement('select');
-            statusSelect.classList.add('form-select');
-            statusSelect.name = `status-health-safety-${containerId}`;
-            statusSelect.innerHTML = `
-                <option value="ok">OK</option>
-                <option value="attention-required">Attention Required</option>
-                <option value="na">N/A</option>
-                <option value="not-checked">Not Checked</option>
-            `;
-            itemContainer.appendChild(statusSelect);
+            const container = document.getElementById('silo-checklist');
+            container.innerHTML = '';
 
-            const commentsInput = document.createElement('input');
-            commentsInput.type = 'text';
-            commentsInput.classList.add('form-control');
-            commentsInput.name = `comments-health-safety-${containerId}`;
-            commentsInput.placeholder = 'Comments';
-            commentsInput.setAttribute('autocapitalize','words');
-            commentsInput.setAttribute('autocorrect','off');
-            commentsInput.setAttribute('spellcheck','true');
-            itemContainer.appendChild(commentsInput);
+            siloItems.forEach(item => {
+                const itemContainer = document.createElement('div');
+                itemContainer.classList.add('checklist-item');
 
-            const imageUpload1 = document.createElement('input');
-            imageUpload1.type = 'file';
-            imageUpload1.classList.add('form-control', 'image-upload');
-            imageUpload1.style.display = 'none';
-            itemContainer.appendChild(imageUpload1);
+                const label = document.createElement('label');
+                label.textContent = item;
+                itemContainer.appendChild(label);
 
-            const imageUpload2 = document.createElement('input');
-            imageUpload2.type = 'file';
-            imageUpload2.classList.add('form-control', 'image-upload');
-            imageUpload2.style.display = 'none';
-            itemContainer.appendChild(imageUpload2);
+                const statusSelect = document.createElement('select');
+                statusSelect.classList.add('form-select');
+                statusSelect.name = `status-${item}`;
+                statusSelect.innerHTML = `
+                    <option value="ok">OK</option>
+                    <option value="attention-required">Attention Required</option>
+                    <option value="na">N/A</option>
+                    <option value="not-checked">Not Checked</option>
+                `;
+                itemContainer.appendChild(statusSelect);
 
-            statusSelect.addEventListener('change', () => {
-                if (statusSelect.value === 'attention-required') {
-                    imageUpload1.style.display = 'block';
-                    imageUpload2.style.display = 'block';
-                } else {
-                    imageUpload1.style.display = 'none';
-                    imageUpload2.style.display = 'none';
-                }
+                const commentsInput = document.createElement('input');
+                commentsInput.type = 'text';
+                commentsInput.classList.add('form-control');
+                commentsInput.name = `comments-${item}`;
+                commentsInput.placeholder = 'Comments';
+                commentsInput.setAttribute('autocapitalize','words');
+                commentsInput.setAttribute('autocorrect','off');
+                commentsInput.setAttribute('spellcheck','true');
+                itemContainer.appendChild(commentsInput);
+
+                // Image uploads
+                const imageUpload1 = document.createElement('input');
+                imageUpload1.type = 'file';
+                imageUpload1.classList.add('form-control', 'image-upload');
+                imageUpload1.style.display = 'none';
+                itemContainer.appendChild(imageUpload1);
+
+                const imageUpload2 = document.createElement('input');
+                imageUpload2.type = 'file';
+                imageUpload2.classList.add('form-control', 'image-upload');
+                imageUpload2.style.display = 'none';
+                itemContainer.appendChild(imageUpload2);
+
+                statusSelect.addEventListener('change', () => {
+                    if (statusSelect.value === 'attention-required') {
+                        imageUpload1.style.display = 'block';
+                        imageUpload2.style.display = 'block';
+                    } else {
+                        imageUpload1.style.display = 'none';
+                        imageUpload2.style.display = 'none';
+                    }
+
+                    // Auto-fill logic
+                    if (statusSelect.value === 'not-checked' && siloItemsToAutoFill.includes(item)) {
+                        commentsInput.value = "Milk in Vat";
+                    } else if (commentsInput.value === "Milk in Vat") {
+                        commentsInput.value = "";
+                    }
+                });
+
+                container.appendChild(itemContainer);
             });
-
-            document.getElementById(containerId).appendChild(itemContainer);
         }
 
+        /*******************************************
+         * E2: CREATE PLANT CHECKLIST (no silo items)
+         *******************************************/
         function createChecklistItems() {
             const checklistItems = [
+                // Plant items only:
                 "Pulsator Airline", "Long Bend Elbows", "Automatic Cup and Remover", "Diaphragm", "Receiving Can",
                 "Sanitary Trap", "Main Milk Line", "Milk Line Seals in Good Condition", "Stainless Droppers", "Long Milk Rubber",
                 "Liner", "Cluster", "Cluster Seal", "Cluster Button", "Non Return Valve at Milk Pump", "Milk Pump",
@@ -549,102 +577,8 @@
                 "Plant Drainage - Vat Entry", "Plant Wash Tap", "Wash Jetters", "Centre Gland", "Test Bucket"
             ];
 
-            function createSiloChecklist() {
-   
-    const siloItems = [
-        "Inlet Valve", "Non-Return Valve", "Spray Ball", "Agitator",
-        "Silo Door", "Manhole Seal", "Vat Outlet", "Walls in Silo"
-    ];
-
-    // If you need auto-fill logic for "not-checked" => "Milk in Vat", do it here:
-    const siloItemsToAutoFill = [
-        "Inlet Valve",
-        "Non-Return Valve",
-        "Spray Ball",
-        "Agitator",
-        "Silo Door",
-        "Manhole Seal",
-        "Vat Outlet",
-        "Walls in Silo"
-    ];
-
-    // Grab the container
-    const container = document.getElementById('silo-checklist');
-    container.innerHTML = '';
-
-    siloItems.forEach(item => {
-        const itemContainer = document.createElement('div');
-        itemContainer.classList.add('checklist-item');
-
-        const label = document.createElement('label');
-        label.textContent = item;
-        itemContainer.appendChild(label);
-
-        const statusSelect = document.createElement('select');
-        statusSelect.classList.add('form-select');
-        statusSelect.name = `status-${item}`;
-        statusSelect.innerHTML = `
-            <option value="ok">OK</option>
-            <option value="attention-required">Attention Required</option>
-            <option value="na">N/A</option>
-            <option value="not-checked">Not Checked</option>
-        `;
-        itemContainer.appendChild(statusSelect);
-
-        const commentsInput = document.createElement('input');
-        commentsInput.type = 'text';
-        commentsInput.classList.add('form-control');
-        commentsInput.name = `comments-${item}`;
-        commentsInput.placeholder = 'Comments';
-        commentsInput.setAttribute('autocapitalize','words');
-        commentsInput.setAttribute('autocorrect','off');
-        commentsInput.setAttribute('spellcheck','false');
-        itemContainer.appendChild(commentsInput);
-
-        // Create photo upload fields
-        const imageUpload1 = document.createElement('input');
-        imageUpload1.type = 'file';
-        imageUpload1.classList.add('form-control', 'image-upload');
-        imageUpload1.style.display = 'none';
-        itemContainer.appendChild(imageUpload1);
-
-        const imageUpload2 = document.createElement('input');
-        imageUpload2.type = 'file';
-        imageUpload2.classList.add('form-control', 'image-upload');
-        imageUpload2.style.display = 'none';
-        itemContainer.appendChild(imageUpload2);
-
-        statusSelect.addEventListener('change', () => {
-            if (statusSelect.value === 'attention-required') {
-                imageUpload1.style.display = 'block';
-                imageUpload2.style.display = 'block';
-            } else {
-                imageUpload1.style.display = 'none';
-                imageUpload2.style.display = 'none';
-            }
-
-            // Auto-fill logic for silo items
-            if (statusSelect.value === 'not-checked' && siloItemsToAutoFill.includes(item)) {
-                commentsInput.value = "Milk in Vat";
-            } else if (commentsInput.value === "Milk in Vat") {
-                commentsInput.value = "";
-            }
-        });
-
-        container.appendChild(itemContainer);
-    });
-}
-
-            const itemsToAutoFill = [
-                "Inlet Valve",
-                "Non-Return Valve",
-                "Spray Ball",
-                "Agitator",
-                "Silo Door",
-                "Manhole Seal",
-                "Vat Outlet",
-                "Walls in Silo"
-            ];
+            // If you need auto-fill for "Milk in Vat" on some plant items, list them here:
+            const itemsToAutoFill = [];
 
             const container = document.getElementById('checklist-items');
             container.innerHTML = '';
@@ -698,6 +632,7 @@
                         imageUpload1.style.display = 'none';
                         imageUpload2.style.display = 'none';
                     }
+
                     if (statusSelect.value === 'not-checked' && itemsToAutoFill.includes(item)) {
                         commentsInput.value = "Milk in Vat";
                     } else if (commentsInput.value === "Milk in Vat") {
@@ -709,6 +644,9 @@
             });
         }
 
+        /*******************************************
+         * E3: CREATE ADDITIONAL CHECKS
+         *******************************************/
         async function createAdditionalChecks() {
             const container = document.getElementById('additional-checks');
             container.innerHTML = '';
@@ -785,7 +723,7 @@
             ratioDataList.id = 'teat-dilution-list';
             teatSprayContainer.appendChild(ratioDataList);
 
-            // Load existing ratios
+            // Load existing ratios from Dexie
             const existingRatios = await db.teatSprayRatios.toArray();
             const allRatios = ["1:4"];
             existingRatios.forEach(r => {
@@ -839,7 +777,7 @@
             commentsInputChemical.placeholder = 'Comments';
             commentsInputChemical.setAttribute('autocapitalize','words');
             commentsInputChemical.setAttribute('autocorrect','off');
-            commentsInputChemical.setAttribute('spellcheck','false');
+            commentsInputChemical.setAttribute('spellcheck','true');
             chemicalContainer.appendChild(commentsInputChemical);
 
             const imageUploadChem1 = document.createElement('input');
@@ -953,6 +891,7 @@
             const containersToCheck = [
                 document.getElementById('health-safety-top').children,
                 document.getElementById('checklist-items').children,
+                document.getElementById('silo-checklist').children,      /* <-- Include silo container */
                 document.getElementById('additional-checks').children
             ];
             const checklistItemsData = [];
@@ -1008,7 +947,6 @@
 
         /*******************************************
          * I: GENERATE PDF (WITH PHOTOS & TEAT RATIO)
-         * Also uploads PDF to customers/<dairyNumber> folder
          *******************************************/
         async function generatePDF() {
             const dairyNumber = document.getElementById('dairy-number').value.trim();
@@ -1022,10 +960,11 @@
             const fd = new FormData(form);
             await saveFarmDetailsToFirebase(fd);
 
-            // Gather item data + images
+            // Gather item data + images from all sections (including silo!)
             const containers = [
                 ...document.getElementById('health-safety-top').children,
                 ...document.getElementById('checklist-items').children,
+                ...document.getElementById('silo-checklist').children,   /* <-- Silo now included here */
                 ...document.getElementById('additional-checks').children
             ];
             const itemDataArray = [];
@@ -1043,7 +982,7 @@
                     const ratioField = item.querySelector('#teat-dilution');
                     if (ratioField && ratioField.value.trim()) {
                         comments += comments 
-                          ? ` | Ratio: ${ratioField.value}` 
+                          ? ` | Ratio: ${ratioField.value}`
                           : `Ratio: ${ratioField.value}`;
                     }
                 }
@@ -1311,19 +1250,19 @@
          * K: DOMContentLoaded
          *******************************************/
         document.addEventListener("DOMContentLoaded", async () => {
-            // Set up dairy-company datalist
+            // 1) Setup dairy-company datalist
             await setupDairyCompanyDatalist();
 
-            // Create sections
+            // 2) Create sections
             createHealthSafetyItems('health-safety-top');
-            createChecklistItems();
-            createSiloChecklist();
+            createChecklistItems();    // Plant items
+            createSiloChecklist();     // Silo items
             await createAdditionalChecks();
 
-            // Prompt if 1 existing form
+            // 3) Prompt if 1 existing form
             await checkForExistingForm();
 
-            // Save data on input
+            // 4) Save data on input
             const form = document.getElementById('hygiene-checklist-form');
             form.addEventListener('input', saveFormData);
         });
