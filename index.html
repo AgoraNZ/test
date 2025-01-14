@@ -211,7 +211,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 6.0</div>
+        <div class="version">Version 6.0 (Updated with Retry Logic)</div>
     </div>
 
     <!-- RECORDS VIEW -->
@@ -251,10 +251,11 @@
         const firestore = firebase.firestore();
 
         const db = new Dexie("OfflineData");
-        db.version(3).stores({
+        db.version(4).stores({
             forms: "dairyNumber",
             dairyCompanies: "++id, name",
-            teatSprayRatios: "++id, ratio"
+            teatSprayRatios: "++id, ratio",
+            pdfQueue: "++id,dairyNumber,fileName,uploaded"
         });
 
         if ('serviceWorker' in navigator) {
@@ -276,7 +277,9 @@
             const allCompanies = [...defaultCompanies];
 
             userCompanies.forEach(u => {
-                if (!allCompanies.includes(u.name)) { allCompanies.push(u.name); }
+                if (!allCompanies.includes(u.name)) {
+                    allCompanies.push(u.name);
+                }
             });
 
             const datalist = document.getElementById('dairy-company-list');
@@ -741,7 +744,9 @@
             for (let key in data) {
                 if (key === 'checklistItems') continue;
                 const field = document.getElementById(key) || document.getElementsByName(key)[0];
-                if (field) { field.value = data[key]; }
+                if (field) {
+                    field.value = data[key];
+                }
             }
             if (data.checklistItems) {
                 const containers = [
@@ -759,7 +764,9 @@
                         statusSelect.value = data.checklistItems[idx].status;
                         statusSelect.dispatchEvent(new Event('change'));
                     }
-                    if (commentsInput) { commentsInput.value = data.checklistItems[idx].comments; }
+                    if (commentsInput) {
+                        commentsInput.value = data.checklistItems[idx].comments;
+                    }
                     idx++;
                 }
             }
@@ -842,6 +849,42 @@
         }
 
         /*******************************************
+         * H2: PDF UPLOAD RETRY LOGIC
+         *******************************************/
+        // 1. Attempt upload for all stored PDFs that haven't been uploaded yet.
+        async function uploadPendingPDFs() {
+            if (!navigator.onLine) return; // only try if we are online
+
+            const queuedPDFs = await db.pdfQueue.where({ uploaded: false }).toArray();
+            for (let pdfRecord of queuedPDFs) {
+                try {
+                    await uploadSinglePDF(pdfRecord.dairyNumber, pdfRecord.fileName, pdfRecord.pdfBlob);
+                    // Mark as uploaded
+                    await db.pdfQueue.update(pdfRecord.id, { uploaded: true });
+                    console.log(`Retried PDF for ${pdfRecord.dairyNumber} uploaded successfully.`);
+                } catch (err) {
+                    console.error('Retry PDF upload failed:', err);
+                }
+            }
+        }
+
+        // 2. Actual upload function (same as before, just separated out).
+        function uploadSinglePDF(dairyNumber, fileName, pdfBlob) {
+            return new Promise((resolve, reject) => {
+                const uploadRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
+                const task = uploadRef.put(pdfBlob);
+                task.on('state_changed', null, (err) => {
+                    reject(err);
+                }, () => {
+                    resolve();
+                });
+            });
+        }
+
+        // Listen for going back online to retry automatically:
+        window.addEventListener('online', uploadPendingPDFs);
+
+        /*******************************************
          * I: GENERATE PDF
          *******************************************/
         async function generatePDF() {
@@ -853,6 +896,7 @@
 
             const form = document.getElementById('hygiene-checklist-form');
             const fd = new FormData(form);
+            // Attempt to save farm details (if offline, it just fails quietly)
             await saveFarmDetailsToFirebase(fd);
 
             const containers = [
@@ -1016,11 +1060,37 @@
                 const pdfBlob = pdf.output('blob');
                 pdf.save(`Dairy_Shed_Hygiene_Checklist_${dairyNumber}.pdf`);
 
+                // Attempt immediate upload if online
+                const timestamp = new Date().toISOString().split('T')[0];
+                const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
+
+                let uploadSuccessful = false;
+                if (navigator.onLine) {
+                    try {
+                        await uploadSinglePDF(dairyNumber, fileName, pdfBlob);
+                        uploadSuccessful = true;
+                    } catch (err) {
+                        console.error('Immediate PDF upload failed:', err);
+                    }
+                }
+
+                // If immediate upload was not possible or failed, store in Dexie to retry later
+                if (!uploadSuccessful) {
+                    await db.pdfQueue.add({
+                        dairyNumber: dairyNumber,
+                        fileName: fileName,
+                        pdfBlob: pdfBlob,
+                        uploaded: false
+                    });
+                } else {
+                    console.log('PDF uploaded successfully to customers folder immediately.');
+                }
+
+                // Now we can safely remove the form data from Dexie (since PDF is stored or queued)
                 await db.forms.delete(dairyNumber);
 
-                if (navigator.onLine) {
-                    uploadPDF(dairyNumber, pdfBlob);
-                }
+                // Finally, try any leftover PDFs that might be queued
+                uploadPendingPDFs();
 
                 clearEntireForm();
             }
@@ -1033,15 +1103,6 @@
                     reader.readAsDataURL(blob);
                 });
             }
-        }
-
-        function uploadPDF(dairyNumber, pdfBlob) {
-            const timestamp = new Date().toISOString().split('T')[0];
-            const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
-            const uploadRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
-            uploadRef.put(pdfBlob)
-                .then(() => console.log('PDF uploaded successfully to customers folder.'))
-                .catch(err => console.error('Error uploading PDF:', err));
         }
 
         /*******************************************
@@ -1140,6 +1201,9 @@
 
             const form = document.getElementById('hygiene-checklist-form');
             form.addEventListener('input', saveFormData);
+
+            // Attempt to upload any leftover PDFs when page loads (if online)
+            uploadPendingPDFs();
         });
     </script>
 </body>
