@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <!-- PART 1: META & STYLES -->
     <meta charset="UTF-8">
@@ -90,6 +89,15 @@
             cursor: pointer;
         }
         .search-container { margin-bottom: 20px; }
+
+        /* For Image Previews */
+        .image-preview {
+            display: none;
+            max-width: 200px;
+            max-height: 200px;
+            margin-top: 5px;
+            border: 2px solid #ccc;
+        }
     </style>
 </head>
 
@@ -105,8 +113,8 @@
                 <h2>Farm Details</h2>
                 <label for="dairy-number">Dairy Number:</label>
                 <input type="text" class="form-control" id="dairy-number" name="dairy-number"
-                       onblur="fetchFarmDetails(); checkOrCreateFormRecord();" autocapitalize="words"
-                       autocorrect="off" spellcheck="false">
+                       onblur="fetchFarmDetails(); checkOrCreateFormRecord();"
+                       autocapitalize="words" autocorrect="off" spellcheck="false">
                 <label for="dairy-company">Dairy Company:</label>
                 <input type="text" class="form-control" id="dairy-company" name="dairy-company"
                        list="dairy-company-list" placeholder="Type or select..."
@@ -211,7 +219,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 6.0 (Updated with Retry Logic)</div>
+        <div class="version">Version 7.0 (Caching + Retry + Image Previews + Prompt)</div>
     </div>
 
     <!-- RECORDS VIEW -->
@@ -251,7 +259,8 @@
         const firestore = firebase.firestore();
 
         const db = new Dexie("OfflineData");
-        db.version(4).stores({
+        // We bump to version 5 or higher so new schema additions don't break older data
+        db.version(5).stores({
             forms: "dairyNumber",
             dairyCompanies: "++id, name",
             teatSprayRatios: "++id, ratio",
@@ -262,6 +271,23 @@
             navigator.serviceWorker.register('service-worker.js')
                 .then(reg => console.log('Service Worker registered:', reg.scope))
                 .catch(err => console.error('SW registration failed:', err));
+        }
+
+        /*******************************************
+         * A1: Title Case Utility
+         *******************************************/
+        function toTitleCase(str) {
+            return str.replace(/\w\S*/g, function(txt) {
+                return txt.charAt(0).toUpperCase() + txt.substr(1);
+            });
+        }
+
+        function autoCapitalizeInput(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('blur', () => {
+                el.value = toTitleCase(el.value);
+            });
         }
 
         /*******************************************
@@ -292,7 +318,8 @@
 
             const dairyCompanyInput = document.getElementById('dairy-company');
             dairyCompanyInput.addEventListener('blur', async () => {
-                const typedValue = dairyCompanyInput.value.trim();
+                dairyCompanyInput.value = toTitleCase(dairyCompanyInput.value.trim());
+                const typedValue = dairyCompanyInput.value;
                 if (typedValue && !allCompanies.includes(typedValue)) {
                     await db.dairyCompanies.add({ name: typedValue });
                     allCompanies.push(typedValue);
@@ -316,11 +343,11 @@
                 if (!response.ok) throw new Error('Failed to fetch the farm details');
                 const data = await response.json();
                 if (data) {
-                    document.getElementById('dairy-company').value = data.dairyCompany || '';
-                    document.getElementById('address').value = data.address || '';
-                    document.getElementById('customer-name').value = data.customerName || '';
+                    document.getElementById('dairy-company').value = toTitleCase(data.dairyCompany || '');
+                    document.getElementById('address').value = toTitleCase(data.address || '');
+                    document.getElementById('customer-name').value = toTitleCase(data.customerName || '');
                     document.getElementById('region').value = data.region || '';
-                    document.getElementById('farm-name').value = data.farmName || '';
+                    document.getElementById('farm-name').value = toTitleCase(data.farmName || '');
                     document.getElementById('island').value = data.island || '';
                 }
             } catch (error) {
@@ -385,11 +412,19 @@
             imageUpload1.style.display = 'none';
             itemContainer.appendChild(imageUpload1);
 
+            const imagePreview1 = document.createElement('img');
+            imagePreview1.classList.add('image-preview');
+            itemContainer.appendChild(imagePreview1);
+
             const imageUpload2 = document.createElement('input');
             imageUpload2.type = 'file';
             imageUpload2.classList.add('form-control', 'image-upload');
             imageUpload2.style.display = 'none';
             itemContainer.appendChild(imageUpload2);
+
+            const imagePreview2 = document.createElement('img');
+            imagePreview2.classList.add('image-preview');
+            itemContainer.appendChild(imagePreview2);
 
             statusSelect.addEventListener('change', () => {
                 if (statusSelect.value === 'attention-required') {
@@ -449,25 +484,27 @@
                 commentsInput.setAttribute('spellcheck','true');
                 itemContainer.appendChild(commentsInput);
 
-                const imageUpload1 = document.createElement('input');
-                imageUpload1.type = 'file';
-                imageUpload1.classList.add('form-control', 'image-upload');
-                imageUpload1.style.display = 'none';
-                itemContainer.appendChild(imageUpload1);
+                // Two file inputs + two previews
+                for (let i = 1; i <= 2; i++) {
+                    const imageUpload = document.createElement('input');
+                    imageUpload.type = 'file';
+                    imageUpload.classList.add('form-control', 'image-upload');
+                    imageUpload.style.display = 'none';
+                    itemContainer.appendChild(imageUpload);
 
-                const imageUpload2 = document.createElement('input');
-                imageUpload2.type = 'file';
-                imageUpload2.classList.add('form-control', 'image-upload');
-                imageUpload2.style.display = 'none';
-                itemContainer.appendChild(imageUpload2);
+                    const imagePreview = document.createElement('img');
+                    imagePreview.classList.add('image-preview');
+                    itemContainer.appendChild(imagePreview);
+                }
 
                 statusSelect.addEventListener('change', () => {
                     if (statusSelect.value === 'attention-required') {
-                        imageUpload1.style.display = 'block';
-                        imageUpload2.style.display = 'block';
+                        // Show the file inputs
+                        const allInputs = itemContainer.querySelectorAll('input[type="file"]');
+                        allInputs.forEach(inp => inp.style.display = 'block');
                     } else {
-                        imageUpload1.style.display = 'none';
-                        imageUpload2.style.display = 'none';
+                        const allInputs = itemContainer.querySelectorAll('input[type="file"]');
+                        allInputs.forEach(inp => inp.style.display = 'none');
                     }
                 });
 
@@ -521,25 +558,26 @@
                 commentsInput.setAttribute('spellcheck','true');
                 itemContainer.appendChild(commentsInput);
 
-                const imageUpload1 = document.createElement('input');
-                imageUpload1.type = 'file';
-                imageUpload1.classList.add('form-control', 'image-upload');
-                imageUpload1.style.display = 'none';
-                itemContainer.appendChild(imageUpload1);
+                // Two file inputs + two previews
+                for (let i = 1; i <= 2; i++) {
+                    const imageUpload = document.createElement('input');
+                    imageUpload.type = 'file';
+                    imageUpload.classList.add('form-control', 'image-upload');
+                    imageUpload.style.display = 'none';
+                    itemContainer.appendChild(imageUpload);
 
-                const imageUpload2 = document.createElement('input');
-                imageUpload2.type = 'file';
-                imageUpload2.classList.add('form-control', 'image-upload');
-                imageUpload2.style.display = 'none';
-                itemContainer.appendChild(imageUpload2);
+                    const imagePreview = document.createElement('img');
+                    imagePreview.classList.add('image-preview');
+                    itemContainer.appendChild(imagePreview);
+                }
 
                 statusSelect.addEventListener('change', () => {
                     if (statusSelect.value === 'attention-required') {
-                        imageUpload1.style.display = 'block';
-                        imageUpload2.style.display = 'block';
+                        const allInputs = itemContainer.querySelectorAll('input[type="file"]');
+                        allInputs.forEach(inp => inp.style.display = 'block');
                     } else {
-                        imageUpload1.style.display = 'none';
-                        imageUpload2.style.display = 'none';
+                        const allInputs = itemContainer.querySelectorAll('input[type="file"]');
+                        allInputs.forEach(inp => inp.style.display = 'none');
                     }
                     if (statusSelect.value === 'not-checked' && siloItemsToAutoFill.includes(item)) {
                         commentsInput.value = "Milk in Vat";
@@ -588,25 +626,26 @@
             commentsInputTeat.setAttribute('spellcheck','true');
             teatSprayContainer.appendChild(commentsInputTeat);
 
-            const imageUploadTeat1 = document.createElement('input');
-            imageUploadTeat1.type = 'file';
-            imageUploadTeat1.classList.add('form-control', 'image-upload');
-            imageUploadTeat1.style.display = 'none';
-            teatSprayContainer.appendChild(imageUploadTeat1);
+            // Two file inputs + two previews
+            for (let i = 1; i <= 2; i++) {
+                const imageUpload = document.createElement('input');
+                imageUpload.type = 'file';
+                imageUpload.classList.add('form-control', 'image-upload');
+                imageUpload.style.display = 'none';
+                teatSprayContainer.appendChild(imageUpload);
 
-            const imageUploadTeat2 = document.createElement('input');
-            imageUploadTeat2.type = 'file';
-            imageUploadTeat2.classList.add('form-control', 'image-upload');
-            imageUploadTeat2.style.display = 'none';
-            teatSprayContainer.appendChild(imageUploadTeat2);
+                const imagePreview = document.createElement('img');
+                imagePreview.classList.add('image-preview');
+                teatSprayContainer.appendChild(imagePreview);
+            }
 
             statusSelectTeat.addEventListener('change', () => {
                 if (statusSelectTeat.value === 'attention-required') {
-                    imageUploadTeat1.style.display = 'block';
-                    imageUploadTeat2.style.display = 'block';
+                    const allInputs = teatSprayContainer.querySelectorAll('input[type="file"]');
+                    allInputs.forEach(inp => inp.style.display = 'block');
                 } else {
-                    imageUploadTeat1.style.display = 'none';
-                    imageUploadTeat2.style.display = 'none';
+                    const allInputs = teatSprayContainer.querySelectorAll('input[type="file"]');
+                    allInputs.forEach(inp => inp.style.display = 'none');
                 }
             });
 
@@ -643,7 +682,8 @@
             });
 
             ratioInput.addEventListener('blur', async () => {
-                const typedRatio = ratioInput.value.trim();
+                ratioInput.value = toTitleCase(ratioInput.value.trim());
+                const typedRatio = ratioInput.value;
                 if (typedRatio && !allRatios.includes(typedRatio)) {
                     await db.teatSprayRatios.add({ ratio: typedRatio });
                     allRatios.push(typedRatio);
@@ -684,25 +724,26 @@
             commentsInputChemical.setAttribute('spellcheck','true');
             chemicalContainer.appendChild(commentsInputChemical);
 
-            const imageUploadChem1 = document.createElement('input');
-            imageUploadChem1.type = 'file';
-            imageUploadChem1.classList.add('form-control', 'image-upload');
-            imageUploadChem1.style.display = 'none';
-            chemicalContainer.appendChild(imageUploadChem1);
+            // Two file inputs + two previews
+            for (let i = 1; i <= 2; i++) {
+                const imageUpload = document.createElement('input');
+                imageUpload.type = 'file';
+                imageUpload.classList.add('form-control', 'image-upload');
+                imageUpload.style.display = 'none';
+                chemicalContainer.appendChild(imageUpload);
 
-            const imageUploadChem2 = document.createElement('input');
-            imageUploadChem2.type = 'file';
-            imageUploadChem2.classList.add('form-control', 'image-upload');
-            imageUploadChem2.style.display = 'none';
-            chemicalContainer.appendChild(imageUploadChem2);
+                const imagePreview = document.createElement('img');
+                imagePreview.classList.add('image-preview');
+                chemicalContainer.appendChild(imagePreview);
+            }
 
             statusSelectChemical.addEventListener('change', () => {
                 if (statusSelectChemical.value === 'attention-required') {
-                    imageUploadChem1.style.display = 'block';
-                    imageUploadChem2.style.display = 'block';
+                    const allInputs = chemicalContainer.querySelectorAll('input[type="file"]');
+                    allInputs.forEach(inp => inp.style.display = 'block');
                 } else {
-                    imageUploadChem1.style.display = 'none';
-                    imageUploadChem2.style.display = 'none';
+                    const allInputs = chemicalContainer.querySelectorAll('input[type="file"]');
+                    allInputs.forEach(inp => inp.style.display = 'none');
                 }
             });
 
@@ -724,11 +765,16 @@
         }
 
         async function checkForExistingForm() {
+            // Clean out old forms (1 hour). If you want indefinite, remove cleanupExpiredForms().
             await cleanupExpiredForms();
             const allForms = await db.forms.toArray();
+
+            // If exactly 1 form is cached, prompt. (You can adapt if multiple forms are stored.)
             if (allForms.length === 1) {
                 const existing = allForms[0];
-                const confirmContinue = confirm(`Would you like to continue form #${existing.dairyNumber}?`);
+                const confirmContinue = confirm(
+                    `Would you like to continue form #${existing.dairyNumber}?`
+                );
                 if (confirmContinue) {
                     loadFormDataFromRecord(existing);
                 } else {
@@ -738,6 +784,9 @@
             }
         }
 
+        /*******************************************
+         * F1: LOAD FORM DATA (including images)
+         *******************************************/
         function loadFormDataFromRecord(record) {
             const data = record.formData || {};
             document.getElementById('dairy-number').value = record.dairyNumber;
@@ -748,7 +797,9 @@
                     field.value = data[key];
                 }
             }
+            // Rebuild each item’s status, comments, image previews
             if (data.checklistItems) {
+                // Gather all the itemContainers in the same order we stored them
                 const containers = [
                     ...document.getElementById('health-safety-top').children,
                     ...document.getElementById('checklist-items').children,
@@ -756,16 +807,28 @@
                     ...document.getElementById('silo-checklist').children
                 ];
                 let idx = 0;
-                for (let item of containers) {
+                for (let itemContainer of containers) {
                     if (!data.checklistItems[idx]) break;
-                    const statusSelect = item.querySelector('select');
-                    const commentsInput = item.querySelector('input[type="text"]');
+                    const { itemName, status, comments, imagesBase64 } = data.checklistItems[idx];
+                    const statusSelect = itemContainer.querySelector('select');
+                    const commentsInput = itemContainer.querySelector('input[type="text"]');
                     if (statusSelect) {
-                        statusSelect.value = data.checklistItems[idx].status;
+                        statusSelect.value = status;
                         statusSelect.dispatchEvent(new Event('change'));
                     }
                     if (commentsInput) {
-                        commentsInput.value = data.checklistItems[idx].comments;
+                        commentsInput.value = comments;
+                    }
+                    // If we have images, show them in the preview <img> tags
+                    if (imagesBase64 && imagesBase64.length > 0) {
+                        // Each item container has 2 file inputs + 2 <img> previews => we can map them 1:1
+                        const previews = itemContainer.querySelectorAll('.image-preview');
+                        imagesBase64.forEach((img64, i) => {
+                            if (previews[i]) {
+                                previews[i].src = img64;
+                                previews[i].style.display = 'block';
+                            }
+                        });
                     }
                     idx++;
                 }
@@ -776,14 +839,21 @@
             document.getElementById('hygiene-checklist-form').reset();
             const imageUploads = document.querySelectorAll('.image-upload');
             imageUploads.forEach(inp => { inp.style.display = 'none'; });
+
+            const previews = document.querySelectorAll('.image-preview');
+            previews.forEach(img => {
+                img.src = '';
+                img.style.display = 'none';
+            });
         }
 
         /*******************************************
-         * G: SAVE FORM DATA ON INPUT
+         * G: SAVE FORM DATA ON INPUT (including images)
          *******************************************/
         async function saveFormData() {
             const dairyNumber = document.getElementById('dairy-number').value.trim();
             if (!dairyNumber) return;
+
             let record = await db.forms.get(dairyNumber);
             if (!record) {
                 record = { dairyNumber, formData: {}, creationTime: Date.now() };
@@ -792,6 +862,7 @@
             const formDataObj = new FormData(form);
             const data = Object.fromEntries(formDataObj.entries());
 
+            // Build the “checklistItems” array
             const containersToCheck = [
                 document.getElementById('health-safety-top').children,
                 document.getElementById('checklist-items').children,
@@ -803,20 +874,61 @@
                 for (let item of container) {
                     const label = item.querySelector('label');
                     if (!label) continue;
+
                     const itemName = label.textContent;
                     const statusSelect = item.querySelector('select');
                     let status = '';
                     let comments = '';
-                    if (statusSelect) status = statusSelect.value;
+
+                    if (statusSelect) {
+                        status = statusSelect.value;
+                    }
                     const commentsInput = item.querySelector('input[type="text"]');
-                    if (commentsInput) comments = commentsInput.value;
-                    checklistItemsData.push({ itemName, status, comments });
+                    if (commentsInput) {
+                        comments = commentsInput.value;
+                    }
+
+                    // Grab up to 2 file inputs
+                    let imagesBase64 = [];
+                    const fileInputs = item.querySelectorAll('input[type="file"]');
+                    for (let fi of fileInputs) {
+                        if (fi.files && fi.files[0]) {
+                            const base64 = await convertFileToBase64(fi.files[0]);
+                            imagesBase64.push(base64);
+                        } else {
+                            // If we already had a cached image from a previous session, keep it.
+                            // But that means we need to see if there's an existing item in record.formData
+                            // for that same index. We'll handle that carefully below.
+                        }
+                    }
+
+                    // If there's an existing item in record.formData.checklistItems with the same index,
+                    // and we didn't select new files, let's keep the old images.
+                    const existingIdx = checklistItemsData.length; // current item index
+                    let oldItem = null;
+                    if (record.formData.checklistItems && record.formData.checklistItems[existingIdx]) {
+                        oldItem = record.formData.checklistItems[existingIdx];
+                    }
+                    if (oldItem && imagesBase64.length === 0 && oldItem.imagesBase64) {
+                        imagesBase64 = oldItem.imagesBase64;
+                    }
+
+                    checklistItemsData.push({ itemName, status, comments, imagesBase64 });
                 }
             }
             data.checklistItems = checklistItemsData;
 
             record.formData = data;
             await db.forms.put(record);
+        }
+
+        function convertFileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
         }
 
         /*******************************************
@@ -851,10 +963,8 @@
         /*******************************************
          * H2: PDF UPLOAD RETRY LOGIC
          *******************************************/
-        // 1. Attempt upload for all stored PDFs that haven't been uploaded yet.
         async function uploadPendingPDFs() {
-            if (!navigator.onLine) return; // only try if we are online
-
+            if (!navigator.onLine) return; // only try if online
             const queuedPDFs = await db.pdfQueue.where({ uploaded: false }).toArray();
             for (let pdfRecord of queuedPDFs) {
                 try {
@@ -868,7 +978,6 @@
             }
         }
 
-        // 2. Actual upload function (same as before, just separated out).
         function uploadSinglePDF(dairyNumber, fileName, pdfBlob) {
             return new Promise((resolve, reject) => {
                 const uploadRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
@@ -881,7 +990,6 @@
             });
         }
 
-        // Listen for going back online to retry automatically:
         window.addEventListener('online', uploadPendingPDFs);
 
         /*******************************************
@@ -896,9 +1004,11 @@
 
             const form = document.getElementById('hygiene-checklist-form');
             const fd = new FormData(form);
-            // Attempt to save farm details (if offline, it just fails quietly)
+            // Attempt to save farm details (if offline, it fails quietly)
             await saveFarmDetailsToFirebase(fd);
 
+            // Build the item data array for PDF
+            // (We already have everything in Dexie, but let's just re-collect from DOM to ensure fresh info)
             const containers = [
                 ...document.getElementById('health-safety-top').children,
                 ...document.getElementById('checklist-items').children,
@@ -924,9 +1034,11 @@
                     }
                 }
 
+                // For PDF, we do not add images right away; we do it as “photoStore” for later
                 const imgs = item.querySelectorAll('input[type="file"]');
                 const imageFiles = [];
                 if (imgs.length > 0) {
+                    // If user has chosen some files
                     if (imgs[0].files[0]) imageFiles.push(imgs[0].files[0]);
                     if (imgs[1].files[0]) imageFiles.push(imgs[1].files[0]);
                 }
@@ -990,6 +1102,7 @@
                     pdf.text(text, 40, currentY);
                     currentY += 15;
                 }
+
                 addLine(`Dairy Company: ${fd.get('dairy-company') || ''}`);
                 addLine(`Dairy Number: ${fd.get('dairy-number') || ''}`);
                 addLine(`Address: ${fd.get('address') || ''}`);
@@ -1190,6 +1303,17 @@
          * K: DOMContentLoaded
          *******************************************/
         document.addEventListener("DOMContentLoaded", async () => {
+            // Title-case setup for these fields:
+            const fieldsToAutoCap = [
+                'dairy-number',
+                'dairy-company',
+                'address',
+                'customer-name',
+                'farm-name',
+                'inspection-completed-by'
+            ];
+            fieldsToAutoCap.forEach(autoCapitalizeInput);
+
             await setupDairyCompanyDatalist();
 
             createHealthSafetyItems('health-safety-top');
@@ -1200,7 +1324,9 @@
             await checkForExistingForm();
 
             const form = document.getElementById('hygiene-checklist-form');
+            // Save to Dexie on every input/file change
             form.addEventListener('input', saveFormData);
+            form.addEventListener('change', saveFormData);
 
             // Attempt to upload any leftover PDFs when page loads (if online)
             uploadPendingPDFs();
