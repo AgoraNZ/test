@@ -219,7 +219,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 7.0 (Caching + Retry + Image Previews + Prompt)</div>
+        <div class="version">Version 7.1 (Caching + Retry + Image Previews + Prompt)</div>
     </div>
 
     <!-- RECORDS VIEW -->
@@ -769,7 +769,7 @@
             await cleanupExpiredForms();
             const allForms = await db.forms.toArray();
 
-            // If exactly 1 form is cached, prompt. (You can adapt if multiple forms are stored.)
+            // If exactly 1 form is cached, prompt. (Adapt this if you want to handle multiple cached forms.)
             if (allForms.length === 1) {
                 const existing = allForms[0];
                 const confirmContinue = confirm(
@@ -961,7 +961,8 @@
          *******************************************/
         async function uploadPendingPDFs() {
             if (!navigator.onLine) return; // only try if online
-            const queuedPDFs = await db.pdfQueue.where({ uploaded: false }).toArray();
+            // Use the indexed field "uploaded" to query for false values.
+            const queuedPDFs = await db.pdfQueue.where("uploaded").equals(false).toArray();
             for (let pdfRecord of queuedPDFs) {
                 try {
                     await uploadSinglePDF(pdfRecord.dairyNumber, pdfRecord.fileName, pdfRecord.pdfBlob);
@@ -1315,6 +1316,7 @@
             createSiloChecklist();
             await createAdditionalChecks();
 
+            // Check for a cached form (this triggers the prompt if exactly one exists)
             await checkForExistingForm();
 
             const form = document.getElementById('hygiene-checklist-form');
