@@ -278,7 +278,7 @@
          *******************************************/
         function toTitleCase(str) {
             return str.replace(/\w\S*/g, function(txt) {
-                return txt.charAt(0).toUpperCase() + txt.substr(1);
+                return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
             });
         }
 
@@ -895,16 +895,12 @@
                         if (fi.files && fi.files[0]) {
                             const base64 = await convertFileToBase64(fi.files[0]);
                             imagesBase64.push(base64);
-                        } else {
-                            // If we already had a cached image from a previous session, keep it.
-                            // But that means we need to see if there's an existing item in record.formData
-                            // for that same index. We'll handle that carefully below.
                         }
                     }
 
                     // If there's an existing item in record.formData.checklistItems with the same index,
                     // and we didn't select new files, let's keep the old images.
-                    const existingIdx = checklistItemsData.length; // current item index
+                    const existingIdx = checklistItemsData.length;
                     let oldItem = null;
                     if (record.formData.checklistItems && record.formData.checklistItems[existingIdx]) {
                         oldItem = record.formData.checklistItems[existingIdx];
@@ -1004,11 +1000,11 @@
 
             const form = document.getElementById('hygiene-checklist-form');
             const fd = new FormData(form);
-            // Attempt to save farm details (if offline, it fails quietly)
+            
+            // Save farm details first (to the farm_details folder)
             await saveFarmDetailsToFirebase(fd);
 
-            // Build the item data array for PDF
-            // (We already have everything in Dexie, but let's just re-collect from DOM to ensure fresh info)
+            // Build the item data array for PDF by re-collecting from the DOM to ensure fresh info
             const containers = [
                 ...document.getElementById('health-safety-top').children,
                 ...document.getElementById('checklist-items').children,
@@ -1034,11 +1030,10 @@
                     }
                 }
 
-                // For PDF, we do not add images right away; we do it as “photoStore” for later
+                // For PDF, we gather any attached photos later
                 const imgs = item.querySelectorAll('input[type="file"]');
                 const imageFiles = [];
                 if (imgs.length > 0) {
-                    // If user has chosen some files
                     if (imgs[0].files[0]) imageFiles.push(imgs[0].files[0]);
                     if (imgs[1].files[0]) imageFiles.push(imgs[1].files[0]);
                 }
@@ -1170,41 +1165,40 @@
                     }
                 });
 
+                // Create a blob for the PDF
                 const pdfBlob = pdf.output('blob');
-                pdf.save(`Dairy_Shed_Hygiene_Checklist_${dairyNumber}.pdf`);
-
-                // Attempt immediate upload if online
                 const timestamp = new Date().toISOString().split('T')[0];
                 const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
-
                 let uploadSuccessful = false;
+
+                // Attempt PDF upload to Firebase (customers folder) before showing the PDF
                 if (navigator.onLine) {
                     try {
                         await uploadSinglePDF(dairyNumber, fileName, pdfBlob);
                         uploadSuccessful = true;
+                        console.log('PDF uploaded successfully to customers folder.');
                     } catch (err) {
                         console.error('Immediate PDF upload failed:', err);
                     }
                 }
-
-                // If immediate upload was not possible or failed, store in Dexie to retry later
                 if (!uploadSuccessful) {
+                    // Queue the PDF for later upload
                     await db.pdfQueue.add({
                         dairyNumber: dairyNumber,
                         fileName: fileName,
                         pdfBlob: pdfBlob,
                         uploaded: false
                     });
-                } else {
-                    console.log('PDF uploaded successfully to customers folder immediately.');
+                    console.log('PDF upload queued for later retry.');
                 }
 
-                // Now we can safely remove the form data from Dexie (since PDF is stored or queued)
+                // Now that both the farm details and PDF have been sent (or queued),
+                // clear the cached form data and then offer the PDF download.
                 await db.forms.delete(dairyNumber);
+                pdf.save(`Dairy_Shed_Hygiene_Checklist_${dairyNumber}.pdf`);
 
-                // Finally, try any leftover PDFs that might be queued
+                // Finally, attempt any leftover PDF uploads.
                 uploadPendingPDFs();
-
                 clearEntireForm();
             }
 
