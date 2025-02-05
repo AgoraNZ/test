@@ -336,20 +336,29 @@
         async function promptForCachedData(dairyNumber) {
             const record = await db.forms.get(dairyNumber);
             if (record && record.formData) {
-                // Ignore fields that are always preset.
-                const ignoreFields = ["dairy-number", "visit-type"];
-                let hasData = false;
+                // Fields that are expected to be preset or auto-populated
+                const ignoreFields = ["dairy-number", "visit-type", "dairy-company", "address", "customer-name", "region", "farm-name", "island", "visit-date", "inspection-start-time", "inspection-end-time", "inspection-completed-by", "call-type"];
+                let hasExtraData = false;
                 for (let key in record.formData) {
                     if (ignoreFields.includes(key)) continue;
                     const value = record.formData[key];
                     if (typeof value === "string" && value.trim() !== "") {
-                        hasData = true;
+                        hasExtraData = true;
                         break;
                     }
-                    if (Array.isArray(value) && value.length > 0) { hasData = true; break; }
+                    if (key === "checklistItems" && Array.isArray(value) && value.length > 0) {
+                        // Check if any checklist item has a nonempty value in status or comments.
+                        for (const item of value) {
+                            if ((item.status && item.status.trim() !== "") || (item.comments && item.comments.trim() !== "")) {
+                                hasExtraData = true;
+                                break;
+                            }
+                        }
+                        if (hasExtraData) break;
+                    }
                 }
-                if (hasData) {
-                    const continueForm = confirm(`Would you like to continue the unfinished form for Dairy #${dairyNumber}?`);
+                if (hasExtraData) {
+                    const continueForm = confirm(`You have an unfinished form for Dairy #${dairyNumber}. Would you like to continue it?`);
                     if (continueForm) {
                         loadFormDataFromRecord(record);
                     } else {
@@ -367,7 +376,7 @@
             fetchFarmDetails();
             // Create a record (if one does not exist)
             await checkOrCreateFormRecord();
-            // Only prompt if the record has meaningful data (i.e. the user did not finish the previous form)
+            // Only prompt if the record has extra (unfinished) data.
             promptForCachedData(dairyNumber);
         }
         /*******************************************
@@ -396,9 +405,9 @@
             commentsInput.classList.add("form-control");
             commentsInput.name = "comments-health-safety-notes";
             commentsInput.placeholder = "Comments";
-            commentsInput.setAttribute("autocapitalize", "sentences");
-            commentsInput.setAttribute("autocorrect", "off");
-            commentsInput.setAttribute("spellcheck", "true");
+            commentsInput.setAttribute("autocapitalize","sentences");
+            commentsInput.setAttribute("autocorrect","off");
+            commentsInput.setAttribute("spellcheck","true");
             itemContainer.appendChild(commentsInput);
             const imageUpload1 = document.createElement("input");
             imageUpload1.type = "file";
@@ -462,9 +471,9 @@
                 commentsInput.classList.add("form-control");
                 commentsInput.name = `comments-${item}`;
                 commentsInput.placeholder = "Comments";
-                commentsInput.setAttribute("autocapitalize", "sentences");
-                commentsInput.setAttribute("autocorrect", "off");
-                commentsInput.setAttribute("spellcheck", "true");
+                commentsInput.setAttribute("autocapitalize","sentences");
+                commentsInput.setAttribute("autocorrect","off");
+                commentsInput.setAttribute("spellcheck","true");
                 itemContainer.appendChild(commentsInput);
                 for (let i = 1; i <= 2; i++) {
                     const imageUpload = document.createElement("input");
@@ -523,9 +532,9 @@
                 commentsInput.classList.add("form-control");
                 commentsInput.name = `comments-${item}`;
                 commentsInput.placeholder = "Comments";
-                commentsInput.setAttribute("autocapitalize", "sentences");
-                commentsInput.setAttribute("autocorrect", "off");
-                commentsInput.setAttribute("spellcheck", "true");
+                commentsInput.setAttribute("autocapitalize","sentences");
+                commentsInput.setAttribute("autocorrect","off");
+                commentsInput.setAttribute("spellcheck","true");
                 itemContainer.appendChild(commentsInput);
                 for (let i = 1; i <= 2; i++) {
                     const imageUpload = document.createElement("input");
@@ -581,9 +590,9 @@
             commentsInputTeat.classList.add("form-control");
             commentsInputTeat.name = "comments-teat-spray-check";
             commentsInputTeat.placeholder = "Comments";
-            commentsInputTeat.setAttribute("autocapitalize", "sentences");
-            commentsInputTeat.setAttribute("autocorrect", "off");
-            commentsInputTeat.setAttribute("spellcheck", "true");
+            commentsInputTeat.setAttribute("autocapitalize","sentences");
+            commentsInputTeat.setAttribute("autocorrect","off");
+            commentsInputTeat.setAttribute("spellcheck","true");
             teatSprayContainer.appendChild(commentsInputTeat);
             for (let i = 1; i <= 2; i++) {
                 const imageUpload = document.createElement("input");
@@ -614,9 +623,9 @@
             ratioInput.id = "teat-dilution";
             ratioInput.setAttribute("list", "teat-dilution-list");
             ratioInput.placeholder = "Type or select e.g. 1:5";
-            ratioInput.setAttribute("autocapitalize", "words");
-            ratioInput.setAttribute("autocorrect", "off");
-            ratioInput.setAttribute("spellcheck", "false");
+            ratioInput.setAttribute("autocapitalize","words");
+            ratioInput.setAttribute("autocorrect","off");
+            ratioInput.setAttribute("spellcheck","false");
             teatSprayContainer.appendChild(ratioInput);
             const ratioDataList = document.createElement("datalist");
             ratioDataList.id = "teat-dilution-list";
@@ -659,9 +668,9 @@
             commentsInputChemical.classList.add("form-control");
             commentsInputChemical.name = "comments-chemical-check";
             commentsInputChemical.placeholder = "Comments";
-            commentsInputChemical.setAttribute("autocapitalize", "sentences");
-            commentsInputChemical.setAttribute("autocorrect", "off");
-            commentsInputChemical.setAttribute("spellcheck", "true");
+            commentsInputChemical.setAttribute("autocapitalize","sentences");
+            commentsInputChemical.setAttribute("autocorrect","off");
+            commentsInputChemical.setAttribute("spellcheck","true");
             chemicalContainer.appendChild(commentsInputChemical);
             for (let i = 1; i <= 2; i++) {
                 const imageUpload = document.createElement("input");
@@ -712,9 +721,7 @@
                     if (commentsInput) { commentsInput.value = comments; }
                     if (imagesBase64 && imagesBase64.length > 0) {
                         const previews = itemContainer.querySelectorAll(".image-preview");
-                        imagesBase64.forEach((img64, i) => {
-                            if (previews[i]) { previews[i].src = img64; previews[i].style.display = "block"; }
-                        });
+                        imagesBase64.forEach((img64, i) => { if (previews[i]) { previews[i].src = img64; previews[i].style.display = "block"; } });
                     }
                     idx++;
                 }
@@ -800,10 +807,7 @@
             const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
             const metadata = { contentType: "application/json" };
             try {
-                await storageRef.put(
-                    new Blob([JSON.stringify(farmDetails)], { type: "application/json" }),
-                    metadata
-                );
+                await storageRef.put(new Blob([JSON.stringify(farmDetails)], { type: "application/json" }), metadata);
                 console.log("Farm details saved to Firebase successfully.");
             } catch (err) {
                 console.error("Error saving farm details to Firebase:", err);
@@ -996,12 +1000,11 @@
                     await db.pdfQueue.add({ dairyNumber: dairyNumber, fileName: fileName, pdfBlob: pdfBlob, uploaded: false });
                     console.log("PDF upload queued for later retry.");
                 }
-                // Delete the saved form record and reload the page so a fresh blank form is shown.
+                // Delete the saved form record and reload the page for a fresh blank form.
                 await db.forms.delete(dairyNumber);
                 pdf.save(`Dairy_Shed_Hygiene_Checklist_${dairyNumber}.pdf`);
                 uploadPendingPDFs();
                 clearEntireForm();
-                // Force a reload to show a blank form.
                 location.reload();
             }
             function blobToBase64(blob) {
