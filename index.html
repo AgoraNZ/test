@@ -23,7 +23,7 @@
             background-color: #002B5C;
             padding: 30px;
             border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
             max-width: 800px;
             width: 100%;
         }
@@ -62,7 +62,7 @@
             color: #000000;
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
             max-width: 1000px;
             width: 100%;
             margin: 20px auto;
@@ -98,7 +98,6 @@
         }
     </style>
 </head>
-
 <body>
     <!-- PART 2: MAIN FORM CONTAINER -->
     <div class="container" id="form-container">
@@ -109,21 +108,17 @@
             <div class="section mb-4">
                 <h2>Farm Details</h2>
                 <label for="dairy-number">Dairy Number:</label>
-                <!-- When the dairy number field loses focus, handleDairyNumberBlur() is called -->
+                <!-- On blur, call handleDairyNumberBlur() -->
                 <input type="text" class="form-control" id="dairy-number" name="dairy-number"
-                       onblur="handleDairyNumberBlur();" 
-                       autocapitalize="words" autocorrect="off" spellcheck="false">
+                       onblur="handleDairyNumberBlur();" autocapitalize="words" autocorrect="off" spellcheck="false">
                 <label for="dairy-company">Dairy Company:</label>
                 <input type="text" class="form-control" id="dairy-company" name="dairy-company"
-                       list="dairy-company-list" placeholder="Type or select..."
-                       autocapitalize="words" autocorrect="off" spellcheck="false">
+                       list="dairy-company-list" placeholder="Type or select..." autocapitalize="words" autocorrect="off" spellcheck="false">
                 <datalist id="dairy-company-list"></datalist>
                 <label for="address">Address:</label>
-                <input type="text" class="form-control" id="address" name="address"
-                       autocapitalize="words" autocorrect="off" spellcheck="false">
+                <input type="text" class="form-control" id="address" name="address" autocapitalize="words" autocorrect="off" spellcheck="false">
                 <label for="customer-name">Customer Name:</label>
-                <input type="text" class="form-control" id="customer-name" name="customer-name"
-                       autocapitalize="words" autocorrect="off" spellcheck="false">
+                <input type="text" class="form-control" id="customer-name" name="customer-name" autocapitalize="words" autocorrect="off" spellcheck="false">
                 <label for="region">Region:</label>
                 <select id="region" name="region" class="form-select">
                     <option value="northland">Northland</option>
@@ -143,8 +138,7 @@
                     <option value="southland">Southland</option>
                 </select>
                 <label for="farm-name">Farm Name:</label>
-                <input type="text" class="form-control" id="farm-name" name="farm-name"
-                       autocapitalize="words" autocorrect="off" spellcheck="true">
+                <input type="text" class="form-control" id="farm-name" name="farm-name" autocapitalize="words" autocorrect="off" spellcheck="true">
                 <label for="island">Island:</label>
                 <select id="island" name="island" class="form-select">
                     <option value="north-island">North Island</option>
@@ -154,8 +148,7 @@
                 <input type="date" class="form-control" id="visit-date" name="visit-date">
                 <label for="visit-type">Visit Type:</label>
                 <input type="text" class="form-control" id="visit-type" name="visit-type"
-                       value="Milking Plant & Milk Vat Check" readonly autocapitalize="words"
-                       autocorrect="off" spellcheck="false">
+                       value="Milking Plant & Milk Vat Check" readonly autocapitalize="words" autocorrect="off" spellcheck="false">
                 <label for="inspection-start-time">Inspection Start Time:</label>
                 <input type="time" class="form-control" id="inspection-start-time" name="inspection-start-time">
                 <label for="inspection-end-time">Inspection End Time:</label>
@@ -211,7 +204,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 8.2 (Continuous Save + Per-Dairy Prompt on Reload)</div>
+        <div class="version">Version 8.3 (Continuous Save + Prompt Only for Unfinished Forms)</div>
     </div>
     <!-- RECORDS VIEW -->
     <div id="record-container" class="record-container" style="display: none;">
@@ -247,7 +240,7 @@
         const storage = firebase.storage();
         const firestore = firebase.firestore();
         const db = new Dexie("OfflineData");
-        // Use dairyNumber as primary key so only one record per dairy number exists.
+        // Use dairyNumber as the primary key so only one record exists per dairy number.
         db.version(5).stores({
             forms: "dairyNumber",
             dairyCompanies: "++id, name",
@@ -270,9 +263,7 @@
         function autoCapitalizeInput(id) {
             const el = document.getElementById(id);
             if (!el) return;
-            el.addEventListener('blur', () => {
-                el.value = toTitleCase(el.value);
-            });
+            el.addEventListener('blur', () => { el.value = toTitleCase(el.value); });
         }
         /*******************************************
          * B: SETUP DAIRY COMPANY DATALIST
@@ -285,18 +276,10 @@
             ];
             const userCompanies = await db.dairyCompanies.toArray();
             const allCompanies = [...defaultCompanies];
-            userCompanies.forEach(u => {
-                if (!allCompanies.includes(u.name)) {
-                    allCompanies.push(u.name);
-                }
-            });
+            userCompanies.forEach(u => { if (!allCompanies.includes(u.name)) { allCompanies.push(u.name); } });
             const datalist = document.getElementById('dairy-company-list');
             datalist.innerHTML = "";
-            allCompanies.forEach(c => {
-                const opt = document.createElement('option');
-                opt.value = c;
-                datalist.appendChild(opt);
-            });
+            allCompanies.forEach(c => { const opt = document.createElement('option'); opt.value = c; datalist.appendChild(opt); });
             const dairyCompanyInput = document.getElementById('dairy-company');
             dairyCompanyInput.addEventListener('blur', async () => {
                 dairyCompanyInput.value = toTitleCase(dairyCompanyInput.value.trim());
@@ -343,38 +326,30 @@
             let record = await db.forms.get(dairyNumber);
             if (!record) {
                 // Only create a record when the dairy number is entered.
-                record = {
-                    dairyNumber: dairyNumber,
-                    formData: {},
-                    creationTime: Date.now()
-                };
+                record = { dairyNumber: dairyNumber, formData: {}, creationTime: Date.now() };
                 await db.forms.put(record);
             }
         }
         /*******************************************
-         * NEW: Prompt for Cached Data Only If Form Was Started
+         * NEW: Prompt for Cached Data Only If an Unfinished Form Exists
          *******************************************/
         async function promptForCachedData(dairyNumber) {
             const record = await db.forms.get(dairyNumber);
             if (record && record.formData) {
-                // Ignore fields that are expected to be preset (like dairy-number or visit-type)
+                // Ignore fields that are always preset.
                 const ignoreFields = ["dairy-number", "visit-type"];
                 let hasData = false;
                 for (let key in record.formData) {
                     if (ignoreFields.includes(key)) continue;
-                    if (typeof record.formData[key] === "string" &&
-                        record.formData[key].trim() !== "") {
+                    const value = record.formData[key];
+                    if (typeof value === "string" && value.trim() !== "") {
                         hasData = true;
                         break;
                     }
-                    // Also check for checklist items array if present
-                    if (key === "checklistItems" && Array.isArray(record.formData[key]) && record.formData[key].length > 0) {
-                        hasData = true;
-                        break;
-                    }
+                    if (Array.isArray(value) && value.length > 0) { hasData = true; break; }
                 }
                 if (hasData) {
-                    const continueForm = confirm(`Would you like to continue form #${dairyNumber}?`);
+                    const continueForm = confirm(`Would you like to continue the unfinished form for Dairy #${dairyNumber}?`);
                     if (continueForm) {
                         loadFormDataFromRecord(record);
                     } else {
@@ -388,11 +363,11 @@
         async function handleDairyNumberBlur() {
             const dairyNumber = document.getElementById('dairy-number').value.trim();
             if (!dairyNumber) return;
-            // Always fetch farm details (which may auto-populate the top section)
+            // Always fetch farm details first.
             fetchFarmDetails();
-            // Create a record if one does not exist
+            // Create a record (if one does not exist)
             await checkOrCreateFormRecord();
-            // Only prompt if a record exists and has data (i.e. the user started a form in a previous session)
+            // Only prompt if the record has meaningful data (i.e. the user did not finish the previous form)
             promptForCachedData(dairyNumber);
         }
         /*******************************************
@@ -421,9 +396,9 @@
             commentsInput.classList.add("form-control");
             commentsInput.name = "comments-health-safety-notes";
             commentsInput.placeholder = "Comments";
-            commentsInput.setAttribute("autocapitalize","sentences");
-            commentsInput.setAttribute("autocorrect","off");
-            commentsInput.setAttribute("spellcheck","true");
+            commentsInput.setAttribute("autocapitalize", "sentences");
+            commentsInput.setAttribute("autocorrect", "off");
+            commentsInput.setAttribute("spellcheck", "true");
             itemContainer.appendChild(commentsInput);
             const imageUpload1 = document.createElement("input");
             imageUpload1.type = "file";
@@ -487,9 +462,9 @@
                 commentsInput.classList.add("form-control");
                 commentsInput.name = `comments-${item}`;
                 commentsInput.placeholder = "Comments";
-                commentsInput.setAttribute("autocapitalize","sentences");
-                commentsInput.setAttribute("autocorrect","off");
-                commentsInput.setAttribute("spellcheck","true");
+                commentsInput.setAttribute("autocapitalize", "sentences");
+                commentsInput.setAttribute("autocorrect", "off");
+                commentsInput.setAttribute("spellcheck", "true");
                 itemContainer.appendChild(commentsInput);
                 for (let i = 1; i <= 2; i++) {
                     const imageUpload = document.createElement("input");
@@ -548,9 +523,9 @@
                 commentsInput.classList.add("form-control");
                 commentsInput.name = `comments-${item}`;
                 commentsInput.placeholder = "Comments";
-                commentsInput.setAttribute("autocapitalize","sentences");
-                commentsInput.setAttribute("autocorrect","off");
-                commentsInput.setAttribute("spellcheck","true");
+                commentsInput.setAttribute("autocapitalize", "sentences");
+                commentsInput.setAttribute("autocorrect", "off");
+                commentsInput.setAttribute("spellcheck", "true");
                 itemContainer.appendChild(commentsInput);
                 for (let i = 1; i <= 2; i++) {
                     const imageUpload = document.createElement("input");
@@ -606,9 +581,9 @@
             commentsInputTeat.classList.add("form-control");
             commentsInputTeat.name = "comments-teat-spray-check";
             commentsInputTeat.placeholder = "Comments";
-            commentsInputTeat.setAttribute("autocapitalize","sentences");
-            commentsInputTeat.setAttribute("autocorrect","off");
-            commentsInputTeat.setAttribute("spellcheck","true");
+            commentsInputTeat.setAttribute("autocapitalize", "sentences");
+            commentsInputTeat.setAttribute("autocorrect", "off");
+            commentsInputTeat.setAttribute("spellcheck", "true");
             teatSprayContainer.appendChild(commentsInputTeat);
             for (let i = 1; i <= 2; i++) {
                 const imageUpload = document.createElement("input");
@@ -639,24 +614,18 @@
             ratioInput.id = "teat-dilution";
             ratioInput.setAttribute("list", "teat-dilution-list");
             ratioInput.placeholder = "Type or select e.g. 1:5";
-            ratioInput.setAttribute("autocapitalize","words");
-            ratioInput.setAttribute("autocorrect","off");
-            ratioInput.setAttribute("spellcheck","false");
+            ratioInput.setAttribute("autocapitalize", "words");
+            ratioInput.setAttribute("autocorrect", "off");
+            ratioInput.setAttribute("spellcheck", "false");
             teatSprayContainer.appendChild(ratioInput);
             const ratioDataList = document.createElement("datalist");
             ratioDataList.id = "teat-dilution-list";
             teatSprayContainer.appendChild(ratioDataList);
             const existingRatios = await db.teatSprayRatios.toArray();
             const allRatios = ["1:4"];
-            existingRatios.forEach(r => {
-                if (!allRatios.includes(r.ratio)) { allRatios.push(r.ratio); }
-            });
+            existingRatios.forEach(r => { if (!allRatios.includes(r.ratio)) { allRatios.push(r.ratio); } });
             ratioDataList.innerHTML = "";
-            allRatios.forEach(r => {
-                const opt = document.createElement("option");
-                opt.value = r;
-                ratioDataList.appendChild(opt);
-            });
+            allRatios.forEach(r => { const opt = document.createElement("option"); opt.value = r; ratioDataList.appendChild(opt); });
             ratioInput.addEventListener("blur", async () => {
                 ratioInput.value = toTitleCase(ratioInput.value.trim());
                 const typedRatio = ratioInput.value;
@@ -690,9 +659,9 @@
             commentsInputChemical.classList.add("form-control");
             commentsInputChemical.name = "comments-chemical-check";
             commentsInputChemical.placeholder = "Comments";
-            commentsInputChemical.setAttribute("autocapitalize","sentences");
-            commentsInputChemical.setAttribute("autocorrect","off");
-            commentsInputChemical.setAttribute("spellcheck","true");
+            commentsInputChemical.setAttribute("autocapitalize", "sentences");
+            commentsInputChemical.setAttribute("autocorrect", "off");
+            commentsInputChemical.setAttribute("spellcheck", "true");
             chemicalContainer.appendChild(commentsInputChemical);
             for (let i = 1; i <= 2; i++) {
                 const imageUpload = document.createElement("input");
@@ -739,18 +708,12 @@
                     const { itemName, status, comments, imagesBase64 } = data.checklistItems[idx];
                     const statusSelect = itemContainer.querySelector("select");
                     const commentsInput = itemContainer.querySelector('input[type="text"]');
-                    if (statusSelect) {
-                        statusSelect.value = status;
-                        statusSelect.dispatchEvent(new Event("change"));
-                    }
+                    if (statusSelect) { statusSelect.value = status; statusSelect.dispatchEvent(new Event("change")); }
                     if (commentsInput) { commentsInput.value = comments; }
                     if (imagesBase64 && imagesBase64.length > 0) {
                         const previews = itemContainer.querySelectorAll(".image-preview");
                         imagesBase64.forEach((img64, i) => {
-                            if (previews[i]) {
-                                previews[i].src = img64;
-                                previews[i].style.display = "block";
-                            }
+                            if (previews[i]) { previews[i].src = img64; previews[i].style.display = "block"; }
                         });
                     }
                     idx++;
@@ -958,10 +921,7 @@
                     currentY += 20;
                 }
                 pdf.setFont("helvetica", "normal");
-                function addLine(text) {
-                    pdf.text(text, 40, currentY);
-                    currentY += 15;
-                }
+                function addLine(text) { pdf.text(text, 40, currentY); currentY += 15; }
                 addLine(`Dairy Company: ${fd.get("dairy-company") || ""}`);
                 addLine(`Dairy Number: ${fd.get("dairy-number") || ""}`);
                 addLine(`Address: ${fd.get("address") || ""}`);
@@ -1008,17 +968,11 @@
                     pdf.setFontSize(12);
                     pdf.text(photoObj.itemName, 40, photoY - 10);
                     if (images.length === 1) {
-                        if (photoY > pdf.internal.pageSize.getHeight() - 220) {
-                            pdf.addPage();
-                            photoY = 60;
-                        }
+                        if (photoY > pdf.internal.pageSize.getHeight() - 220) { pdf.addPage(); photoY = 60; }
                         pdf.addImage(images[0], "JPEG", 40, photoY, 250, 200);
                         photoY += 220;
                     } else if (images.length === 2) {
-                        if (photoY > pdf.internal.pageSize.getHeight() - 220) {
-                            pdf.addPage();
-                            photoY = 60;
-                        }
+                        if (photoY > pdf.internal.pageSize.getHeight() - 220) { pdf.addPage(); photoY = 60; }
                         const imageWidth = (pageWidth - 120) / 2;
                         pdf.addImage(images[0], "JPEG", 40, photoY, imageWidth, 200);
                         pdf.addImage(images[1], "JPEG", 60 + imageWidth, photoY, imageWidth, 200);
@@ -1039,19 +993,16 @@
                     }
                 }
                 if (!uploadSuccessful) {
-                    await db.pdfQueue.add({
-                        dairyNumber: dairyNumber,
-                        fileName: fileName,
-                        pdfBlob: pdfBlob,
-                        uploaded: false
-                    });
+                    await db.pdfQueue.add({ dairyNumber: dairyNumber, fileName: fileName, pdfBlob: pdfBlob, uploaded: false });
                     console.log("PDF upload queued for later retry.");
                 }
-                // Delete the saved form now that the PDF has been generated.
+                // Delete the saved form record and reload the page so a fresh blank form is shown.
                 await db.forms.delete(dairyNumber);
                 pdf.save(`Dairy_Shed_Hygiene_Checklist_${dairyNumber}.pdf`);
                 uploadPendingPDFs();
                 clearEntireForm();
+                // Force a reload to show a blank form.
+                location.reload();
             }
             function blobToBase64(blob) {
                 return new Promise((resolve, reject) => {
@@ -1139,14 +1090,7 @@
          * K: DOMContentLoaded
          *******************************************/
         document.addEventListener("DOMContentLoaded", async () => {
-            const fieldsToAutoCap = [
-                "dairy-number",
-                "dairy-company",
-                "address",
-                "customer-name",
-                "farm-name",
-                "inspection-completed-by"
-            ];
+            const fieldsToAutoCap = ["dairy-number", "dairy-company", "address", "customer-name", "farm-name", "inspection-completed-by"];
             fieldsToAutoCap.forEach(autoCapitalizeInput);
             await setupDairyCompanyDatalist();
             createHealthSafetyItems("health-safety-top");
