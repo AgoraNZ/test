@@ -336,32 +336,32 @@
     async function promptForCachedData(dairyNumber) {
       const record = await db.forms.get(dairyNumber);
       if (record && record.formData) {
-        // These fields are expected to be present by default.
+        // We ignore farm details fields (which are auto-populated)
         const ignoreFields = new Set([
           "dairy-number", "visit-type", "dairy-company", "address", "customer-name",
           "region", "farm-name", "island", "visit-date", "inspection-start-time",
           "inspection-end-time", "inspection-completed-by", "call-type"
         ]);
         let hasExtraData = false;
-        for (let key in record.formData) {
-          if (ignoreFields.has(key)) continue;
-          let value = record.formData[key];
-          if (typeof value === "string" && value.trim() !== "") {
+        // Check if there is a checklistItems array with any meaningful data…
+        if (record.formData.checklistItems && Array.isArray(record.formData.checklistItems)) {
+          hasExtraData = record.formData.checklistItems.some(item => {
+            return (item.status && item.status.trim() !== "") || (item.comments && item.comments.trim() !== "");
+          });
+        }
+        // Also check if temperature measurements exist (if the user typed them in)
+        const tempFields = ["hot-water-temp", "hot-water-time", "milk-temp", "milk-time"];
+        for (const field of tempFields) {
+          if (record.formData[field] && record.formData[field].trim() !== "") {
             hasExtraData = true;
             break;
           }
-          if (key === "checklistItems" && Array.isArray(value)) {
-            for (const item of value) {
-              if ((item.status && item.status.trim() !== "") || (item.comments && item.comments.trim() !== "")) {
-                hasExtraData = true;
-                break;
-              }
-            }
-            if (hasExtraData) break;
-          }
         }
+        // Only prompt if extra data exists (i.e. the form was started)
         if (hasExtraData) {
-          const continueForm = confirm(`You have an unfinished form for Dairy #${dairyNumber}. Would you like to continue it?`);
+          // Note: The built-in confirm() has buttons "OK" and "Cancel".
+          // We instruct the user that Cancel means "New Form."
+          const continueForm = confirm(`Cached data exists for Dairy #${dairyNumber}.\n\nClick OK to continue using the cached form.\nClick Cancel to start a New Form.`);
           if (continueForm) {
             loadFormDataFromRecord(record);
           } else {
@@ -747,8 +747,8 @@
       if (!record) { record = { dairyNumber, formData: {}, creationTime: Date.now() }; }
       const form = document.getElementById("hygiene-checklist-form");
       const formDataObj = new FormData(form);
-      // Only store keys with nonempty values
-      const data = Object.fromEntries(Array.from(formDataObj.entries()).filter(([k,v]) => v.trim() !== ""));
+      // Only store keys with nonempty (trimmed) values.
+      const data = Object.fromEntries(Array.from(formDataObj.entries()).filter(([k, v]) => v.trim() !== ""));
       const containersToCheck = [
         document.getElementById("health-safety-top").children,
         document.getElementById("checklist-items").children,
