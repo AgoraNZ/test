@@ -112,6 +112,7 @@
             <div class="section mb-4">
                 <h2>Farm Details</h2>
                 <label for="dairy-number">Dairy Number:</label>
+                <!-- onblur now calls our revised checkOrCreateFormRecord -->
                 <input type="text" class="form-control" id="dairy-number" name="dairy-number"
                        onblur="fetchFarmDetails(); checkOrCreateFormRecord();"
                        autocapitalize="words" autocorrect="off" spellcheck="false">
@@ -219,7 +220,7 @@
             <button type="button" onclick="generatePDF()">Generate PDF</button>
             <button type="button" onclick="viewRecords()">View All Records</button>
         </form>
-        <div class="version">Version 7.2 (Caching + Retry + Image Previews + Prompt)</div>
+        <div class="version">Version 8 (Caching + Auto-Save + Prompt + Retry + Image Previews)</div>
     </div>
 
     <!-- RECORDS VIEW -->
@@ -259,7 +260,7 @@
         const firestore = firebase.firestore();
 
         const db = new Dexie("OfflineData");
-        // We bump to version 5 or higher so new schema additions don't break older data
+        // Using version 5 schema for Dexie.
         db.version(5).stores({
             forms: "dairyNumber",
             dairyCompanies: "++id, name",
@@ -356,13 +357,28 @@
         }
 
         /*******************************************
-         * D: CHECK/CREATE FORM RECORD
+         * D: CHECK/CREATE & PROMPT FOR CACHED FORM
          *******************************************/
         async function checkOrCreateFormRecord() {
             const dairyNumber = document.getElementById('dairy-number').value.trim();
             if (!dairyNumber) return;
             let existing = await db.forms.get(dairyNumber);
-            if (!existing) {
+            // If a record exists and has saved data (formData object not empty), prompt the user.
+            if (existing && Object.keys(existing.formData).length > 0) {
+                const promptContinue = confirm(`Would you like to continue your unfinished form for ${dairyNumber}?`);
+                if (promptContinue) {
+                    loadFormDataFromRecord(existing);
+                } else {
+                    await db.forms.delete(dairyNumber);
+                    // Create a fresh record.
+                    await db.forms.put({
+                        dairyNumber: dairyNumber,
+                        formData: {},
+                        creationTime: Date.now()
+                    });
+                }
+            } else if (!existing) {
+                // No existing record; create one.
                 await db.forms.put({
                     dairyNumber: dairyNumber,
                     formData: {},
@@ -499,7 +515,6 @@
 
                 statusSelect.addEventListener('change', () => {
                     if (statusSelect.value === 'attention-required') {
-                        // Show the file inputs
                         const allInputs = itemContainer.querySelectorAll('input[type="file"]');
                         allInputs.forEach(inp => inp.style.display = 'block');
                     } else {
@@ -751,7 +766,7 @@
         }
 
         /*******************************************
-         * F: ONE-HOUR CACHING & PROMPT
+         * F: CLEAN UP EXPIRED FORMS (but no global prompt)
          *******************************************/
         async function cleanupExpiredForms() {
             const oneHour = 60 * 60 * 1000;
@@ -760,26 +775,6 @@
             for (let f of allForms) {
                 if (now - f.creationTime > oneHour) {
                     await db.forms.delete(f.dairyNumber);
-                }
-            }
-        }
-
-        async function checkForExistingForm() {
-            // Clean out old forms (1 hour). If you want indefinite, remove cleanupExpiredForms().
-            await cleanupExpiredForms();
-            const allForms = await db.forms.toArray();
-
-            // If exactly 1 form is cached, prompt. (Adapt this if you want to handle multiple cached forms.)
-            if (allForms.length === 1) {
-                const existing = allForms[0];
-                const confirmContinue = confirm(
-                    `Would you like to continue form #${existing.dairyNumber}?`
-                );
-                if (confirmContinue) {
-                    loadFormDataFromRecord(existing);
-                } else {
-                    await db.forms.delete(existing.dairyNumber);
-                    clearEntireForm();
                 }
             }
         }
@@ -797,9 +792,8 @@
                     field.value = data[key];
                 }
             }
-            // Rebuild each item’s status, comments, image previews
+            // Rebuild each item’s status, comments, and image previews
             if (data.checklistItems) {
-                // Gather all the itemContainers in the same order we stored them
                 const containers = [
                     ...document.getElementById('health-safety-top').children,
                     ...document.getElementById('checklist-items').children,
@@ -819,9 +813,7 @@
                     if (commentsInput) {
                         commentsInput.value = comments;
                     }
-                    // If we have images, show them in the preview <img> tags
                     if (imagesBase64 && imagesBase64.length > 0) {
-                        // Each item container has 2 file inputs + 2 <img> previews => we can map them 1:1
                         const previews = itemContainer.querySelectorAll('.image-preview');
                         imagesBase64.forEach((img64, i) => {
                             if (previews[i]) {
@@ -839,7 +831,6 @@
             document.getElementById('hygiene-checklist-form').reset();
             const imageUploads = document.querySelectorAll('.image-upload');
             imageUploads.forEach(inp => { inp.style.display = 'none'; });
-
             const previews = document.querySelectorAll('.image-preview');
             previews.forEach(img => {
                 img.src = '';
@@ -862,7 +853,7 @@
             const formDataObj = new FormData(form);
             const data = Object.fromEntries(formDataObj.entries());
 
-            // Build the “checklistItems” array
+            // Build the checklistItems array
             const containersToCheck = [
                 document.getElementById('health-safety-top').children,
                 document.getElementById('checklist-items').children,
@@ -874,12 +865,10 @@
                 for (let item of container) {
                     const label = item.querySelector('label');
                     if (!label) continue;
-
                     const itemName = label.textContent;
                     const statusSelect = item.querySelector('select');
                     let status = '';
                     let comments = '';
-
                     if (statusSelect) {
                         status = statusSelect.value;
                     }
@@ -887,8 +876,6 @@
                     if (commentsInput) {
                         comments = commentsInput.value;
                     }
-
-                    // Grab up to 2 file inputs
                     let imagesBase64 = [];
                     const fileInputs = item.querySelectorAll('input[type="file"]');
                     for (let fi of fileInputs) {
@@ -897,9 +884,7 @@
                             imagesBase64.push(base64);
                         }
                     }
-
-                    // If there's an existing item in record.formData.checklistItems with the same index,
-                    // and we didn't select new files, let's keep the old images.
+                    // Preserve previously saved images if no new file is chosen.
                     const existingIdx = checklistItemsData.length;
                     let oldItem = null;
                     if (record.formData.checklistItems && record.formData.checklistItems[existingIdx]) {
@@ -908,12 +893,10 @@
                     if (oldItem && imagesBase64.length === 0 && oldItem.imagesBase64) {
                         imagesBase64 = oldItem.imagesBase64;
                     }
-
                     checklistItemsData.push({ itemName, status, comments, imagesBase64 });
                 }
             }
             data.checklistItems = checklistItemsData;
-
             record.formData = data;
             await db.forms.put(record);
         }
@@ -933,7 +916,6 @@
         async function saveFarmDetailsToFirebase(fd) {
             const dairyNumber = fd.get('dairy-number') || '';
             if (!dairyNumber) return;
-
             const farmDetails = {
                 dairyCompany: fd.get('dairy-company') || '',
                 address: fd.get('address') || '',
@@ -942,7 +924,6 @@
                 farmName: fd.get('farm-name') || '',
                 island: fd.get('island') || ''
             };
-
             const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
             const metadata = { contentType: 'application/json' };
             try {
@@ -960,13 +941,11 @@
          * H2: PDF UPLOAD RETRY LOGIC
          *******************************************/
         async function uploadPendingPDFs() {
-            if (!navigator.onLine) return; // only try if online
-            // Use the indexed field "uploaded" to query for false values.
+            if (!navigator.onLine) return;
             const queuedPDFs = await db.pdfQueue.where("uploaded").equals(false).toArray();
             for (let pdfRecord of queuedPDFs) {
                 try {
                     await uploadSinglePDF(pdfRecord.dairyNumber, pdfRecord.fileName, pdfRecord.pdfBlob);
-                    // Mark as uploaded
                     await db.pdfQueue.update(pdfRecord.id, { uploaded: true });
                     console.log(`Retried PDF for ${pdfRecord.dairyNumber} uploaded successfully.`);
                 } catch (err) {
@@ -998,14 +977,11 @@
                 alert("Please enter a Dairy Number.");
                 return;
             }
-
             const form = document.getElementById('hygiene-checklist-form');
             const fd = new FormData(form);
-            
-            // Save farm details first (to the farm_details folder)
+            // Save farm details to Firebase first.
             await saveFarmDetailsToFirebase(fd);
-
-            // Build the item data array for PDF by re-collecting from the DOM to ensure fresh info
+            // Collect checklist data from DOM.
             const containers = [
                 ...document.getElementById('health-safety-top').children,
                 ...document.getElementById('checklist-items').children,
@@ -1021,7 +997,6 @@
                 const status = statusSelect ? statusSelect.value : '';
                 let commentsInput = item.querySelector('input[type="text"]');
                 let comments = commentsInput ? commentsInput.value : '';
-
                 if (itemName === "Teat Spray Check") {
                     const ratioField = item.querySelector('#teat-dilution');
                     if (ratioField && ratioField.value.trim()) {
@@ -1030,8 +1005,6 @@
                           : `Ratio: ${ratioField.value}`;
                     }
                 }
-
-                // For PDF, we gather any attached photos later
                 const imgs = item.querySelectorAll('input[type="file"]');
                 const imageFiles = [];
                 if (imgs.length > 0) {
@@ -1041,7 +1014,6 @@
                 if (status === 'attention-required' && imageFiles.length > 0) {
                     comments += comments ? ` (Photo Attached Below)` : `(Photo Attached Below)`;
                 }
-
                 itemDataArray.push({ itemName, status, comments, imageFiles });
             });
 
@@ -1092,13 +1064,11 @@
                     pdf.text('Farm Details:', 40, currentY);
                     currentY += 20;
                 }
-
                 pdf.setFont('helvetica', 'normal');
                 function addLine(text) {
                     pdf.text(text, 40, currentY);
                     currentY += 15;
                 }
-
                 addLine(`Dairy Company: ${fd.get('dairy-company') || ''}`);
                 addLine(`Dairy Number: ${fd.get('dairy-number') || ''}`);
                 addLine(`Address: ${fd.get('address') || ''}`);
@@ -1113,7 +1083,6 @@
                 addLine(`Inspection Completed By: ${fd.get('inspection-completed-by') || ''}`);
                 addLine(`Call Type: ${fd.get('call-type') || ''}`);
                 currentY += 15;
-
                 const tableData = itemDataArray.map(obj => [obj.itemName, obj.status, obj.comments]);
                 pdf.autoTable({
                     startY: currentY,
@@ -1123,7 +1092,6 @@
                     headStyles: { fillColor: '#002B5C', textColor: '#FFFFFF' }
                 });
                 let afterTableY = pdf.lastAutoTable.finalY + 20;
-
                 pdf.setFont('helvetica', 'bold');
                 pdf.text('Temperature Measurements:', 40, afterTableY);
                 afterTableY += 20;
@@ -1140,7 +1108,6 @@
                 afterTableY += 15;
                 pdf.text(`Time Taken: ${milkTime}`, 40, afterTableY);
                 afterTableY += 20;
-
                 let photoY = afterTableY + 20;
                 const pageWidth = pdf.internal.pageSize.getWidth();
                 photoStore.forEach(photoObj => {
@@ -1165,14 +1132,10 @@
                         photoY += 220;
                     }
                 });
-
-                // Create a blob for the PDF
                 const pdfBlob = pdf.output('blob');
                 const timestamp = new Date().toISOString().split('T')[0];
                 const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
                 let uploadSuccessful = false;
-
-                // Attempt PDF upload to Firebase (customers folder) before showing the PDF
                 if (navigator.onLine) {
                     try {
                         await uploadSinglePDF(dairyNumber, fileName, pdfBlob);
@@ -1183,7 +1146,6 @@
                     }
                 }
                 if (!uploadSuccessful) {
-                    // Queue the PDF for later upload
                     await db.pdfQueue.add({
                         dairyNumber: dairyNumber,
                         fileName: fileName,
@@ -1192,13 +1154,8 @@
                     });
                     console.log('PDF upload queued for later retry.');
                 }
-
-                // Now that both the farm details and PDF have been sent (or queued),
-                // clear the cached form data and then offer the PDF download.
                 await db.forms.delete(dairyNumber);
                 pdf.save(`Dairy_Shed_Hygiene_Checklist_${dairyNumber}.pdf`);
-
-                // Finally, attempt any leftover PDF uploads.
                 uploadPendingPDFs();
                 clearEntireForm();
             }
@@ -1251,7 +1208,6 @@
                     const fileName = fileRef.name;
                     const dateMatch = fileName.match(/(\d{4}-\d{2}-\d{2})/);
                     const displayName = dateMatch ? dateMatch[0] : fileName;
-
                     const fileLink = document.createElement('a');
                     fileLink.textContent = displayName;
                     fileLink.href = '#';
@@ -1298,7 +1254,9 @@
          * K: DOMContentLoaded
          *******************************************/
         document.addEventListener("DOMContentLoaded", async () => {
-            // Title-case setup for these fields:
+            // Clean up expired forms.
+            await cleanupExpiredForms();
+            // Set up auto-capitalization for designated fields.
             const fieldsToAutoCap = [
                 'dairy-number',
                 'dairy-company',
@@ -1316,15 +1274,15 @@
             createSiloChecklist();
             await createAdditionalChecks();
 
-            // Check for a cached form (this triggers the prompt if exactly one exists)
-            await checkForExistingForm();
+            // Note: We no longer perform a global prompt on load.
+            // The prompt (and loading of cached data) now occurs when the dairy number field loses focus.
 
             const form = document.getElementById('hygiene-checklist-form');
-            // Save to Dexie on every input/file change
+            // Save form data on every input or change.
             form.addEventListener('input', saveFormData);
             form.addEventListener('change', saveFormData);
 
-            // Attempt to upload any leftover PDFs when page loads (if online)
+            // Attempt to upload any queued PDFs if online.
             uploadPendingPDFs();
         });
     </script>
