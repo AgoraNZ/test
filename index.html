@@ -108,7 +108,7 @@
       <div class="section mb-4">
         <h2>Farm Details</h2>
         <label for="dairy-number">Dairy Number:</label>
-        <!-- When the dairy number field loses focus, handleDairyNumberBlur() is called -->
+        <!-- On blur, call handleDairyNumberBlur() -->
         <input type="text" class="form-control" id="dairy-number" name="dairy-number"
                onblur="handleDairyNumberBlur();" autocapitalize="words" autocorrect="off" spellcheck="false">
         <label for="dairy-company">Dairy Company:</label>
@@ -240,7 +240,7 @@
     const storage = firebase.storage();
     const firestore = firebase.firestore();
     const db = new Dexie("OfflineData");
-    // Use dairyNumber as the primary key so only one record exists per dairy number.
+    // Use dairyNumber as primary key so only one record exists per dairy number.
     db.version(5).stores({
       forms: "dairyNumber",
       dairyCompanies: "++id, name",
@@ -336,26 +336,28 @@
     async function promptForCachedData(dairyNumber) {
       const record = await db.forms.get(dairyNumber);
       if (record && record.formData) {
-        // Ignore fields that are always preset or auto-populated.
-        const ignoreFields = ["dairy-number", "visit-type", "dairy-company", "address", "customer-name", "region", "farm-name", "island", "visit-date", "inspection-start-time", "inspection-end-time", "inspection-completed-by", "call-type"];
+        // These fields are expected to be present by default.
+        const ignoreFields = new Set([
+          "dairy-number", "visit-type", "dairy-company", "address", "customer-name",
+          "region", "farm-name", "island", "visit-date", "inspection-start-time",
+          "inspection-end-time", "inspection-completed-by", "call-type"
+        ]);
         let hasExtraData = false;
         for (let key in record.formData) {
-          if (ignoreFields.includes(key)) continue;
-          if (key === "checklistItems") {
-            if (Array.isArray(record.formData[key])) {
-              for (const item of record.formData[key]) {
-                // Only consider checklist items where either status or comments is nonempty.
-                if ((item.status && item.status.trim() !== "") || (item.comments && item.comments.trim() !== "")) {
-                  hasExtraData = true;
-                  break;
-                }
+          if (ignoreFields.has(key)) continue;
+          let value = record.formData[key];
+          if (typeof value === "string" && value.trim() !== "") {
+            hasExtraData = true;
+            break;
+          }
+          if (key === "checklistItems" && Array.isArray(value)) {
+            for (const item of value) {
+              if ((item.status && item.status.trim() !== "") || (item.comments && item.comments.trim() !== "")) {
+                hasExtraData = true;
+                break;
               }
             }
-          } else {
-            if (typeof record.formData[key] === "string" && record.formData[key].trim() !== "") {
-              hasExtraData = true;
-              break;
-            }
+            if (hasExtraData) break;
           }
         }
         if (hasExtraData) {
@@ -375,9 +377,9 @@
       if (!dairyNumber) return;
       // Always fetch farm details first.
       fetchFarmDetails();
-      // Create a record (if one does not exist)
+      // Create a record if one does not exist.
       await checkOrCreateFormRecord();
-      // Only prompt if the record has extra (user-entered) data.
+      // Only prompt if there is extra (unfinished) data.
       promptForCachedData(dairyNumber);
     }
     /*******************************************
@@ -395,20 +397,20 @@
       statusSelect.classList.add("form-select");
       statusSelect.name = "status-health-safety-notes";
       statusSelect.innerHTML = `
-        <option value="ok">OK</option>
-        <option value="attention-required">Attention Required</option>
-        <option value="na">N/A</option>
-        <option value="not-checked">Not Checked</option>
-      `;
+                <option value="ok">OK</option>
+                <option value="attention-required">Attention Required</option>
+                <option value="na">N/A</option>
+                <option value="not-checked">Not Checked</option>
+            `;
       itemContainer.appendChild(statusSelect);
       const commentsInput = document.createElement("input");
       commentsInput.type = "text";
       commentsInput.classList.add("form-control");
       commentsInput.name = "comments-health-safety-notes";
       commentsInput.placeholder = "Comments";
-      commentsInput.setAttribute("autocapitalize", "sentences");
-      commentsInput.setAttribute("autocorrect", "off");
-      commentsInput.setAttribute("spellcheck", "true");
+      commentsInput.setAttribute("autocapitalize","sentences");
+      commentsInput.setAttribute("autocorrect","off");
+      commentsInput.setAttribute("spellcheck","true");
       itemContainer.appendChild(commentsInput);
       const imageUpload1 = document.createElement("input");
       imageUpload1.type = "file";
@@ -461,20 +463,20 @@
         statusSelect.classList.add("form-select");
         statusSelect.name = `status-${item}`;
         statusSelect.innerHTML = `
-          <option value="ok">OK</option>
-          <option value="attention-required">Attention Required</option>
-          <option value="na">N/A</option>
-          <option value="not-checked">Not Checked</option>
-        `;
+                    <option value="ok">OK</option>
+                    <option value="attention-required">Attention Required</option>
+                    <option value="na">N/A</option>
+                    <option value="not-checked">Not Checked</option>
+                `;
         itemContainer.appendChild(statusSelect);
         const commentsInput = document.createElement("input");
         commentsInput.type = "text";
         commentsInput.classList.add("form-control");
         commentsInput.name = `comments-${item}`;
         commentsInput.placeholder = "Comments";
-        commentsInput.setAttribute("autocapitalize", "sentences");
-        commentsInput.setAttribute("autocorrect", "off");
-        commentsInput.setAttribute("spellcheck", "true");
+        commentsInput.setAttribute("autocapitalize","sentences");
+        commentsInput.setAttribute("autocorrect","off");
+        commentsInput.setAttribute("spellcheck","true");
         itemContainer.appendChild(commentsInput);
         for (let i = 1; i <= 2; i++) {
           const imageUpload = document.createElement("input");
@@ -522,20 +524,20 @@
         statusSelect.classList.add("form-select");
         statusSelect.name = `status-${item}`;
         statusSelect.innerHTML = `
-          <option value="ok">OK</option>
-          <option value="attention-required">Attention Required</option>
-          <option value="na">N/A</option>
-          <option value="not-checked">Not Checked</option>
-        `;
+                    <option value="ok">OK</option>
+                    <option value="attention-required">Attention Required</option>
+                    <option value="na">N/A</option>
+                    <option value="not-checked">Not Checked</option>
+                `;
         itemContainer.appendChild(statusSelect);
         const commentsInput = document.createElement("input");
         commentsInput.type = "text";
         commentsInput.classList.add("form-control");
         commentsInput.name = `comments-${item}`;
         commentsInput.placeholder = "Comments";
-        commentsInput.setAttribute("autocapitalize", "sentences");
-        commentsInput.setAttribute("autocorrect", "off");
-        commentsInput.setAttribute("spellcheck", "true");
+        commentsInput.setAttribute("autocapitalize","sentences");
+        commentsInput.setAttribute("autocorrect","off");
+        commentsInput.setAttribute("spellcheck","true");
         itemContainer.appendChild(commentsInput);
         for (let i = 1; i <= 2; i++) {
           const imageUpload = document.createElement("input");
@@ -580,20 +582,20 @@
       statusSelectTeat.classList.add("form-select");
       statusSelectTeat.name = "status-teat-spray-check";
       statusSelectTeat.innerHTML = `
-        <option value="ok">OK</option>
-        <option value="attention-required">Attention Required</option>
-        <option value="na">N/A</option>
-        <option value="not-checked">Not Checked</option>
-      `;
+                <option value="ok">OK</option>
+                <option value="attention-required">Attention Required</option>
+                <option value="na">N/A</option>
+                <option value="not-checked">Not Checked</option>
+            `;
       teatSprayContainer.appendChild(statusSelectTeat);
       const commentsInputTeat = document.createElement("input");
       commentsInputTeat.type = "text";
       commentsInputTeat.classList.add("form-control");
       commentsInputTeat.name = "comments-teat-spray-check";
       commentsInputTeat.placeholder = "Comments";
-      commentsInputTeat.setAttribute("autocapitalize", "sentences");
-      commentsInputTeat.setAttribute("autocorrect", "off");
-      commentsInputTeat.setAttribute("spellcheck", "true");
+      commentsInputTeat.setAttribute("autocapitalize","sentences");
+      commentsInputTeat.setAttribute("autocorrect","off");
+      commentsInputTeat.setAttribute("spellcheck","true");
       teatSprayContainer.appendChild(commentsInputTeat);
       for (let i = 1; i <= 2; i++) {
         const imageUpload = document.createElement("input");
@@ -624,9 +626,9 @@
       ratioInput.id = "teat-dilution";
       ratioInput.setAttribute("list", "teat-dilution-list");
       ratioInput.placeholder = "Type or select e.g. 1:5";
-      ratioInput.setAttribute("autocapitalize", "words");
-      ratioInput.setAttribute("autocorrect", "off");
-      ratioInput.setAttribute("spellcheck", "false");
+      ratioInput.setAttribute("autocapitalize","words");
+      ratioInput.setAttribute("autocorrect","off");
+      ratioInput.setAttribute("spellcheck","false");
       teatSprayContainer.appendChild(ratioInput);
       const ratioDataList = document.createElement("datalist");
       ratioDataList.id = "teat-dilution-list";
@@ -658,20 +660,20 @@
       statusSelectChemical.classList.add("form-select");
       statusSelectChemical.name = "status-chemical-check";
       statusSelectChemical.innerHTML = `
-        <option value="ok">OK</option>
-        <option value="attention-required">Attention Required</option>
-        <option value="na">N/A</option>
-        <option value="not-checked">Not Checked</option>
-      `;
+                <option value="ok">OK</option>
+                <option value="attention-required">Attention Required</option>
+                <option value="na">N/A</option>
+                <option value="not-checked">Not Checked</option>
+            `;
       chemicalContainer.appendChild(statusSelectChemical);
       const commentsInputChemical = document.createElement("input");
       commentsInputChemical.type = "text";
       commentsInputChemical.classList.add("form-control");
       commentsInputChemical.name = "comments-chemical-check";
       commentsInputChemical.placeholder = "Comments";
-      commentsInputChemical.setAttribute("autocapitalize", "sentences");
-      commentsInputChemical.setAttribute("autocorrect", "off");
-      commentsInputChemical.setAttribute("spellcheck", "true");
+      commentsInputChemical.setAttribute("autocapitalize","sentences");
+      commentsInputChemical.setAttribute("autocorrect","off");
+      commentsInputChemical.setAttribute("spellcheck","true");
       chemicalContainer.appendChild(commentsInputChemical);
       for (let i = 1; i <= 2; i++) {
         const imageUpload = document.createElement("input");
@@ -722,9 +724,7 @@
           if (commentsInput) { commentsInput.value = comments; }
           if (imagesBase64 && imagesBase64.length > 0) {
             const previews = itemContainer.querySelectorAll(".image-preview");
-            imagesBase64.forEach((img64, i) => {
-              if (previews[i]) { previews[i].src = img64; previews[i].style.display = "block"; }
-            });
+            imagesBase64.forEach((img64, i) => { if (previews[i]) { previews[i].src = img64; previews[i].style.display = "block"; } });
           }
           idx++;
         }
@@ -747,7 +747,8 @@
       if (!record) { record = { dairyNumber, formData: {}, creationTime: Date.now() }; }
       const form = document.getElementById("hygiene-checklist-form");
       const formDataObj = new FormData(form);
-      const data = Object.fromEntries(formDataObj.entries());
+      // Only store keys with nonempty values
+      const data = Object.fromEntries(Array.from(formDataObj.entries()).filter(([k,v]) => v.trim() !== ""));
       const containersToCheck = [
         document.getElementById("health-safety-top").children,
         document.getElementById("checklist-items").children,
@@ -1003,7 +1004,7 @@
           await db.pdfQueue.add({ dairyNumber: dairyNumber, fileName: fileName, pdfBlob: pdfBlob, uploaded: false });
           console.log("PDF upload queued for later retry.");
         }
-        // Delete the saved form record and reload for a fresh form.
+        // Delete the saved record and reload the page so a fresh blank form appears.
         await db.forms.delete(dairyNumber);
         pdf.save(`Dairy_Shed_Hygiene_Checklist_${dairyNumber}.pdf`);
         uploadPendingPDFs();
