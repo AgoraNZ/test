@@ -1,5 +1,5 @@
 // Bump the cache name version each time you release a new update:
-const CACHE_NAME = 'dairy-shed-cache-v48';  // <--- increment for new version
+const CACHE_NAME = 'dairy-shed-cache-v49';  // <--- increment for new version
 
 const urlsToCache = [
     '/',
