@@ -204,7 +204,7 @@
       <button type="button" onclick="generatePDF()">Generate PDF</button>
       <button type="button" onclick="viewRecords()">View All Records</button>
     </form>
-    <div class="version">Version 8.4 (Draft Cached Using Keys to Restore Checklist Selections, Comments & Images)</div>
+    <div class="version">Version 8.3 (Draft Cached Using Keys to Restore Checklist Selections, Comments & Images)</div>
   </div>
   <!-- RECORDS VIEW -->
   <div id="record-container" class="record-container" style="display: none;">
@@ -392,7 +392,7 @@
       commentsInput.classList.add("form-control");
       commentsInput.name = "comments-health-safety-notes";
       commentsInput.placeholder = "Comments";
-      // Spellcheck enabled, autocorrect off.
+      // Enable spellcheck and disable autocorrect.
       commentsInput.setAttribute("spellcheck", "true");
       commentsInput.setAttribute("autocorrect", "off");
       itemContainer.appendChild(commentsInput);
@@ -458,7 +458,7 @@
         commentsInput.classList.add("form-control");
         commentsInput.name = `comments-${item}`;
         commentsInput.placeholder = "Comments";
-        // Spellcheck enabled on comments.
+        // Enable spellcheck.
         commentsInput.setAttribute("spellcheck", "true");
         commentsInput.setAttribute("autocorrect", "off");
         itemContainer.appendChild(commentsInput);
@@ -878,16 +878,17 @@
             imageFiles.push(imgs[1].files[0]);
           }
         }
-        // If no files are selected in the inputs, try to load from the restored draft.
+        // If no new files, try to load from the restored draft.
         if (imageFiles.length === 0 && window.restoredDraft) {
           const key = labelEl.textContent.trim();
           if (window.restoredDraft[key] && window.restoredDraft[key].imagesBase64 && window.restoredDraft[key].imagesBase64.length > 0) {
             imageFiles = window.restoredDraft[key].imagesBase64;
           }
         }
+        // Append a note if attention-required and images exist.
         if (status === "attention-required" && imageFiles.length > 0) {
-          // Append the note if an image exists.
-          comments += comments ? ` (Photo Attached Below)` : `(Photo Attached Below)`;
+          const photoNote = imageFiles.length > 1 ? " (see attached photos)" : " (see attached photo)";
+          comments += comments ? photoNote : photoNote;
         }
         itemDataArray.push({ itemName, status, comments, imageFiles });
       });
@@ -897,7 +898,7 @@
         if (obj.imageFiles.length > 0) {
           const p = { itemName: obj.itemName, images: [] };
           obj.imageFiles.forEach((file, idx) => {
-            // If the file is a string, assume it's a Base64 image.
+            // If already a Base64 string, use it directly.
             if (typeof file === "string") {
               p.images[idx] = file;
             } else {
@@ -983,23 +984,26 @@
         afterTableY += 15;
         pdf.text(`Time Taken: ${milkTime}`, 40, afterTableY);
         afterTableY += 20;
+        // Place photos: For each photo group, ensure the label and images stay together.
         let photoY = afterTableY + 20;
         const pageWidth = pdf.internal.pageSize.getWidth();
         photoStore.forEach(photoObj => {
-          const images = photoObj.images;
-          pdf.setFontSize(12);
-          pdf.text(photoObj.itemName, 40, photoY - 5);
-          if (images.length === 1) {
-            if (photoY > pdf.internal.pageSize.getHeight() - 220) { pdf.addPage(); photoY = 60; }
-            pdf.addImage(images[0], "JPEG", 40, photoY, 250, 200);
-            photoY += 220;
-          } else if (images.length === 2) {
-            if (photoY > pdf.internal.pageSize.getHeight() - 220) { pdf.addPage(); photoY = 60; }
-            const imageWidth = (pageWidth - 120) / 2;
-            pdf.addImage(images[0], "JPEG", 40, photoY, imageWidth, 200);
-            pdf.addImage(images[1], "JPEG", 60 + imageWidth, photoY, imageWidth, 200);
-            photoY += 220;
+          const requiredHeight = 15 + 200 + 10; // label (15) + image height (200) + margin (10)
+          if (photoY + requiredHeight > pdf.internal.pageSize.getHeight()) {
+            pdf.addPage();
+            photoY = 60;
           }
+          pdf.setFontSize(12);
+          pdf.text(photoObj.itemName, 40, photoY);
+          // Add images directly below the label.
+          if (photoObj.images.length === 1) {
+            pdf.addImage(photoObj.images[0], "JPEG", 40, photoY + 15, 250, 200);
+          } else if (photoObj.images.length === 2) {
+            const imageWidth = (pageWidth - 120) / 2;
+            pdf.addImage(photoObj.images[0], "JPEG", 40, photoY + 15, imageWidth, 200);
+            pdf.addImage(photoObj.images[1], "JPEG", 60 + imageWidth, photoY + 15, imageWidth, 200);
+          }
+          photoY += requiredHeight;
         });
         const pdfBlob = pdf.output("blob");
         const timestamp = new Date().toISOString().split("T")[0];
