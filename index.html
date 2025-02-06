@@ -331,12 +331,12 @@
       }
     }
     /*******************************************
-     * NEW: On Page Load, Prompt for Cached Draft Only If a Checklist Item Has Changed
+     * NEW: On Page Load, Prompt for a Cached Draft
+     * Only if at least one checklist item has a status different from "ok"
      *******************************************/
     async function checkForCachedFormOnLoad() {
       const records = await db.forms.toArray();
       let recordToPrompt = null;
-      // We now consider a cached draft only if at least one checklist item status is not "ok"
       for (const record of records) {
         if (record.formData && record.formData.checklistItems && record.formData.checklistItems.length > 0) {
           const hasDraft = record.formData.checklistItems.some(item => item.status !== "ok");
@@ -348,7 +348,7 @@
       }
       if (recordToPrompt) {
         const continueForm = confirm(
-          `Draft data exists for Dairy #${recordToPrompt.dairyNumber}.\n\nClick OK to continue using the draft form.\nClick Cancel to start a new form (the draft will be deleted).`
+          `Draft data exists for Dairy #${recordToPrompt.dairyNumber}.\n\nClick OK to restore the draft.\nClick Cancel to start a new form (the draft will be deleted).`
         );
         if (continueForm) {
           loadFormDataFromRecord(recordToPrompt);
@@ -685,11 +685,13 @@
     function loadFormDataFromRecord(record) {
       const data = record.formData || {};
       document.getElementById("dairy-number").value = record.dairyNumber;
+      // Restore all basic fields
       for (let key in data) {
         if (key === "checklistItems") continue;
         const field = document.getElementById(key) || document.getElementsByName(key)[0];
         if (field) { field.value = data[key]; }
       }
+      // Restore checklist items – including status, comments, and preview images.
       if (data.checklistItems) {
         const containers = [
           ...document.getElementById("health-safety-top").children,
@@ -703,11 +705,20 @@
           const { itemName, status, comments, imagesBase64 } = data.checklistItems[idx];
           const statusSelect = itemContainer.querySelector("select");
           const commentsInput = itemContainer.querySelector('input[type="text"]');
-          if (statusSelect) { statusSelect.value = status; statusSelect.dispatchEvent(new Event("change")); }
+          if (statusSelect) {
+            statusSelect.value = status;
+            // Trigger change event so that file inputs are shown/hidden accordingly.
+            statusSelect.dispatchEvent(new Event("change"));
+          }
           if (commentsInput) { commentsInput.value = comments; }
           if (imagesBase64 && imagesBase64.length > 0) {
             const previews = itemContainer.querySelectorAll(".image-preview");
-            imagesBase64.forEach((img64, i) => { if (previews[i]) { previews[i].src = img64; previews[i].style.display = "block"; } });
+            imagesBase64.forEach((img64, i) => {
+              if (previews[i]) {
+                previews[i].src = img64;
+                previews[i].style.display = "block";
+              }
+            });
           }
           idx++;
         }
@@ -730,8 +741,9 @@
       if (!record) { record = { dairyNumber, formData: {}, creationTime: Date.now() }; }
       const form = document.getElementById("hygiene-checklist-form");
       const formDataObj = new FormData(form);
-      // Only store keys with nonempty (trimmed) values.
+      // Save only keys with nonempty trimmed values.
       const data = Object.fromEntries(Array.from(formDataObj.entries()).filter(([k, v]) => v.trim() !== ""));
+      // Now, for each checklist container, save the status, comments, and any uploaded images (converted to Base64)
       const containersToCheck = [
         document.getElementById("health-safety-top").children,
         document.getElementById("checklist-items").children,
@@ -756,6 +768,7 @@
               imagesBase64.push(base64);
             }
           }
+          // If no new file is selected but a draft exists, keep previously saved images.
           const existingIdx = checklistItemsData.length;
           if (record.formData.checklistItems &&
               record.formData.checklistItems[existingIdx] &&
