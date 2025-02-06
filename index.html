@@ -138,7 +138,7 @@
           <option value="southland">Southland</option>
         </select>
         <label for="farm-name">Farm Name:</label>
-        <input type="text" class="form-control" id="farm-name" name="farm-name" autocapitalize="words" autocorrect="off" spellcheck="true">
+        <input type="text" class="form-control" id="farm-name" name="farm-name" autocapitalize="words" autocorrect="off" spellcheck="false">
         <label for="island">Island:</label>
         <select id="island" name="island" class="form-select">
           <option value="north-island">North Island</option>
@@ -351,6 +351,8 @@
         );
         if (continueForm) {
           loadFormDataFromRecord(recordToPrompt);
+          // Save the restored checklist data globally for PDF generation.
+          window.restoredDraft = recordToPrompt.formData.checklistItems;
         } else {
           await db.forms.delete(recordToPrompt.dairyNumber);
           clearEntireForm();
@@ -390,9 +392,9 @@
       commentsInput.classList.add("form-control");
       commentsInput.name = "comments-health-safety-notes";
       commentsInput.placeholder = "Comments";
-      commentsInput.setAttribute("autocapitalize","sentences");
-      commentsInput.setAttribute("autocorrect","off");
-      commentsInput.setAttribute("spellcheck","true");
+      // Spellcheck enabled, autocorrect off.
+      commentsInput.setAttribute("spellcheck", "true");
+      commentsInput.setAttribute("autocorrect", "off");
       itemContainer.appendChild(commentsInput);
       const imageUpload1 = document.createElement("input");
       imageUpload1.type = "file";
@@ -456,9 +458,9 @@
         commentsInput.classList.add("form-control");
         commentsInput.name = `comments-${item}`;
         commentsInput.placeholder = "Comments";
-        commentsInput.setAttribute("autocapitalize","sentences");
-        commentsInput.setAttribute("autocorrect","off");
-        commentsInput.setAttribute("spellcheck","true");
+        // Spellcheck enabled on comments.
+        commentsInput.setAttribute("spellcheck", "true");
+        commentsInput.setAttribute("autocorrect", "off");
         itemContainer.appendChild(commentsInput);
         for (let i = 1; i <= 2; i++) {
           const imageUpload = document.createElement("input");
@@ -517,9 +519,8 @@
         commentsInput.classList.add("form-control");
         commentsInput.name = `comments-${item}`;
         commentsInput.placeholder = "Comments";
-        commentsInput.setAttribute("autocapitalize","sentences");
-        commentsInput.setAttribute("autocorrect","off");
-        commentsInput.setAttribute("spellcheck","true");
+        commentsInput.setAttribute("spellcheck", "true");
+        commentsInput.setAttribute("autocorrect", "off");
         itemContainer.appendChild(commentsInput);
         for (let i = 1; i <= 2; i++) {
           const imageUpload = document.createElement("input");
@@ -575,9 +576,8 @@
       commentsInputTeat.classList.add("form-control");
       commentsInputTeat.name = "comments-teat-spray-check";
       commentsInputTeat.placeholder = "Comments";
-      commentsInputTeat.setAttribute("autocapitalize","sentences");
-      commentsInputTeat.setAttribute("autocorrect","off");
-      commentsInputTeat.setAttribute("spellcheck","true");
+      commentsInputTeat.setAttribute("spellcheck", "true");
+      commentsInputTeat.setAttribute("autocorrect", "off");
       teatSprayContainer.appendChild(commentsInputTeat);
       for (let i = 1; i <= 2; i++) {
         const imageUpload = document.createElement("input");
@@ -608,9 +608,9 @@
       ratioInput.id = "teat-dilution";
       ratioInput.setAttribute("list", "teat-dilution-list");
       ratioInput.placeholder = "Type or select e.g. 1:5";
-      ratioInput.setAttribute("autocapitalize","words");
-      ratioInput.setAttribute("autocorrect","off");
-      ratioInput.setAttribute("spellcheck","false");
+      ratioInput.setAttribute("autocapitalize", "words");
+      ratioInput.setAttribute("autocorrect", "off");
+      ratioInput.setAttribute("spellcheck", "false");
       teatSprayContainer.appendChild(ratioInput);
       const ratioDataList = document.createElement("datalist");
       ratioDataList.id = "teat-dilution-list";
@@ -653,9 +653,8 @@
       commentsInputChemical.classList.add("form-control");
       commentsInputChemical.name = "comments-chemical-check";
       commentsInputChemical.placeholder = "Comments";
-      commentsInputChemical.setAttribute("autocapitalize","sentences");
-      commentsInputChemical.setAttribute("autocorrect","off");
-      commentsInputChemical.setAttribute("spellcheck","true");
+      commentsInputChemical.setAttribute("spellcheck", "true");
+      commentsInputChemical.setAttribute("autocorrect", "off");
       chemicalContainer.appendChild(commentsInputChemical);
       for (let i = 1; i <= 2; i++) {
         const imageUpload = document.createElement("input");
@@ -847,6 +846,7 @@
       const form = document.getElementById("hygiene-checklist-form");
       const fd = new FormData(form);
       await saveFarmDetailsToFirebase(fd);
+      // Build an array of items from the form.
       const containers = [
         ...document.getElementById("health-safety-top").children,
         ...document.getElementById("checklist-items").children,
@@ -869,12 +869,24 @@
           }
         }
         const imgs = item.querySelectorAll('input[type="file"]');
-        const imageFiles = [];
+        let imageFiles = [];
         if (imgs.length > 0) {
-          if (imgs[0].files[0]) imageFiles.push(imgs[0].files[0]);
-          if (imgs[1].files[0]) imageFiles.push(imgs[1].files[0]);
+          if (imgs[0].files[0]) {
+            imageFiles.push(imgs[0].files[0]);
+          }
+          if (imgs[1].files[0]) {
+            imageFiles.push(imgs[1].files[0]);
+          }
+        }
+        // If no files are selected in the inputs, try to load from the restored draft.
+        if (imageFiles.length === 0 && window.restoredDraft) {
+          const key = labelEl.textContent.trim();
+          if (window.restoredDraft[key] && window.restoredDraft[key].imagesBase64 && window.restoredDraft[key].imagesBase64.length > 0) {
+            imageFiles = window.restoredDraft[key].imagesBase64;
+          }
         }
         if (status === "attention-required" && imageFiles.length > 0) {
+          // Append the note if an image exists.
           comments += comments ? ` (Photo Attached Below)` : `(Photo Attached Below)`;
         }
         itemDataArray.push({ itemName, status, comments, imageFiles });
@@ -885,14 +897,19 @@
         if (obj.imageFiles.length > 0) {
           const p = { itemName: obj.itemName, images: [] };
           obj.imageFiles.forEach((file, idx) => {
-            pendingImages++;
-            const reader = new FileReader();
-            reader.onload = (evt) => {
-              p.images[idx] = evt.target.result;
-              pendingImages--;
-              if (pendingImages === 0) finalizePDF();
-            };
-            reader.readAsDataURL(file);
+            // If the file is a string, assume it's a Base64 image.
+            if (typeof file === "string") {
+              p.images[idx] = file;
+            } else {
+              pendingImages++;
+              const reader = new FileReader();
+              reader.onload = (evt) => {
+                p.images[idx] = evt.target.result;
+                pendingImages--;
+                if (pendingImages === 0) finalizePDF();
+              };
+              reader.readAsDataURL(file);
+            }
           });
           photoStore.push(p);
         }
@@ -1097,7 +1114,7 @@
       const fieldsToAutoCap = ["dairy-number", "dairy-company", "address", "customer-name", "farm-name", "inspection-completed-by"];
       fieldsToAutoCap.forEach(autoCapitalizeInput);
       await setupDairyCompanyDatalist();
-      // FIRST, build all the form sections (checklist items, etc.)
+      // FIRST, build all the form sections.
       createHealthSafetyItems("health-safety-top");
       createChecklistItems();
       createSiloChecklist();
