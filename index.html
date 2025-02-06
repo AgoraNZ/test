@@ -204,7 +204,7 @@
       <button type="button" onclick="generatePDF()">Generate PDF</button>
       <button type="button" onclick="viewRecords()">View All Records</button>
     </form>
-    <div class="version">Version 8.3 (Continuous Save + Prompt Only for Unfinished Forms)</div>
+    <div class="version">Version 8.3 (Continuous Save + Prompt Only for Unfinished Forms on Page Load)</div>
   </div>
   <!-- RECORDS VIEW -->
   <div id="record-container" class="record-container" style="display: none;">
@@ -331,47 +331,48 @@
       }
     }
     /*******************************************
-     * NEW: Prompt for Cached Data Only If an Unfinished Form Exists
+     * NEW: On Page Load, Prompt for Cached Data if an Unfinished Form Exists
      *******************************************/
-    async function promptForCachedData(dairyNumber) {
-      const record = await db.forms.get(dairyNumber);
-      if (record && record.formData) {
-        // We ignore farm details fields (which are auto-populated)
-        const ignoreFields = new Set([
-          "dairy-number", "visit-type", "dairy-company", "address", "customer-name",
-          "region", "farm-name", "island", "visit-date", "inspection-start-time",
-          "inspection-end-time", "inspection-completed-by", "call-type"
-        ]);
-        let hasExtraData = false;
-        // Check if there is a checklistItems array with any meaningful data…
-        if (record.formData.checklistItems && Array.isArray(record.formData.checklistItems)) {
-          hasExtraData = record.formData.checklistItems.some(item => {
-            return (item.status && item.status.trim() !== "") || (item.comments && item.comments.trim() !== "");
-          });
-        }
-        // Also check if temperature measurements exist (if the user typed them in)
-        const tempFields = ["hot-water-temp", "hot-water-time", "milk-temp", "milk-time"];
-        for (const field of tempFields) {
-          if (record.formData[field] && record.formData[field].trim() !== "") {
-            hasExtraData = true;
+    async function checkForCachedFormOnLoad() {
+      const records = await db.forms.toArray();
+      let recordToPrompt = null;
+      for (const record of records) {
+        if (record.formData) {
+          const ignoreFields = new Set([
+            "dairy-number", "visit-type", "dairy-company", "address", "customer-name",
+            "region", "farm-name", "island", "visit-date", "inspection-start-time",
+            "inspection-end-time", "inspection-completed-by", "call-type"
+          ]);
+          let hasExtraData = false;
+          if (record.formData.checklistItems && Array.isArray(record.formData.checklistItems)) {
+            hasExtraData = record.formData.checklistItems.some(item => {
+              return (item.status && item.status.trim() !== "") || (item.comments && item.comments.trim() !== "");
+            });
+          }
+          const tempFields = ["hot-water-temp", "hot-water-time", "milk-temp", "milk-time"];
+          for (const field of tempFields) {
+            if (record.formData[field] && record.formData[field].trim() !== "") {
+              hasExtraData = true;
+              break;
+            }
+          }
+          if (hasExtraData) {
+            recordToPrompt = record;
             break;
           }
         }
-        // Only prompt if extra data exists (i.e. the form was started)
-        if (hasExtraData) {
-          // Note: The built-in confirm() has buttons "OK" and "Cancel".
-          // We instruct the user that Cancel means "New Form."
-          const continueForm = confirm(`Cached data exists for Dairy #${dairyNumber}.\n\nClick OK to continue using the cached form.\nClick Cancel to start a New Form.`);
-          if (continueForm) {
-            loadFormDataFromRecord(record);
-          } else {
-            await db.forms.delete(dairyNumber);
-            clearEntireForm();
-          }
+      }
+      if (recordToPrompt) {
+        const continueForm = confirm(`Cached data exists for Dairy #${recordToPrompt.dairyNumber}.\n\nClick OK to continue using the cached form.\nClick Cancel to start a New Form.`);
+        if (continueForm) {
+          loadFormDataFromRecord(recordToPrompt);
+        } else {
+          await db.forms.delete(recordToPrompt.dairyNumber);
+          clearEntireForm();
         }
       }
     }
-    // Called on blur of the dairy-number field
+    // Called on blur of the dairy-number field (no prompt here now)
     async function handleDairyNumberBlur() {
       const dairyNumber = document.getElementById('dairy-number').value.trim();
       if (!dairyNumber) return;
@@ -379,8 +380,6 @@
       fetchFarmDetails();
       // Create a record if one does not exist.
       await checkOrCreateFormRecord();
-      // Only prompt if there is extra (unfinished) data.
-      promptForCachedData(dairyNumber);
     }
     /*******************************************
      * E1: CREATE HEALTH & SAFETY ITEMS
@@ -1100,6 +1099,8 @@
       const fieldsToAutoCap = ["dairy-number", "dairy-company", "address", "customer-name", "farm-name", "inspection-completed-by"];
       fieldsToAutoCap.forEach(autoCapitalizeInput);
       await setupDairyCompanyDatalist();
+      // On page load, check for any unfinished (cached) form data and prompt the user.
+      await checkForCachedFormOnLoad();
       createHealthSafetyItems("health-safety-top");
       createChecklistItems();
       createSiloChecklist();
