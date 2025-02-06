@@ -204,7 +204,7 @@
       <button type="button" onclick="generatePDF()">Generate PDF</button>
       <button type="button" onclick="viewRecords()">View All Records</button>
     </form>
-    <div class="version">Version 9.1 (Draft Cached Only When Checklist Items Change from OK)</div>
+    <div class="version">Version 8.3 (Draft Cached Using Keys to Restore Checklist Selections, Comments & Images)</div>
   </div>
   <!-- RECORDS VIEW -->
   <div id="record-container" class="record-container" style="display: none;">
@@ -325,14 +325,13 @@
       if (!dairyNumber) return;
       let record = await db.forms.get(dairyNumber);
       if (!record) {
-        // Create a record only when a dairy number is entered.
         record = { dairyNumber: dairyNumber, formData: {}, creationTime: Date.now() };
         await db.forms.put(record);
       }
     }
     /*******************************************
      * NEW: On Page Load, Prompt for a Cached Draft
-     * Only if at least one checklist item has a status different from "ok"
+     * (A draft is considered if any checklist item’s status is not "ok")
      *******************************************/
     async function checkForCachedFormOnLoad() {
       const records = await db.forms.toArray();
@@ -358,7 +357,7 @@
         }
       }
     }
-    // Called on blur of the dairy-number field (no prompt here now)
+    // Called on blur of the dairy-number field (no draft prompt here)
     async function handleDairyNumberBlur() {
       const dairyNumber = document.getElementById('dairy-number').value.trim();
       if (!dairyNumber) return;
@@ -681,11 +680,12 @@
     }
     /*******************************************
      * F1: LOAD FORM DATA (including images)
+     * Uses the saved object keyed by checklist item name.
      *******************************************/
     function loadFormDataFromRecord(record) {
       const data = record.formData || {};
       document.getElementById("dairy-number").value = record.dairyNumber;
-      // Restore all basic (non‑checklist) fields.
+      // Restore all basic (non-checklist) fields.
       for (let key in data) {
         if (key === "checklistItems") continue;
         const field = document.getElementById(key) || document.getElementsByName(key)[0];
@@ -699,22 +699,21 @@
           ...document.getElementById("additional-checks").children,
           ...document.getElementById("silo-checklist").children
         ];
-        for (let itemContainer of containers) {
-          const label = itemContainer.querySelector("label");
-          if (!label) continue;
-          const itemName = label.textContent.trim();
-          if (data.checklistItems[itemName]) {
-            const { status, comments, imagesBase64 } = data.checklistItems[itemName];
-            const statusSelect = itemContainer.querySelector("select");
+        containers.forEach(container => {
+          const label = container.querySelector("label");
+          if (!label) return;
+          const key = label.textContent.trim();
+          if (data.checklistItems[key]) {
+            const { status, comments, imagesBase64 } = data.checklistItems[key];
+            const statusSelect = container.querySelector("select");
             if (statusSelect) {
               statusSelect.value = status;
-              // Trigger change event so that file inputs are shown/hidden accordingly.
               statusSelect.dispatchEvent(new Event("change"));
             }
-            const commentsInput = itemContainer.querySelector('input[type="text"]');
+            const commentsInput = container.querySelector('input[type="text"]');
             if (commentsInput) { commentsInput.value = comments; }
             if (imagesBase64 && imagesBase64.length > 0) {
-              const previews = itemContainer.querySelectorAll(".image-preview");
+              const previews = container.querySelectorAll(".image-preview");
               imagesBase64.forEach((img64, i) => {
                 if (previews[i]) {
                   previews[i].src = img64;
@@ -723,7 +722,7 @@
               });
             }
           }
-        }
+        });
       }
     }
     function clearEntireForm() {
@@ -735,6 +734,7 @@
     }
     /*******************************************
      * G: SAVE FORM DATA ON INPUT (including images)
+     * Saves checklist items as an object keyed by the label text.
      *******************************************/
     async function saveFormData() {
       const dairyNumber = document.getElementById("dairy-number").value.trim();
@@ -745,7 +745,7 @@
       const formDataObj = new FormData(form);
       // Save only keys with nonempty trimmed values.
       const data = Object.fromEntries(Array.from(formDataObj.entries()).filter(([k, v]) => v.trim() !== ""));
-      // For checklist items, use an object keyed by the item name.
+      // For checklist items, build an object keyed by the label text.
       const containersToCheck = [
         document.getElementById("health-safety-top").children,
         document.getElementById("checklist-items").children,
@@ -757,7 +757,7 @@
         for (let item of container) {
           const label = item.querySelector("label");
           if (!label) continue;
-          const itemName = label.textContent.trim();
+          const key = label.textContent.trim();
           const statusSelect = item.querySelector("select");
           const status = statusSelect ? statusSelect.value : "";
           const commentsInput = item.querySelector('input[type="text"]');
@@ -770,13 +770,13 @@
               imagesBase64.push(base64);
             }
           }
-          // If no new file is selected but a draft exists for this item, keep previously saved images.
+          // If no new file is selected, use any previously saved images.
           if (record.formData.checklistItems &&
-              record.formData.checklistItems[itemName] &&
+              record.formData.checklistItems[key] &&
               imagesBase64.length === 0) {
-            imagesBase64 = record.formData.checklistItems[itemName].imagesBase64 || [];
+            imagesBase64 = record.formData.checklistItems[key].imagesBase64 || [];
           }
-          checklistItemsData[itemName] = { status, comments, imagesBase64 };
+          checklistItemsData[key] = { status, comments, imagesBase64 };
         }
       }
       data.checklistItems = checklistItemsData;
@@ -1097,7 +1097,7 @@
       const fieldsToAutoCap = ["dairy-number", "dairy-company", "address", "customer-name", "farm-name", "inspection-completed-by"];
       fieldsToAutoCap.forEach(autoCapitalizeInput);
       await setupDairyCompanyDatalist();
-      // On page load, check for a cached draft only if any checklist item has changed from "ok"
+      // On page load, check for a saved draft (if any checklist item has a status not "ok")
       await checkForCachedFormOnLoad();
       createHealthSafetyItems("health-safety-top");
       createChecklistItems();
