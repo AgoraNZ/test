@@ -204,7 +204,7 @@
       <button type="button" onclick="generatePDF()">Generate PDF</button>
       <button type="button" onclick="viewRecords()">View All Records</button>
     </form>
-    <div class="version">Version 8.5 </div>
+    <div class="version">Version 8.3 (Draft Cached Only When Checklist Items Change from OK)</div>
   </div>
   <!-- RECORDS VIEW -->
   <div id="record-container" class="record-container" style="display: none;">
@@ -325,51 +325,22 @@
       if (!dairyNumber) return;
       let record = await db.forms.get(dairyNumber);
       if (!record) {
-        // Only create a record when the dairy number is entered.
+        // Create a record only when a dairy number is entered.
         record = { dairyNumber: dairyNumber, formData: {}, creationTime: Date.now() };
         await db.forms.put(record);
       }
     }
     /*******************************************
-     * NEW: On Page Load, Prompt for Cached Data if an Unfinished Form Exists
+     * NEW: On Page Load, Prompt for Cached Draft Only If a Checklist Item Has Changed
      *******************************************/
     async function checkForCachedFormOnLoad() {
       const records = await db.forms.toArray();
       let recordToPrompt = null;
-      // Fields that are auto-populated or considered default
-      const ignoreFields = new Set([
-        "dairy-number", "visit-type", "dairy-company", "address", "customer-name",
-        "region", "farm-name", "island", "visit-date", "inspection-start-time",
-        "inspection-end-time", "inspection-completed-by", "call-type"
-      ]);
+      // We now consider a cached draft only if at least one checklist item status is not "ok"
       for (const record of records) {
-        if (record.formData && Object.keys(record.formData).length > 0) {
-          let hasExtraData = false;
-          // Check all keys (except ignored ones and checklistItems)
-          for (const key in record.formData) {
-            if (ignoreFields.has(key) || key === 'checklistItems') continue;
-            if (record.formData[key] && record.formData[key].trim() !== "") {
-              hasExtraData = true;
-              break;
-            }
-          }
-          // Check checklistItems if available
-          if (!hasExtraData && record.formData.checklistItems && Array.isArray(record.formData.checklistItems)) {
-            hasExtraData = record.formData.checklistItems.some(item => {
-              return (item.status && item.status.trim() !== "") || (item.comments && item.comments.trim() !== "");
-            });
-          }
-          // Check additional temperature fields
-          const tempFields = ["hot-water-temp", "hot-water-time", "milk-temp", "milk-time"];
-          if (!hasExtraData) {
-            for (const field of tempFields) {
-              if (record.formData[field] && record.formData[field].trim() !== "") {
-                hasExtraData = true;
-                break;
-              }
-            }
-          }
-          if (hasExtraData) {
+        if (record.formData && record.formData.checklistItems && record.formData.checklistItems.length > 0) {
+          const hasDraft = record.formData.checklistItems.some(item => item.status !== "ok");
+          if (hasDraft) {
             recordToPrompt = record;
             break;
           }
@@ -377,7 +348,7 @@
       }
       if (recordToPrompt) {
         const continueForm = confirm(
-          `Cached data exists for Dairy #${recordToPrompt.dairyNumber}.\n\nClick OK to continue using the cached form.\nClick Cancel to start a New Form.`
+          `Draft data exists for Dairy #${recordToPrompt.dairyNumber}.\n\nClick OK to continue using the draft form.\nClick Cancel to start a new form (the draft will be deleted).`
         );
         if (continueForm) {
           loadFormDataFromRecord(recordToPrompt);
@@ -387,7 +358,7 @@
         }
       }
     }
-    // Called on blur of the dairy-number field (prompt is now handled on page load)
+    // Called on blur of the dairy-number field (no prompt here now)
     async function handleDairyNumberBlur() {
       const dairyNumber = document.getElementById('dairy-number').value.trim();
       if (!dairyNumber) return;
@@ -1112,7 +1083,7 @@
       const fieldsToAutoCap = ["dairy-number", "dairy-company", "address", "customer-name", "farm-name", "inspection-completed-by"];
       fieldsToAutoCap.forEach(autoCapitalizeInput);
       await setupDairyCompanyDatalist();
-      // On page load, check for any unfinished (cached) form data and prompt the user only if extra data is found.
+      // On page load, check for a cached draft only if any checklist item has changed from "ok"
       await checkForCachedFormOnLoad();
       createHealthSafetyItems("health-safety-top");
       createChecklistItems();
