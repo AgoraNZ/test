@@ -204,7 +204,7 @@
       <button type="button" onclick="generatePDF()">Generate PDF</button>
       <button type="button" onclick="viewRecords()">View All Records</button>
     </form>
-    <div class="version">Version 8.4 (Continuous Save + Prompt Only for Unfinished Forms on Page Load)</div>
+    <div class="version">Version 8.3 (Continuous Save + Prompt Only for Unfinished Forms on Page Load)</div>
   </div>
   <!-- RECORDS VIEW -->
   <div id="record-container" class="record-container" style="display: none;">
@@ -336,24 +336,37 @@
     async function checkForCachedFormOnLoad() {
       const records = await db.forms.toArray();
       let recordToPrompt = null;
+      // Fields that are auto-populated or considered default
+      const ignoreFields = new Set([
+        "dairy-number", "visit-type", "dairy-company", "address", "customer-name",
+        "region", "farm-name", "island", "visit-date", "inspection-start-time",
+        "inspection-end-time", "inspection-completed-by", "call-type"
+      ]);
       for (const record of records) {
-        if (record.formData) {
-          const ignoreFields = new Set([
-            "dairy-number", "visit-type", "dairy-company", "address", "customer-name",
-            "region", "farm-name", "island", "visit-date", "inspection-start-time",
-            "inspection-end-time", "inspection-completed-by", "call-type"
-          ]);
+        if (record.formData && Object.keys(record.formData).length > 0) {
           let hasExtraData = false;
-          if (record.formData.checklistItems && Array.isArray(record.formData.checklistItems)) {
+          // Check all keys (except ignored ones and checklistItems)
+          for (const key in record.formData) {
+            if (ignoreFields.has(key) || key === 'checklistItems') continue;
+            if (record.formData[key] && record.formData[key].trim() !== "") {
+              hasExtraData = true;
+              break;
+            }
+          }
+          // Check checklistItems if available
+          if (!hasExtraData && record.formData.checklistItems && Array.isArray(record.formData.checklistItems)) {
             hasExtraData = record.formData.checklistItems.some(item => {
               return (item.status && item.status.trim() !== "") || (item.comments && item.comments.trim() !== "");
             });
           }
+          // Check additional temperature fields
           const tempFields = ["hot-water-temp", "hot-water-time", "milk-temp", "milk-time"];
-          for (const field of tempFields) {
-            if (record.formData[field] && record.formData[field].trim() !== "") {
-              hasExtraData = true;
-              break;
+          if (!hasExtraData) {
+            for (const field of tempFields) {
+              if (record.formData[field] && record.formData[field].trim() !== "") {
+                hasExtraData = true;
+                break;
+              }
             }
           }
           if (hasExtraData) {
@@ -363,7 +376,9 @@
         }
       }
       if (recordToPrompt) {
-        const continueForm = confirm(`Cached data exists for Dairy #${recordToPrompt.dairyNumber}.\n\nClick OK to continue using the cached form.\nClick Cancel to start a New Form.`);
+        const continueForm = confirm(
+          `Cached data exists for Dairy #${recordToPrompt.dairyNumber}.\n\nClick OK to continue using the cached form.\nClick Cancel to start a New Form.`
+        );
         if (continueForm) {
           loadFormDataFromRecord(recordToPrompt);
         } else {
@@ -372,13 +387,11 @@
         }
       }
     }
-    // Called on blur of the dairy-number field (no prompt here now)
+    // Called on blur of the dairy-number field (prompt is now handled on page load)
     async function handleDairyNumberBlur() {
       const dairyNumber = document.getElementById('dairy-number').value.trim();
       if (!dairyNumber) return;
-      // Always fetch farm details first.
       fetchFarmDetails();
-      // Create a record if one does not exist.
       await checkOrCreateFormRecord();
     }
     /*******************************************
@@ -1099,7 +1112,7 @@
       const fieldsToAutoCap = ["dairy-number", "dairy-company", "address", "customer-name", "farm-name", "inspection-completed-by"];
       fieldsToAutoCap.forEach(autoCapitalizeInput);
       await setupDairyCompanyDatalist();
-      // On page load, check for any unfinished (cached) form data and prompt the user.
+      // On page load, check for any unfinished (cached) form data and prompt the user only if extra data is found.
       await checkForCachedFormOnLoad();
       createHealthSafetyItems("health-safety-top");
       createChecklistItems();
