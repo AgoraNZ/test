@@ -28,6 +28,8 @@ self.addEventListener('install', function (event) {
                 console.error('Failed to cache resources:', error);
             })
     );
+    // Force the waiting service worker to become the active service worker.
+    self.skipWaiting();
 });
 
 self.addEventListener('fetch', function (event) {
@@ -54,17 +56,20 @@ self.addEventListener('fetch', function (event) {
 });
 
 self.addEventListener('activate', function (event) {
-    // Remove old caches if they don't match our current version
+    // Claim any clients immediately, so that the new service worker takes control.
     event.waitUntil(
-        caches.keys().then(function (cacheNames) {
-            return Promise.all(
-                cacheNames.map(function (cacheName) {
-                    if (cacheName !== CACHE_NAME) {
-                        console.log('Deleting old cache:', cacheName);
-                        return caches.delete(cacheName);
-                    }
-                })
-            );
-        })
+        Promise.all([
+            caches.keys().then(function (cacheNames) {
+                return Promise.all(
+                    cacheNames.map(function (cacheName) {
+                        if (cacheName !== CACHE_NAME) {
+                            console.log('Deleting old cache:', cacheName);
+                            return caches.delete(cacheName);
+                        }
+                    })
+                );
+            }),
+            self.clients.claim()
+        ])
     );
 });
