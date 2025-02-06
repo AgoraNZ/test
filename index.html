@@ -685,13 +685,13 @@
     function loadFormDataFromRecord(record) {
       const data = record.formData || {};
       document.getElementById("dairy-number").value = record.dairyNumber;
-      // Restore all basic (non-checklist) fields.
+      // Restore basic fields.
       for (let key in data) {
         if (key === "checklistItems") continue;
         const field = document.getElementById(key) || document.getElementsByName(key)[0];
         if (field) { field.value = data[key]; }
       }
-      // Restore checklist items by matching the label text.
+      // Restore checklist items.
       if (data.checklistItems) {
         const containers = [
           ...document.getElementById("health-safety-top").children,
@@ -743,7 +743,7 @@
       if (!record) { record = { dairyNumber, formData: {}, creationTime: Date.now() }; }
       const form = document.getElementById("hygiene-checklist-form");
       const formDataObj = new FormData(form);
-      // Save only keys with nonempty trimmed values.
+      // Save basic fields.
       const data = Object.fromEntries(Array.from(formDataObj.entries()).filter(([k, v]) => v.trim() !== ""));
       // For checklist items, build an object keyed by the label text.
       const containersToCheck = [
@@ -1001,7 +1001,7 @@
           await db.pdfQueue.add({ dairyNumber: dairyNumber, fileName: fileName, pdfBlob: pdfBlob, uploaded: false });
           console.log("PDF upload queued for later retry.");
         }
-        // Delete the saved record and reload the page so a fresh blank form appears.
+        // Delete the saved draft and reload the page.
         await db.forms.delete(dairyNumber);
         pdf.save(`Dairy_Shed_Hygiene_Checklist_${dairyNumber}.pdf`);
         uploadPendingPDFs();
@@ -1097,12 +1097,13 @@
       const fieldsToAutoCap = ["dairy-number", "dairy-company", "address", "customer-name", "farm-name", "inspection-completed-by"];
       fieldsToAutoCap.forEach(autoCapitalizeInput);
       await setupDairyCompanyDatalist();
-      // On page load, check for a saved draft (if any checklist item has a status not "ok")
-      await checkForCachedFormOnLoad();
+      // FIRST, build all the form sections (checklist items, etc.)
       createHealthSafetyItems("health-safety-top");
       createChecklistItems();
       createSiloChecklist();
       await createAdditionalChecks();
+      // THEN check for any saved draft and restore it.
+      await checkForCachedFormOnLoad();
       // Save form data on every input/change.
       const form = document.getElementById("hygiene-checklist-form");
       form.addEventListener("input", saveFormData);
