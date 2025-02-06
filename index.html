@@ -988,7 +988,7 @@
         photoStore.forEach(photoObj => {
           const images = photoObj.images;
           pdf.setFontSize(12);
-          pdf.text(photoObj.itemName, 40, photoY - 10);
+          pdf.text(photoObj.itemName, 40, photoY - 5);
           if (images.length === 1) {
             if (photoY > pdf.internal.pageSize.getHeight() - 220) { pdf.addPage(); photoY = 60; }
             pdf.addImage(images[0], "JPEG", 40, photoY, 250, 200);
