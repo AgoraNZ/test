@@ -7,7 +7,7 @@
   <title>Dairy Shed Hygiene Checklist - Login</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
   <style>
-    /* Global container styles */
+    /* Global styles */
     body {
       background-color: #002B5C;
       color: #FFFFFF;
@@ -19,7 +19,7 @@
       background-color: #002B5C;
       padding: 30px;
       border-radius: 10px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
       max-width: 800px;
       width: 100%;
       margin: 40px auto;
@@ -42,7 +42,8 @@
     }
     button:hover { background-color: #FF4136; }
     .hidden { display: none; }
-    /* Login-specific styles */
+    
+    /* Login container */
     #login-container {
       max-width: 400px;
       margin: 100px auto;
@@ -52,7 +53,8 @@
       box-shadow: 0 0 10px rgba(0,0,0,0.5);
     }
     #login-container input { margin-bottom: 15px; }
-    /* Form-specific styles (unchanged from your previous code) */
+    
+    /* Form and record view styles (from your existing code) */
     .checklist-item { margin-bottom: 30px; }
     .form-control, .form-select { margin-top: 5px; }
     .version {
@@ -138,7 +140,7 @@
   <div id="form-container" class="container hidden">
     <img src="https://i.postimg.cc/htZPjx5g/logo-89.png" alt="Logo" class="logo">
     <h1>Dairy Shed Hygiene Checklist</h1>
-    <!-- (Insert your full form code here; see below for the complete form code) -->
+    <!-- (Paste your full form code here; the code below is your form and associated logic) -->
     <form id="hygiene-checklist-form">
       <!-- Farm Details Section -->
       <div class="section mb-4">
@@ -194,27 +196,27 @@
           <option value="regular-scheduled-visit" selected>Regular Scheduled Visit</option>
         </select>
       </div>
-      <!-- HEALTH & SAFETY -->
+      <!-- HEALTH & SAFETY Section -->
       <div class="section mb-4">
         <h2>Health & Safety</h2>
         <div id="health-safety-top"></div>
       </div>
-      <!-- PLANT CHECKLIST -->
+      <!-- PLANT CHECKLIST Section -->
       <div class="section mb-4">
         <h2>Plant Checklist</h2>
         <div id="checklist-items"></div>
       </div>
-      <!-- SILO CHECKLIST -->
+      <!-- SILO CHECKLIST Section -->
       <div class="section mb-4">
         <h2>Silo Checklist</h2>
         <div id="silo-checklist"></div>
       </div>
-      <!-- ADDITIONAL CHECKS -->
+      <!-- ADDITIONAL CHECKS Section -->
       <div class="section mb-4">
         <h2>Additional Checks</h2>
         <div id="additional-checks"></div>
       </div>
-      <!-- TEMPERATURE MEASUREMENTS -->
+      <!-- TEMPERATURE MEASUREMENTS Section -->
       <div class="section mb-4">
         <h2>Temperature Measurements</h2>
         <div class="checklist-item">
@@ -233,7 +235,7 @@
       <button type="button" onclick="generatePDF()">Generate PDF</button>
       <button type="button" onclick="viewRecords()">View All Records</button>
     </form>
-    <div class="version">Version 8.3 (Staff - Full Features)</div>
+    <div class="version">Version 8.3 (Staff – Full Features)</div>
   </div>
 
   <!-- CUSTOMER RECORDS VIEW (for customer users) -->
@@ -241,11 +243,11 @@
     <h2>Customer Records</h2>
     <p>Your account allows you to view records for the following Dairy Numbers:</p>
     <div id="customer-dairy-list"></div>
-    <!-- Here you could add additional functionality to view/download PDFs for each dairy number -->
+    <!-- (You can later add links to view/download PDFs for these dairy numbers.) -->
     <button class="back-button" onclick="logout()">Logout</button>
   </div>
 
-  <!-- RECORDS VIEW (if needed; this example uses the same view for staff) -->
+  <!-- RECORDS VIEW (optional, used by staff) -->
   <div id="record-container" class="record-container hidden">
     <h2>All Dairy Shed Hygiene Records</h2>
     <div class="search-container">
@@ -266,7 +268,6 @@
     /*******************************************
      * SIMPLE CLIENT-SIDE LOGIN LOGIC
      *******************************************/
-    // Hardcoded credentials for staff and customers.
     const STAFF_USERS = {
       "user1": "password1",
       "user2": "password2"
@@ -310,7 +311,6 @@
       }
     });
 
-    // Logout function.
     function logout() {
       localStorage.removeItem("loggedIn");
       localStorage.removeItem("userType");
@@ -318,7 +318,6 @@
       location.reload();
     }
 
-    // If already logged in, bypass login.
     if (localStorage.getItem("loggedIn") === "true") {
       const userType = localStorage.getItem("userType");
       document.getElementById("login-container").classList.add("hidden");
@@ -330,7 +329,6 @@
       }
     }
 
-    // Display allowed dairy numbers for a customer.
     function displayCustomerDairyNumbers() {
       const listDiv = document.getElementById("customer-dairy-list");
       const allowed = JSON.parse(localStorage.getItem("allowedDairyNumbers") || "[]");
@@ -400,7 +398,11 @@
       userCompanies.forEach(u => { if (!allCompanies.includes(u.name)) { allCompanies.push(u.name); } });
       const datalist = document.getElementById('dairy-company-list');
       datalist.innerHTML = "";
-      allCompanies.forEach(c => { const opt = document.createElement('option'); opt.value = c; datalist.appendChild(opt); });
+      allCompanies.forEach(c => { 
+        const opt = document.createElement('option'); 
+        opt.value = c; 
+        datalist.appendChild(opt); 
+      });
       const dairyCompanyInput = document.getElementById('dairy-company');
       dairyCompanyInput.addEventListener('blur', async () => {
         dairyCompanyInput.value = toTitleCase(dairyCompanyInput.value.trim());
@@ -485,7 +487,7 @@
       await checkOrCreateFormRecord();
     }
     /*******************************************
-     * CREATE FORM SECTIONS (Health & Safety, Plant Checklist, Silo Checklist, Additional Checks)
+     * CREATE FORM SECTIONS
      *******************************************/
     function createHealthSafetyItems(containerId) {
       const container = document.getElementById(containerId);
@@ -499,11 +501,11 @@
       statusSelect.classList.add("form-select");
       statusSelect.name = "status-health-safety-notes";
       statusSelect.innerHTML = `
-                <option value="ok">OK</option>
-                <option value="attention-required">Attention Required</option>
-                <option value="na">N/A</option>
-                <option value="not-checked">Not Checked</option>
-            `;
+        <option value="ok">OK</option>
+        <option value="attention-required">Attention Required</option>
+        <option value="na">N/A</option>
+        <option value="not-checked">Not Checked</option>
+      `;
       itemContainer.appendChild(statusSelect);
       const commentsInput = document.createElement("input");
       commentsInput.type = "text";
@@ -561,11 +563,11 @@
         statusSelect.classList.add("form-select");
         statusSelect.name = `status-${item}`;
         statusSelect.innerHTML = `
-                    <option value="ok">OK</option>
-                    <option value="attention-required">Attention Required</option>
-                    <option value="na">N/A</option>
-                    <option value="not-checked">Not Checked</option>
-                `;
+          <option value="ok">OK</option>
+          <option value="attention-required">Attention Required</option>
+          <option value="na">N/A</option>
+          <option value="not-checked">Not Checked</option>
+        `;
         itemContainer.appendChild(statusSelect);
         const commentsInput = document.createElement("input");
         commentsInput.type = "text";
@@ -618,11 +620,11 @@
         statusSelect.classList.add("form-select");
         statusSelect.name = `status-${item}`;
         statusSelect.innerHTML = `
-                    <option value="ok">OK</option>
-                    <option value="attention-required">Attention Required</option>
-                    <option value="na">N/A</option>
-                    <option value="not-checked">Not Checked</option>
-                `;
+          <option value="ok">OK</option>
+          <option value="attention-required">Attention Required</option>
+          <option value="na">N/A</option>
+          <option value="not-checked">Not Checked</option>
+        `;
         itemContainer.appendChild(statusSelect);
         const commentsInput = document.createElement("input");
         commentsInput.type = "text";
@@ -672,11 +674,11 @@
       statusSelectTeat.classList.add("form-select");
       statusSelectTeat.name = "status-teat-spray-check";
       statusSelectTeat.innerHTML = `
-                <option value="ok">OK</option>
-                <option value="attention-required">Attention Required</option>
-                <option value="na">N/A</option>
-                <option value="not-checked">Not Checked</option>
-            `;
+        <option value="ok">OK</option>
+        <option value="attention-required">Attention Required</option>
+        <option value="na">N/A</option>
+        <option value="not-checked">Not Checked</option>
+      `;
       teatSprayContainer.appendChild(statusSelectTeat);
       const commentsInputTeat = document.createElement("input");
       commentsInputTeat.type = "text";
@@ -726,7 +728,11 @@
       const allRatios = ["1:4"];
       existingRatios.forEach(r => { if (!allRatios.includes(r.ratio)) { allRatios.push(r.ratio); } });
       ratioDataList.innerHTML = "";
-      allRatios.forEach(r => { const opt = document.createElement("option"); opt.value = r; ratioDataList.appendChild(opt); });
+      allRatios.forEach(r => { 
+        const opt = document.createElement("option"); 
+        opt.value = r; 
+        ratioDataList.appendChild(opt); 
+      });
       ratioInput.addEventListener("blur", async () => {
         ratioInput.value = toTitleCase(ratioInput.value.trim());
         const typedRatio = ratioInput.value;
@@ -749,11 +755,11 @@
       statusSelectChemical.classList.add("form-select");
       statusSelectChemical.name = "status-chemical-check";
       statusSelectChemical.innerHTML = `
-                <option value="ok">OK</option>
-                <option value="attention-required">Attention Required</option>
-                <option value="na">N/A</option>
-                <option value="not-checked">Not Checked</option>
-            `;
+        <option value="ok">OK</option>
+        <option value="attention-required">Attention Required</option>
+        <option value="na">N/A</option>
+        <option value="not-checked">Not Checked</option>
+      `;
       chemicalContainer.appendChild(statusSelectChemical);
       const commentsInputChemical = document.createElement("input");
       commentsInputChemical.type = "text";
@@ -785,7 +791,7 @@
       container.appendChild(chemicalContainer);
     }
     /*******************************************
-     * LOAD FORM DATA FROM DRAFT
+     * LOAD DRAFT DATA
      *******************************************/
     function loadFormDataFromRecord(record) {
       const data = record.formData || {};
@@ -836,7 +842,7 @@
       previews.forEach(img => { img.src = ""; img.style.display = "none"; });
     }
     /*******************************************
-     * SAVE FORM DATA (including images) ON INPUT/CHANGE
+     * SAVE FORM DATA (including images)
      *******************************************/
     async function saveFormData() {
       const dairyNumber = document.getElementById("dairy-number").value.trim();
@@ -936,7 +942,7 @@
     }
     window.addEventListener("online", uploadPendingPDFs);
     /*******************************************
-     * GENERATE PDF (including ensuring photo label and image are together)
+     * GENERATE PDF
      *******************************************/
     async function generatePDF() {
       const dairyNumber = document.getElementById("dairy-number").value.trim();
@@ -1074,11 +1080,10 @@
         afterTableY += 15;
         pdf.text(`Time Taken: ${milkTime}`, 40, afterTableY);
         afterTableY += 20;
-        // Place photos (keeping the label and images together)
         let photoY = afterTableY + 20;
         const pageWidth = pdf.internal.pageSize.getWidth();
         photoStore.forEach(photoObj => {
-          const requiredHeight = 15 + 200 + 10; // label (15) + image (200) + margin (10)
+          const requiredHeight = 15 + 200 + 10; // label + image + margin
           if (photoY + requiredHeight > pdf.internal.pageSize.getHeight()) {
             pdf.addPage();
             photoY = 60;
@@ -1200,7 +1205,7 @@
     }
     function goBackToRecords() { loadAllRecords(); }
     /*******************************************
-     * DOMContentLoaded Initialization (Staff Only)
+     * DOMContentLoaded (Staff Only Initialization)
      *******************************************/
     document.addEventListener("DOMContentLoaded", async () => {
       if (localStorage.getItem("userType") === "staff") {
