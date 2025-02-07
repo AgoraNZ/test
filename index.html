@@ -4,7 +4,7 @@
   <!-- PART 1: META & STYLES -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dairy Shed Hygiene Checklist</title>
+  <title>Dairy Shed Hygiene Checklist - Login</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
   <style>
     /* ===== MAIN STYLES ===== */
@@ -12,12 +12,8 @@
       background-color: #002B5C;
       color: #FFFFFF;
       font-family: Arial, sans-serif;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
       margin: 0;
+      padding: 20px;
     }
     .container {
       background-color: #002B5C;
@@ -26,6 +22,7 @@
       box-shadow: 0 0 20px rgba(0,0,0,0.5);
       max-width: 800px;
       width: 100%;
+      margin: 40px auto;
     }
     h1, h2 {
       color: #a7ab01;
@@ -44,6 +41,22 @@
       border-radius: 5px;
     }
     button:hover { background-color: #FF4136; }
+    .hidden {
+      display: none;
+    }
+    /* Login-specific styles */
+    #login-container {
+      max-width: 400px;
+      margin: 100px auto;
+      background-color: #003366;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+    #login-container input {
+      margin-bottom: 15px;
+    }
+    /* The rest of your form styles remain below... */
     .checklist-item { margin-bottom: 30px; }
     .form-control, .form-select { margin-top: 5px; }
     .version {
@@ -99,16 +112,32 @@
   </style>
 </head>
 <body>
-  <!-- PART 2: MAIN FORM CONTAINER -->
-  <div class="container" id="form-container">
+  <!-- LOGIN CONTAINER -->
+  <div id="login-container" class="container">
+    <h2>Login</h2>
+    <form id="login-form">
+      <div class="mb-3">
+        <label for="login-username" class="form-label">Username</label>
+        <input type="text" class="form-control" id="login-username" required>
+      </div>
+      <div class="mb-3">
+        <label for="login-password" class="form-label">Password</label>
+        <input type="password" class="form-control" id="login-password" required>
+      </div>
+      <div id="login-error" class="text-danger text-center"></div>
+      <button type="submit">Login</button>
+    </form>
+  </div>
+
+  <!-- MAIN FORM CONTAINER (hidden until login) -->
+  <div id="form-container" class="container hidden">
     <img src="https://i.postimg.cc/htZPjx5g/logo-89.png" alt="Logo" class="logo">
     <h1>Dairy Shed Hygiene Checklist</h1>
     <form id="hygiene-checklist-form">
-      <!-- SECTION: Farm Details -->
+      <!-- Farm Details Section -->
       <div class="section mb-4">
         <h2>Farm Details</h2>
         <label for="dairy-number">Dairy Number:</label>
-        <!-- On blur, call handleDairyNumberBlur() -->
         <input type="text" class="form-control" id="dairy-number" name="dairy-number"
                onblur="handleDairyNumberBlur();" autocapitalize="words" autocorrect="off" spellcheck="false">
         <label for="dairy-company">Dairy Company:</label>
@@ -204,10 +233,11 @@
       <button type="button" onclick="generatePDF()">Generate PDF</button>
       <button type="button" onclick="viewRecords()">View All Records</button>
     </form>
-    <div class="version">Version 8.3 (Draft Cached Using Keys to Restore Checklist Selections, Comments & Images)</div>
+    <div class="version">Version 8.3 (Draft & PDF Features with Login)</div>
   </div>
+
   <!-- RECORDS VIEW -->
-  <div id="record-container" class="record-container" style="display: none;">
+  <div id="record-container" class="record-container hidden">
     <h2>All Dairy Shed Hygiene Records</h2>
     <div class="search-container">
       <input type="text" id="search-dairy-number" class="form-control" placeholder="Search by Dairy Number"
@@ -216,6 +246,7 @@
     <div id="record-list" class="record-list"></div>
     <button class="back-button" onclick="goBack()">Back to Checklist</button>
   </div>
+
   <!-- PART 4: SCRIPTS -->
   <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
@@ -224,6 +255,36 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
   <script>
+    /*******************************************
+     * Simple Client-Side Login Logic
+     *******************************************/
+    // Hardcoded users (you can add more)
+    const USERS = {
+      "user1": "password1",
+      "user2": "password2"
+      // add additional username: password pairs as needed
+    };
+
+    document.getElementById("login-form").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const username = document.getElementById("login-username").value.trim();
+      const password = document.getElementById("login-password").value;
+      if (USERS[username] && USERS[username] === password) {
+        // Set login flag and show main form
+        localStorage.setItem("loggedIn", "true");
+        document.getElementById("login-container").classList.add("hidden");
+        document.getElementById("form-container").classList.remove("hidden");
+      } else {
+        document.getElementById("login-error").textContent = "Invalid username or password.";
+      }
+    });
+
+    // On load, if user is already logged in, bypass login.
+    if (localStorage.getItem("loggedIn") === "true") {
+      document.getElementById("login-container").classList.add("hidden");
+      document.getElementById("form-container").classList.remove("hidden");
+    }
+
     /*******************************************
      * A: FIREBASE & DEXIE INIT
      *******************************************/
@@ -240,7 +301,6 @@
     const storage = firebase.storage();
     const firestore = firebase.firestore();
     const db = new Dexie("OfflineData");
-    // Use dairyNumber as primary key so only one record exists per dairy number.
     db.version(5).stores({
       forms: "dairyNumber",
       dairyCompanies: "++id, name",
@@ -351,7 +411,6 @@
         );
         if (continueForm) {
           loadFormDataFromRecord(recordToPrompt);
-          // Save the restored checklist data globally for PDF generation.
           window.restoredDraft = recordToPrompt.formData.checklistItems;
         } else {
           await db.forms.delete(recordToPrompt.dairyNumber);
@@ -359,7 +418,6 @@
         }
       }
     }
-    // Called on blur of the dairy-number field (no draft prompt here)
     async function handleDairyNumberBlur() {
       const dairyNumber = document.getElementById('dairy-number').value.trim();
       if (!dairyNumber) return;
@@ -392,7 +450,6 @@
       commentsInput.classList.add("form-control");
       commentsInput.name = "comments-health-safety-notes";
       commentsInput.placeholder = "Comments";
-      // Enable spellcheck and disable autocorrect.
       commentsInput.setAttribute("spellcheck", "true");
       commentsInput.setAttribute("autocorrect", "off");
       itemContainer.appendChild(commentsInput);
@@ -458,7 +515,6 @@
         commentsInput.classList.add("form-control");
         commentsInput.name = `comments-${item}`;
         commentsInput.placeholder = "Comments";
-        // Enable spellcheck.
         commentsInput.setAttribute("spellcheck", "true");
         commentsInput.setAttribute("autocorrect", "off");
         itemContainer.appendChild(commentsInput);
@@ -769,7 +825,6 @@
               imagesBase64.push(base64);
             }
           }
-          // If no new file is selected, use any previously saved images.
           if (record.formData.checklistItems &&
               record.formData.checklistItems[key] &&
               imagesBase64.length === 0) {
@@ -846,7 +901,6 @@
       const form = document.getElementById("hygiene-checklist-form");
       const fd = new FormData(form);
       await saveFarmDetailsToFirebase(fd);
-      // Build an array of items from the form.
       const containers = [
         ...document.getElementById("health-safety-top").children,
         ...document.getElementById("checklist-items").children,
@@ -878,14 +932,12 @@
             imageFiles.push(imgs[1].files[0]);
           }
         }
-        // If no new files, try to load from the restored draft.
         if (imageFiles.length === 0 && window.restoredDraft) {
           const key = labelEl.textContent.trim();
           if (window.restoredDraft[key] && window.restoredDraft[key].imagesBase64 && window.restoredDraft[key].imagesBase64.length > 0) {
             imageFiles = window.restoredDraft[key].imagesBase64;
           }
         }
-        // Append a note if attention-required and images exist.
         if (status === "attention-required" && imageFiles.length > 0) {
           const photoNote = imageFiles.length > 1 ? " (see attached photos)" : " (see attached photo)";
           comments += comments ? photoNote : photoNote;
@@ -898,7 +950,6 @@
         if (obj.imageFiles.length > 0) {
           const p = { itemName: obj.itemName, images: [] };
           obj.imageFiles.forEach((file, idx) => {
-            // If already a Base64 string, use it directly.
             if (typeof file === "string") {
               p.images[idx] = file;
             } else {
@@ -984,18 +1035,17 @@
         afterTableY += 15;
         pdf.text(`Time Taken: ${milkTime}`, 40, afterTableY);
         afterTableY += 20;
-        // Place photos: For each photo group, ensure the label and images stay together.
+        // Place photos: Ensure the label and images are together.
         let photoY = afterTableY + 20;
         const pageWidth = pdf.internal.pageSize.getWidth();
         photoStore.forEach(photoObj => {
-          const requiredHeight = 15 + 200 + 10; // label (15) + image height (200) + margin (10)
+          const requiredHeight = 15 + 200 + 10;
           if (photoY + requiredHeight > pdf.internal.pageSize.getHeight()) {
             pdf.addPage();
             photoY = 60;
           }
           pdf.setFontSize(12);
           pdf.text(photoObj.itemName, 40, photoY);
-          // Add images directly below the label.
           if (photoObj.images.length === 1) {
             pdf.addImage(photoObj.images[0], "JPEG", 40, photoY + 15, 250, 200);
           } else if (photoObj.images.length === 2) {
@@ -1022,7 +1072,6 @@
           await db.pdfQueue.add({ dairyNumber: dairyNumber, fileName: fileName, pdfBlob: pdfBlob, uploaded: false });
           console.log("PDF upload queued for later retry.");
         }
-        // Delete the saved draft and reload the page.
         await db.forms.delete(dairyNumber);
         pdf.save(`Dairy_Shed_Hygiene_Checklist_${dairyNumber}.pdf`);
         uploadPendingPDFs();
@@ -1042,8 +1091,8 @@
      * J: RECORDS VIEW PAGE
      *******************************************/
     function viewRecords() {
-      document.getElementById("form-container").style.display = "none";
-      document.getElementById("record-container").style.display = "block";
+      document.getElementById("form-container").classList.add("hidden");
+      document.getElementById("record-container").classList.remove("hidden");
       loadAllRecords();
     }
     async function loadAllRecords() {
@@ -1107,8 +1156,8 @@
       }
     }
     function goBack() {
-      document.getElementById("form-container").style.display = "block";
-      document.getElementById("record-container").style.display = "none";
+      document.getElementById("form-container").classList.remove("hidden");
+      document.getElementById("record-container").classList.add("hidden");
     }
     function goBackToRecords() { loadAllRecords(); }
     /*******************************************
@@ -1118,14 +1167,11 @@
       const fieldsToAutoCap = ["dairy-number", "dairy-company", "address", "customer-name", "farm-name", "inspection-completed-by"];
       fieldsToAutoCap.forEach(autoCapitalizeInput);
       await setupDairyCompanyDatalist();
-      // FIRST, build all the form sections.
       createHealthSafetyItems("health-safety-top");
       createChecklistItems();
       createSiloChecklist();
       await createAdditionalChecks();
-      // THEN check for any saved draft and restore it.
       await checkForCachedFormOnLoad();
-      // Save form data on every input/change.
       const form = document.getElementById("hygiene-checklist-form");
       form.addEventListener("input", saveFormData);
       form.addEventListener("change", saveFormData);
