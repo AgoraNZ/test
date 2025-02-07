@@ -255,14 +255,17 @@
     <button class="back-button" onclick="logout()">Logout</button>
   </div>
 
-  <!-- RECORDS VIEW (for both staff and customers) -->
+  <!-- RECORDS VIEW (used for both staff and customers) -->
   <div id="record-container" class="record-container hidden">
-    <h2>All Dairy Shed Hygiene Records</h2>
+    <h2>Records for Dairy #<span id="record-dairy-number"></span></h2>
     <div class="search-container">
-      <input type="text" id="search-dairy-number" class="form-control" placeholder="Search by Dairy Number" oninput="filterRecords()">
+      <input type="text" id="search-dairy-number" class="form-control" placeholder="Search by Date" oninput="filterRecords()">
     </div>
     <div id="record-list" class="record-list"></div>
-    <button class="back-button" onclick="goBack()">Back to Checklist</button>
+    <!-- For staff, we show a back button to return to the checklist. Customers will not see it. -->
+    <div id="staff-record-back" class="hidden">
+      <button class="back-button" onclick="goBack()">Back to Checklist</button>
+    </div>
   </div>
 
   <!-- SCRIPTS -->
@@ -283,7 +286,7 @@
     const CUSTOMER_USERS = {
       "customer1@example.com": {
         password: "custpass1",
-        dairyNumbers: ["49", "7040"]
+        dairyNumbers: ["123", "456"]
       },
       "customer2@example.com": {
         password: "custpass2",
@@ -337,7 +340,7 @@
       }
     }
 
-    // For customers: display dairy numbers as clickable links
+    // For customers: display allowed dairy numbers as clickable links.
     function displayCustomerDairyNumbers() {
       const listDiv = document.getElementById("customer-dairy-list");
       const allowed = JSON.parse(localStorage.getItem("allowedDairyNumbers") || "[]");
@@ -350,7 +353,6 @@
           a.href = "#";
           a.textContent = "Dairy #" + num;
           a.addEventListener("click", function() {
-            // When customer clicks a dairy number, load its records.
             loadCustomerRecords(num);
           });
           listDiv.appendChild(a);
@@ -358,12 +360,16 @@
       }
     }
 
-    // For customers: load records view filtered to a specific dairy number.
+    // For customers: load the records view for a specific dairy number.
     function loadCustomerRecords(dairyNumber) {
-      // Hide the customer dairy list container and show the records container.
+      // Set the displayed dairy number in the records view header.
+      document.getElementById("record-dairy-number").textContent = dairyNumber;
+      // Hide the customer container and show the records container.
       document.getElementById("customer-container").classList.add("hidden");
       document.getElementById("record-container").classList.remove("hidden");
-      // Call loadRecordFiles (which loads records for a given dairy number).
+      // For customers, do not show the back button.
+      document.getElementById("staff-record-back").classList.add("hidden");
+      // Load records for the selected dairy number.
       loadRecordFiles(dairyNumber);
     }
 
@@ -421,10 +427,10 @@
       userCompanies.forEach(u => { if (!allCompanies.includes(u.name)) { allCompanies.push(u.name); } });
       const datalist = document.getElementById('dairy-company-list');
       datalist.innerHTML = "";
-      allCompanies.forEach(c => { 
-        const opt = document.createElement('option'); 
-        opt.value = c; 
-        datalist.appendChild(opt); 
+      allCompanies.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        datalist.appendChild(opt);
       });
       const dairyCompanyInput = document.getElementById('dairy-company');
       dairyCompanyInput.addEventListener('blur', async () => {
@@ -751,10 +757,10 @@
       const allRatios = ["1:4"];
       existingRatios.forEach(r => { if (!allRatios.includes(r.ratio)) { allRatios.push(r.ratio); } });
       ratioDataList.innerHTML = "";
-      allRatios.forEach(r => { 
-        const opt = document.createElement("option"); 
-        opt.value = r; 
-        ratioDataList.appendChild(opt); 
+      allRatios.forEach(r => {
+        const opt = document.createElement("option");
+        opt.value = r;
+        ratioDataList.appendChild(opt);
       });
       ratioInput.addEventListener("blur", async () => {
         ratioInput.value = toTitleCase(ratioInput.value.trim());
@@ -1155,8 +1161,42 @@
       }
     }
     /*******************************************
-     * RECORDS VIEW FUNCTIONS (Staff & Customers)
+     * RECORDS VIEW FUNCTIONS
      *******************************************/
+    // This function loads records for a given dairy number.
+    async function loadRecordFiles(dairyNumber) {
+      document.getElementById("record-dairy-number").textContent = dairyNumber;
+      const recordList = document.getElementById("record-list");
+      recordList.innerHTML = "";
+      const folderRef = storage.ref(`customers/${dairyNumber}`);
+      try {
+        const fileSnapshot = await folderRef.listAll();
+        fileSnapshot.items.forEach(fileRef => {
+          const fileName = fileRef.name;
+          const dateMatch = fileName.match(/(\d{4}-\d{2}-\d{2})/);
+          const displayName = dateMatch ? dateMatch[0] : fileName;
+          const fileLink = document.createElement("a");
+          fileLink.textContent = displayName;
+          fileLink.href = "#";
+          fileLink.addEventListener("click", async () => {
+            try {
+              const url = await fileRef.getDownloadURL();
+              window.open(url, "_blank");
+            } catch (err) {
+              console.error("Error fetching file:", err);
+            }
+          });
+          recordList.appendChild(fileLink);
+        });
+        // If the user is a staff member, show the back button.
+        if (localStorage.getItem("userType") === "staff") {
+          document.getElementById("staff-record-back").classList.remove("hidden");
+        }
+      } catch (err) {
+        console.error("Error fetching record files:", err);
+      }
+    }
+    // Staff-only function to view all records.
     function viewRecords() {
       document.getElementById("form-container").classList.add("hidden");
       document.getElementById("record-container").classList.remove("hidden");
@@ -1180,38 +1220,6 @@
         console.error("Error fetching records:", error);
       }
     }
-    async function loadRecordFiles(dairyNumber) {
-      const recordList = document.getElementById("record-list");
-      recordList.innerHTML = "";
-      const folderRef = storage.ref(`customers/${dairyNumber}`);
-      try {
-        const fileSnapshot = await folderRef.listAll();
-        fileSnapshot.items.forEach(fileRef => {
-          const fileName = fileRef.name;
-          const dateMatch = fileName.match(/(\d{4}-\d{2}-\d{2})/);
-          const displayName = dateMatch ? dateMatch[0] : fileName;
-          const fileLink = document.createElement("a");
-          fileLink.textContent = displayName;
-          fileLink.href = "#";
-          fileLink.addEventListener("click", async () => {
-            try {
-              const url = await fileRef.getDownloadURL();
-              window.open(url, "_blank");
-            } catch (err) {
-              console.error("Error fetching file:", err);
-            }
-          });
-          recordList.appendChild(fileLink);
-        });
-        const backBtn = document.createElement("button");
-        backBtn.textContent = "Back to Records";
-        backBtn.className = "back-button";
-        backBtn.addEventListener("click", goBackToRecords);
-        recordList.appendChild(backBtn);
-      } catch (err) {
-        console.error("Error fetching record files:", err);
-      }
-    }
     function filterRecords() {
       const searchValue = document.getElementById("search-dairy-number").value.toLowerCase();
       const recordList = document.getElementById("record-list");
@@ -1222,6 +1230,7 @@
         link.style.display = (txt.toLowerCase().indexOf(searchValue) > -1) ? "" : "none";
       }
     }
+    // For staff only: go back to checklist view.
     function goBack() {
       document.getElementById("form-container").classList.remove("hidden");
       document.getElementById("record-container").classList.add("hidden");
