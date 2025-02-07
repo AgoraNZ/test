@@ -19,7 +19,7 @@
       background-color: #002B5C;
       padding: 30px;
       border-radius: 10px;
-      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
       max-width: 800px;
       width: 100%;
       margin: 40px auto;
@@ -54,7 +54,7 @@
     }
     #login-container input { margin-bottom: 15px; }
     
-    /* Form and record view styles (from your existing code) */
+    /* Form & record view styles */
     .checklist-item { margin-bottom: 30px; }
     .form-control, .form-select { margin-top: 5px; }
     .version {
@@ -106,6 +106,16 @@
       margin-top: 5px;
       border: 2px solid #ccc;
     }
+    
+    /* Customer view styles */
+    #customer-container a {
+      display: block;
+      text-decoration: none;
+      color: #FF851B;
+      margin-bottom: 10px;
+      font-size: 1.2em;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -136,11 +146,10 @@
     </form>
   </div>
 
-  <!-- MAIN FORM CONTAINER (for staff users) -->
+  <!-- MAIN FORM CONTAINER (Staff view) -->
   <div id="form-container" class="container hidden">
     <img src="https://i.postimg.cc/htZPjx5g/logo-89.png" alt="Logo" class="logo">
     <h1>Dairy Shed Hygiene Checklist</h1>
-    <!-- (Paste your full form code here; the code below is your form and associated logic) -->
     <form id="hygiene-checklist-form">
       <!-- Farm Details Section -->
       <div class="section mb-4">
@@ -243,11 +252,10 @@
     <h2>Customer Records</h2>
     <p>Your account allows you to view records for the following Dairy Numbers:</p>
     <div id="customer-dairy-list"></div>
-    <!-- (You can later add links to view/download PDFs for these dairy numbers.) -->
     <button class="back-button" onclick="logout()">Logout</button>
   </div>
 
-  <!-- RECORDS VIEW (optional, used by staff) -->
+  <!-- RECORDS VIEW (for both staff and customers) -->
   <div id="record-container" class="record-container hidden">
     <h2>All Dairy Shed Hygiene Records</h2>
     <div class="search-container">
@@ -275,7 +283,7 @@
     const CUSTOMER_USERS = {
       "customer1@example.com": {
         password: "custpass1",
-        dairyNumbers: ["49", "7040"]
+        dairyNumbers: ["123", "456"]
       },
       "customer2@example.com": {
         password: "custpass2",
@@ -329,6 +337,7 @@
       }
     }
 
+    // For customers: display dairy numbers as clickable links
     function displayCustomerDairyNumbers() {
       const listDiv = document.getElementById("customer-dairy-list");
       const allowed = JSON.parse(localStorage.getItem("allowedDairyNumbers") || "[]");
@@ -337,11 +346,25 @@
         listDiv.textContent = "No dairy numbers assigned to your account.";
       } else {
         allowed.forEach(num => {
-          const p = document.createElement("p");
-          p.textContent = "Dairy #" + num;
-          listDiv.appendChild(p);
+          const a = document.createElement("a");
+          a.href = "#";
+          a.textContent = "Dairy #" + num;
+          a.addEventListener("click", function() {
+            // When customer clicks a dairy number, load its records.
+            loadCustomerRecords(num);
+          });
+          listDiv.appendChild(a);
         });
       }
+    }
+
+    // For customers: load records view filtered to a specific dairy number.
+    function loadCustomerRecords(dairyNumber) {
+      // Hide the customer dairy list container and show the records container.
+      document.getElementById("customer-container").classList.add("hidden");
+      document.getElementById("record-container").classList.remove("hidden");
+      // Call loadRecordFiles (which loads records for a given dairy number).
+      loadRecordFiles(dairyNumber);
     }
 
     /*******************************************
@@ -791,7 +814,7 @@
       container.appendChild(chemicalContainer);
     }
     /*******************************************
-     * LOAD DRAFT DATA
+     * LOAD FORM DATA FROM DRAFT
      *******************************************/
     function loadFormDataFromRecord(record) {
       const data = record.formData || {};
@@ -1083,7 +1106,7 @@
         let photoY = afterTableY + 20;
         const pageWidth = pdf.internal.pageSize.getWidth();
         photoStore.forEach(photoObj => {
-          const requiredHeight = 15 + 200 + 10; // label + image + margin
+          const requiredHeight = 15 + 200 + 10;
           if (photoY + requiredHeight > pdf.internal.pageSize.getHeight()) {
             pdf.addPage();
             photoY = 60;
@@ -1132,7 +1155,7 @@
       }
     }
     /*******************************************
-     * RECORDS VIEW FUNCTIONS
+     * RECORDS VIEW FUNCTIONS (Staff & Customers)
      *******************************************/
     function viewRecords() {
       document.getElementById("form-container").classList.add("hidden");
