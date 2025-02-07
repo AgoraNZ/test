@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- PART 1: META & STYLES -->
+  <!-- META & STYLES -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dairy Shed Hygiene Checklist - Login</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
   <style>
-    /* ===== MAIN STYLES ===== */
+    /* Global container styles */
     body {
       background-color: #002B5C;
       color: #FFFFFF;
@@ -25,8 +25,8 @@
       margin: 40px auto;
     }
     h1, h2 {
-      color: #a7ab01;
       text-align: center;
+      color: #a7ab01;
     }
     h1 { margin-bottom: 40px; }
     label { margin-top: 10px; }
@@ -41,9 +41,7 @@
       border-radius: 5px;
     }
     button:hover { background-color: #FF4136; }
-    .hidden {
-      display: none;
-    }
+    .hidden { display: none; }
     /* Login-specific styles */
     #login-container {
       max-width: 400px;
@@ -53,17 +51,15 @@
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.5);
     }
-    #login-container input {
-      margin-bottom: 15px;
-    }
-    /* The rest of your form styles remain below... */
+    #login-container input { margin-bottom: 15px; }
+    /* Form-specific styles (unchanged from your previous code) */
     .checklist-item { margin-bottom: 30px; }
     .form-control, .form-select { margin-top: 5px; }
     .version {
       text-align: center;
       margin-top: 20px;
-      color: #FFFFFF;
       font-size: 12px;
+      color: #FFFFFF;
     }
     .logo {
       display: block;
@@ -101,7 +97,6 @@
       cursor: pointer;
     }
     .search-container { margin-bottom: 20px; }
-    /* For Image Previews */
     .image-preview {
       display: none;
       max-width: 200px;
@@ -124,25 +119,34 @@
         <label for="login-password" class="form-label">Password</label>
         <input type="password" class="form-control" id="login-password" required>
       </div>
+      <div class="mb-3">
+        <label class="form-label">Login as:</label>
+        <div>
+          <input type="radio" name="userType" value="staff" id="userType-staff" checked>
+          <label for="userType-staff">Staff</label>
+          &nbsp;&nbsp;
+          <input type="radio" name="userType" value="customer" id="userType-customer">
+          <label for="userType-customer">Customer</label>
+        </div>
+      </div>
       <div id="login-error" class="text-danger text-center"></div>
       <button type="submit">Login</button>
     </form>
   </div>
 
-  <!-- MAIN FORM CONTAINER (hidden until login) -->
+  <!-- MAIN FORM CONTAINER (for staff users) -->
   <div id="form-container" class="container hidden">
     <img src="https://i.postimg.cc/htZPjx5g/logo-89.png" alt="Logo" class="logo">
     <h1>Dairy Shed Hygiene Checklist</h1>
+    <!-- (Insert your full form code here; see below for the complete form code) -->
     <form id="hygiene-checklist-form">
       <!-- Farm Details Section -->
       <div class="section mb-4">
         <h2>Farm Details</h2>
         <label for="dairy-number">Dairy Number:</label>
-        <input type="text" class="form-control" id="dairy-number" name="dairy-number"
-               onblur="handleDairyNumberBlur();" autocapitalize="words" autocorrect="off" spellcheck="false">
+        <input type="text" class="form-control" id="dairy-number" name="dairy-number" onblur="handleDairyNumberBlur();" autocapitalize="words" autocorrect="off" spellcheck="false">
         <label for="dairy-company">Dairy Company:</label>
-        <input type="text" class="form-control" id="dairy-company" name="dairy-company"
-               list="dairy-company-list" placeholder="Type or select..." autocapitalize="words" autocorrect="off" spellcheck="false">
+        <input type="text" class="form-control" id="dairy-company" name="dairy-company" list="dairy-company-list" placeholder="Type or select..." autocapitalize="words" autocorrect="off" spellcheck="false">
         <datalist id="dairy-company-list"></datalist>
         <label for="address">Address:</label>
         <input type="text" class="form-control" id="address" name="address" autocapitalize="words" autocorrect="off" spellcheck="false">
@@ -176,15 +180,13 @@
         <label for="visit-date">Visit Date:</label>
         <input type="date" class="form-control" id="visit-date" name="visit-date">
         <label for="visit-type">Visit Type:</label>
-        <input type="text" class="form-control" id="visit-type" name="visit-type"
-               value="Milking Plant & Milk Vat Check" readonly autocapitalize="words" autocorrect="off" spellcheck="false">
+        <input type="text" class="form-control" id="visit-type" name="visit-type" value="Milking Plant & Milk Vat Check" readonly autocapitalize="words" autocorrect="off" spellcheck="false">
         <label for="inspection-start-time">Inspection Start Time:</label>
         <input type="time" class="form-control" id="inspection-start-time" name="inspection-start-time">
         <label for="inspection-end-time">Inspection End Time:</label>
         <input type="time" class="form-control" id="inspection-end-time" name="inspection-end-time">
         <label for="inspection-completed-by">Inspection Completed By:</label>
-        <input type="text" class="form-control" id="inspection-completed-by" name="inspection-completed-by"
-               autocapitalize="words" autocorrect="off" spellcheck="false">
+        <input type="text" class="form-control" id="inspection-completed-by" name="inspection-completed-by" autocapitalize="words" autocorrect="off" spellcheck="false">
         <label for="call-type">Call Type:</label>
         <select id="call-type" name="call-type" class="form-select">
           <option value="alert">Alert</option>
@@ -217,15 +219,13 @@
         <h2>Temperature Measurements</h2>
         <div class="checklist-item">
           <label for="hot-water-temp">Hot Water Temp (°C):</label>
-          <input type="text" class="form-control" id="hot-water-temp" name="hot-water-temp" step="0.1"
-                 autocapitalize="sentences" autocorrect="off" spellcheck="true">
+          <input type="text" class="form-control" id="hot-water-temp" name="hot-water-temp" step="0.1" autocapitalize="sentences" autocorrect="off" spellcheck="true">
           <label for="hot-water-time">Time Taken:</label>
           <input type="time" class="form-control" id="hot-water-time" name="hot-water-time">
         </div>
         <div class="checklist-item">
           <label for="milk-temp">Milk Temp (°C):</label>
-          <input type="text" class="form-control" id="milk-temp" name="milk-temp" step="0.1"
-                 autocapitalize="sentences" autocorrect="off" spellcheck="true">
+          <input type="text" class="form-control" id="milk-temp" name="milk-temp" step="0.1" autocapitalize="sentences" autocorrect="off" spellcheck="true">
           <label for="milk-time">Time Taken:</label>
           <input type="time" class="form-control" id="milk-time" name="milk-time">
         </div>
@@ -233,21 +233,29 @@
       <button type="button" onclick="generatePDF()">Generate PDF</button>
       <button type="button" onclick="viewRecords()">View All Records</button>
     </form>
-    <div class="version">Version 8.3 (Draft & PDF Features with Login)</div>
+    <div class="version">Version 8.3 (Staff - Full Features)</div>
   </div>
 
-  <!-- RECORDS VIEW -->
+  <!-- CUSTOMER RECORDS VIEW (for customer users) -->
+  <div id="customer-container" class="container hidden">
+    <h2>Customer Records</h2>
+    <p>Your account allows you to view records for the following Dairy Numbers:</p>
+    <div id="customer-dairy-list"></div>
+    <!-- Here you could add additional functionality to view/download PDFs for each dairy number -->
+    <button class="back-button" onclick="logout()">Logout</button>
+  </div>
+
+  <!-- RECORDS VIEW (if needed; this example uses the same view for staff) -->
   <div id="record-container" class="record-container hidden">
     <h2>All Dairy Shed Hygiene Records</h2>
     <div class="search-container">
-      <input type="text" id="search-dairy-number" class="form-control" placeholder="Search by Dairy Number"
-             oninput="filterRecords()">
+      <input type="text" id="search-dairy-number" class="form-control" placeholder="Search by Dairy Number" oninput="filterRecords()">
     </div>
     <div id="record-list" class="record-list"></div>
     <button class="back-button" onclick="goBack()">Back to Checklist</button>
   </div>
 
-  <!-- PART 4: SCRIPTS -->
+  <!-- SCRIPTS -->
   <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
@@ -256,37 +264,90 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
   <script>
     /*******************************************
-     * Simple Client-Side Login Logic
+     * SIMPLE CLIENT-SIDE LOGIN LOGIC
      *******************************************/
-    // Hardcoded users (you can add more)
-    const USERS = {
+    // Hardcoded credentials for staff and customers.
+    const STAFF_USERS = {
       "user1": "password1",
       "user2": "password2"
-      // add additional username: password pairs as needed
+    };
+    const CUSTOMER_USERS = {
+      "customer1@example.com": {
+        password: "custpass1",
+        dairyNumbers: ["123", "456"]
+      },
+      "customer2@example.com": {
+        password: "custpass2",
+        dairyNumbers: ["789"]
+      }
     };
 
     document.getElementById("login-form").addEventListener("submit", function(e) {
       e.preventDefault();
       const username = document.getElementById("login-username").value.trim();
       const password = document.getElementById("login-password").value;
-      if (USERS[username] && USERS[username] === password) {
-        // Set login flag and show main form
-        localStorage.setItem("loggedIn", "true");
-        document.getElementById("login-container").classList.add("hidden");
-        document.getElementById("form-container").classList.remove("hidden");
-      } else {
-        document.getElementById("login-error").textContent = "Invalid username or password.";
+      const userType = document.querySelector('input[name="userType"]:checked').value;
+      if (userType === "staff") {
+        if (STAFF_USERS[username] && STAFF_USERS[username] === password) {
+          localStorage.setItem("loggedIn", "true");
+          localStorage.setItem("userType", "staff");
+          document.getElementById("login-container").classList.add("hidden");
+          document.getElementById("form-container").classList.remove("hidden");
+        } else {
+          document.getElementById("login-error").textContent = "Invalid staff credentials.";
+        }
+      } else if (userType === "customer") {
+        if (CUSTOMER_USERS[username] && CUSTOMER_USERS[username].password === password) {
+          localStorage.setItem("loggedIn", "true");
+          localStorage.setItem("userType", "customer");
+          localStorage.setItem("allowedDairyNumbers", JSON.stringify(CUSTOMER_USERS[username].dairyNumbers));
+          document.getElementById("login-container").classList.add("hidden");
+          document.getElementById("customer-container").classList.remove("hidden");
+          displayCustomerDairyNumbers();
+        } else {
+          document.getElementById("login-error").textContent = "Invalid customer credentials.";
+        }
       }
     });
 
-    // On load, if user is already logged in, bypass login.
+    // Logout function.
+    function logout() {
+      localStorage.removeItem("loggedIn");
+      localStorage.removeItem("userType");
+      localStorage.removeItem("allowedDairyNumbers");
+      location.reload();
+    }
+
+    // If already logged in, bypass login.
     if (localStorage.getItem("loggedIn") === "true") {
+      const userType = localStorage.getItem("userType");
       document.getElementById("login-container").classList.add("hidden");
-      document.getElementById("form-container").classList.remove("hidden");
+      if (userType === "staff") {
+        document.getElementById("form-container").classList.remove("hidden");
+      } else if (userType === "customer") {
+        document.getElementById("customer-container").classList.remove("hidden");
+        displayCustomerDairyNumbers();
+      }
+    }
+
+    // Display allowed dairy numbers for a customer.
+    function displayCustomerDairyNumbers() {
+      const listDiv = document.getElementById("customer-dairy-list");
+      const allowed = JSON.parse(localStorage.getItem("allowedDairyNumbers") || "[]");
+      listDiv.innerHTML = "";
+      if (allowed.length === 0) {
+        listDiv.textContent = "No dairy numbers assigned to your account.";
+      } else {
+        allowed.forEach(num => {
+          const p = document.createElement("p");
+          p.textContent = "Dairy #" + num;
+          listDiv.appendChild(p);
+        });
+      }
     }
 
     /*******************************************
-     * A: FIREBASE & DEXIE INIT
+     * FIREBASE & DEXIE INITIALIZATION
      *******************************************/
     const { jsPDF } = window.jspdf;
     const firebaseConfig = {
@@ -313,7 +374,7 @@
         .catch(err => console.error('SW registration failed:', err));
     }
     /*******************************************
-     * A1: Title Case Utility
+     * TITLE CASE UTILITY
      *******************************************/
     function toTitleCase(str) {
       return str.replace(/\w\S*/g, function(txt) {
@@ -326,7 +387,7 @@
       el.addEventListener('blur', () => { el.value = toTitleCase(el.value); });
     }
     /*******************************************
-     * B: SETUP DAIRY COMPANY DATALIST
+     * SETUP DAIRY COMPANY DATALIST
      *******************************************/
     async function setupDairyCompanyDatalist() {
       const defaultCompanies = [
@@ -354,7 +415,7 @@
       });
     }
     /*******************************************
-     * C: FETCH FARM DETAILS
+     * FETCH FARM DETAILS
      *******************************************/
     async function fetchFarmDetails() {
       const dairyNumber = document.getElementById('dairy-number').value.trim();
@@ -378,7 +439,7 @@
       }
     }
     /*******************************************
-     * D: CHECK/CREATE FORM RECORD
+     * CHECK/CREATE FORM RECORD
      *******************************************/
     async function checkOrCreateFormRecord() {
       const dairyNumber = document.getElementById('dairy-number').value.trim();
@@ -390,8 +451,7 @@
       }
     }
     /*******************************************
-     * NEW: On Page Load, Prompt for a Cached Draft
-     * (A draft is considered if any checklist item’s status is not "ok")
+     * CHECK FOR CACHED DRAFT
      *******************************************/
     async function checkForCachedFormOnLoad() {
       const records = await db.forms.toArray();
@@ -425,7 +485,7 @@
       await checkOrCreateFormRecord();
     }
     /*******************************************
-     * E1: CREATE HEALTH & SAFETY ITEMS
+     * CREATE FORM SECTIONS (Health & Safety, Plant Checklist, Silo Checklist, Additional Checks)
      *******************************************/
     function createHealthSafetyItems(containerId) {
       const container = document.getElementById(containerId);
@@ -480,9 +540,6 @@
       });
       container.appendChild(itemContainer);
     }
-    /*******************************************
-     * E2: CREATE PLANT CHECKLIST
-     *******************************************/
     function createChecklistItems() {
       const checklistItems = [
         "Pulsator Airline", "Long Bend Elbows", "Automatic Cup and Remover", "Diaphragm", "Receiving Can",
@@ -540,9 +597,6 @@
         container.appendChild(itemContainer);
       });
     }
-    /*******************************************
-     * E3: CREATE SILO CHECKLIST
-     *******************************************/
     function createSiloChecklist() {
       const siloItems = [
         "Inlet Valve", "Non-Return Valve", "Spray Ball", "Agitator",
@@ -605,9 +659,6 @@
         container.appendChild(itemContainer);
       });
     }
-    /*******************************************
-     * E4: CREATE ADDITIONAL CHECKS
-     *******************************************/
     async function createAdditionalChecks() {
       const container = document.getElementById("additional-checks");
       container.innerHTML = "";
@@ -734,19 +785,16 @@
       container.appendChild(chemicalContainer);
     }
     /*******************************************
-     * F1: LOAD FORM DATA (including images)
-     * Uses the saved object keyed by checklist item name.
+     * LOAD FORM DATA FROM DRAFT
      *******************************************/
     function loadFormDataFromRecord(record) {
       const data = record.formData || {};
       document.getElementById("dairy-number").value = record.dairyNumber;
-      // Restore basic fields.
       for (let key in data) {
         if (key === "checklistItems") continue;
         const field = document.getElementById(key) || document.getElementsByName(key)[0];
         if (field) { field.value = data[key]; }
       }
-      // Restore checklist items.
       if (data.checklistItems) {
         const containers = [
           ...document.getElementById("health-safety-top").children,
@@ -788,8 +836,7 @@
       previews.forEach(img => { img.src = ""; img.style.display = "none"; });
     }
     /*******************************************
-     * G: SAVE FORM DATA ON INPUT (including images)
-     * Saves checklist items as an object keyed by the label text.
+     * SAVE FORM DATA (including images) ON INPUT/CHANGE
      *******************************************/
     async function saveFormData() {
       const dairyNumber = document.getElementById("dairy-number").value.trim();
@@ -798,9 +845,7 @@
       if (!record) { record = { dairyNumber, formData: {}, creationTime: Date.now() }; }
       const form = document.getElementById("hygiene-checklist-form");
       const formDataObj = new FormData(form);
-      // Save basic fields.
       const data = Object.fromEntries(Array.from(formDataObj.entries()).filter(([k, v]) => v.trim() !== ""));
-      // For checklist items, build an object keyed by the label text.
       const containersToCheck = [
         document.getElementById("health-safety-top").children,
         document.getElementById("checklist-items").children,
@@ -825,9 +870,7 @@
               imagesBase64.push(base64);
             }
           }
-          if (record.formData.checklistItems &&
-              record.formData.checklistItems[key] &&
-              imagesBase64.length === 0) {
+          if (record.formData.checklistItems && record.formData.checklistItems[key] && imagesBase64.length === 0) {
             imagesBase64 = record.formData.checklistItems[key].imagesBase64 || [];
           }
           checklistItemsData[key] = { status, comments, imagesBase64 };
@@ -846,7 +889,7 @@
       });
     }
     /*******************************************
-     * H: SAVE FARM DETAILS TO FIREBASE
+     * SAVE FARM DETAILS TO FIREBASE
      *******************************************/
     async function saveFarmDetailsToFirebase(fd) {
       const dairyNumber = fd.get("dairy-number") || "";
@@ -869,7 +912,7 @@
       }
     }
     /*******************************************
-     * H2: PDF UPLOAD RETRY LOGIC
+     * PDF UPLOAD RETRY LOGIC
      *******************************************/
     async function uploadPendingPDFs() {
       if (!navigator.onLine) return;
@@ -893,7 +936,7 @@
     }
     window.addEventListener("online", uploadPendingPDFs);
     /*******************************************
-     * I: GENERATE PDF
+     * GENERATE PDF (including ensuring photo label and image are together)
      *******************************************/
     async function generatePDF() {
       const dairyNumber = document.getElementById("dairy-number").value.trim();
@@ -925,12 +968,8 @@
         const imgs = item.querySelectorAll('input[type="file"]');
         let imageFiles = [];
         if (imgs.length > 0) {
-          if (imgs[0].files[0]) {
-            imageFiles.push(imgs[0].files[0]);
-          }
-          if (imgs[1].files[0]) {
-            imageFiles.push(imgs[1].files[0]);
-          }
+          if (imgs[0].files[0]) imageFiles.push(imgs[0].files[0]);
+          if (imgs[1].files[0]) imageFiles.push(imgs[1].files[0]);
         }
         if (imageFiles.length === 0 && window.restoredDraft) {
           const key = labelEl.textContent.trim();
@@ -1035,11 +1074,11 @@
         afterTableY += 15;
         pdf.text(`Time Taken: ${milkTime}`, 40, afterTableY);
         afterTableY += 20;
-        // Place photos: Ensure the label and images are together.
+        // Place photos (keeping the label and images together)
         let photoY = afterTableY + 20;
         const pageWidth = pdf.internal.pageSize.getWidth();
         photoStore.forEach(photoObj => {
-          const requiredHeight = 15 + 200 + 10;
+          const requiredHeight = 15 + 200 + 10; // label (15) + image (200) + margin (10)
           if (photoY + requiredHeight > pdf.internal.pageSize.getHeight()) {
             pdf.addPage();
             photoY = 60;
@@ -1088,7 +1127,7 @@
       }
     }
     /*******************************************
-     * J: RECORDS VIEW PAGE
+     * RECORDS VIEW FUNCTIONS
      *******************************************/
     function viewRecords() {
       document.getElementById("form-container").classList.add("hidden");
@@ -1161,21 +1200,23 @@
     }
     function goBackToRecords() { loadAllRecords(); }
     /*******************************************
-     * K: DOMContentLoaded
+     * DOMContentLoaded Initialization (Staff Only)
      *******************************************/
     document.addEventListener("DOMContentLoaded", async () => {
-      const fieldsToAutoCap = ["dairy-number", "dairy-company", "address", "customer-name", "farm-name", "inspection-completed-by"];
-      fieldsToAutoCap.forEach(autoCapitalizeInput);
-      await setupDairyCompanyDatalist();
-      createHealthSafetyItems("health-safety-top");
-      createChecklistItems();
-      createSiloChecklist();
-      await createAdditionalChecks();
-      await checkForCachedFormOnLoad();
-      const form = document.getElementById("hygiene-checklist-form");
-      form.addEventListener("input", saveFormData);
-      form.addEventListener("change", saveFormData);
-      uploadPendingPDFs();
+      if (localStorage.getItem("userType") === "staff") {
+        const fieldsToAutoCap = ["dairy-number", "dairy-company", "address", "customer-name", "farm-name", "inspection-completed-by"];
+        fieldsToAutoCap.forEach(autoCapitalizeInput);
+        await setupDairyCompanyDatalist();
+        createHealthSafetyItems("health-safety-top");
+        createChecklistItems();
+        createSiloChecklist();
+        await createAdditionalChecks();
+        await checkForCachedFormOnLoad();
+        const form = document.getElementById("hygiene-checklist-form");
+        form.addEventListener("input", saveFormData);
+        form.addEventListener("change", saveFormData);
+        uploadPendingPDFs();
+      }
     });
   </script>
 </body>
