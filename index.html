@@ -255,14 +255,16 @@
     <button class="back-button" onclick="logout()">Logout</button>
   </div>
 
-  <!-- RECORDS VIEW (used for both staff and customers) -->
+  <!-- RECORDS VIEW (for both staff and customers) -->
   <div id="record-container" class="record-container hidden">
     <h2>Records for Dairy #<span id="record-dairy-number"></span></h2>
     <div class="search-container">
       <input type="text" id="search-dairy-number" class="form-control" placeholder="Search by Date" oninput="filterRecords()">
     </div>
     <div id="record-list" class="record-list"></div>
-    <!-- For staff, we show a back button to return to the checklist. Customers will not see it. -->
+    <div id="customer-record-back" class="hidden">
+      <button class="back-button" onclick="backToCustomerRecords()">Back to Dairy Numbers</button>
+    </div>
     <div id="staff-record-back" class="hidden">
       <button class="back-button" onclick="goBack()">Back to Checklist</button>
     </div>
@@ -286,7 +288,7 @@
     const CUSTOMER_USERS = {
       "customer1@example.com": {
         password: "custpass1",
-        dairyNumbers: ["123", "456"]
+        dairyNumbers: ["49", "7040"]
       },
       "customer2@example.com": {
         password: "custpass2",
@@ -362,15 +364,19 @@
 
     // For customers: load the records view for a specific dairy number.
     function loadCustomerRecords(dairyNumber) {
-      // Set the displayed dairy number in the records view header.
       document.getElementById("record-dairy-number").textContent = dairyNumber;
-      // Hide the customer container and show the records container.
       document.getElementById("customer-container").classList.add("hidden");
       document.getElementById("record-container").classList.remove("hidden");
-      // For customers, do not show the back button.
+      // Show the customer back button and hide the staff one.
+      document.getElementById("customer-record-back").classList.remove("hidden");
       document.getElementById("staff-record-back").classList.add("hidden");
-      // Load records for the selected dairy number.
       loadRecordFiles(dairyNumber);
+    }
+
+    // For customers: back button returns to dairy numbers view.
+    function backToCustomerRecords() {
+      document.getElementById("record-container").classList.add("hidden");
+      document.getElementById("customer-container").classList.remove("hidden");
     }
 
     /*******************************************
@@ -1112,7 +1118,7 @@
         let photoY = afterTableY + 20;
         const pageWidth = pdf.internal.pageSize.getWidth();
         photoStore.forEach(photoObj => {
-          const requiredHeight = 15 + 200 + 10;
+          const requiredHeight = 15 + 200 + 10; // label + image + margin
           if (photoY + requiredHeight > pdf.internal.pageSize.getHeight()) {
             pdf.addPage();
             photoY = 60;
@@ -1188,20 +1194,19 @@
           });
           recordList.appendChild(fileLink);
         });
-        // If the user is a staff member, show the back button.
+        // For staff, show a back button.
         if (localStorage.getItem("userType") === "staff") {
           document.getElementById("staff-record-back").classList.remove("hidden");
+        }
+        // For customers, show the back-to-dairy-numbers button.
+        if (localStorage.getItem("userType") === "customer") {
+          document.getElementById("customer-record-back").classList.remove("hidden");
         }
       } catch (err) {
         console.error("Error fetching record files:", err);
       }
     }
-    // Staff-only function to view all records.
-    function viewRecords() {
-      document.getElementById("form-container").classList.add("hidden");
-      document.getElementById("record-container").classList.remove("hidden");
-      loadAllRecords();
-    }
+    // For staff: view all records.
     async function loadAllRecords() {
       const recordList = document.getElementById("record-list");
       recordList.innerHTML = "";
@@ -1220,6 +1225,12 @@
         console.error("Error fetching records:", error);
       }
     }
+    // Staff-only: view records view.
+    function viewRecords() {
+      document.getElementById("form-container").classList.add("hidden");
+      document.getElementById("record-container").classList.remove("hidden");
+      loadAllRecords();
+    }
     function filterRecords() {
       const searchValue = document.getElementById("search-dairy-number").value.toLowerCase();
       const recordList = document.getElementById("record-list");
@@ -1230,12 +1241,11 @@
         link.style.display = (txt.toLowerCase().indexOf(searchValue) > -1) ? "" : "none";
       }
     }
-    // For staff only: go back to checklist view.
+    // For staff: go back to checklist view.
     function goBack() {
       document.getElementById("form-container").classList.remove("hidden");
       document.getElementById("record-container").classList.add("hidden");
     }
-    function goBackToRecords() { loadAllRecords(); }
     /*******************************************
      * DOMContentLoaded (Staff Only Initialization)
      *******************************************/
