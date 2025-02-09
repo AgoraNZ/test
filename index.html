@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- META & STYLES -->
+  <!-- PART 1: META & STYLES -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dairy Shed Hygiene Checklist - Login</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
   <style>
-    /* Global styles */
+    /* ===== MAIN STYLES ===== */
     body {
       background-color: #002B5C;
       color: #FFFFFF;
@@ -25,8 +25,8 @@
       margin: 40px auto;
     }
     h1, h2 {
-      text-align: center;
       color: #a7ab01;
+      text-align: center;
     }
     h1 { margin-bottom: 40px; }
     label { margin-top: 10px; }
@@ -41,9 +41,10 @@
       border-radius: 5px;
     }
     button:hover { background-color: #FF4136; }
-    .hidden { display: none; }
-    
-    /* Login container */
+    .hidden {
+      display: none;
+    }
+    /* Login-specific styles */
     #login-container {
       max-width: 400px;
       margin: 100px auto;
@@ -52,16 +53,17 @@
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.5);
     }
-    #login-container input { margin-bottom: 15px; }
-    
-    /* Form & record view styles */
+    #login-container input {
+      margin-bottom: 15px;
+    }
+    /* The rest of your form styles below */
     .checklist-item { margin-bottom: 30px; }
     .form-control, .form-select { margin-top: 5px; }
     .version {
       text-align: center;
       margin-top: 20px;
-      font-size: 12px;
       color: #FFFFFF;
+      font-size: 12px;
     }
     .logo {
       display: block;
@@ -99,22 +101,13 @@
       cursor: pointer;
     }
     .search-container { margin-bottom: 20px; }
+    /* For Image Previews */
     .image-preview {
       display: none;
       max-width: 200px;
       max-height: 200px;
       margin-top: 5px;
       border: 2px solid #ccc;
-    }
-    
-    /* Customer view styles */
-    #customer-container a {
-      display: block;
-      text-decoration: none;
-      color: #FF851B;
-      margin-bottom: 10px;
-      font-size: 1.2em;
-      text-align: center;
     }
   </style>
 </head>
@@ -131,22 +124,12 @@
         <label for="login-password" class="form-label">Password</label>
         <input type="password" class="form-control" id="login-password" required>
       </div>
-      <div class="mb-3">
-        <label class="form-label">Login as:</label>
-        <div>
-          <input type="radio" name="userType" value="staff" id="userType-staff" checked>
-          <label for="userType-staff">Staff</label>
-          &nbsp;&nbsp;
-          <input type="radio" name="userType" value="customer" id="userType-customer">
-          <label for="userType-customer">Customer</label>
-        </div>
-      </div>
       <div id="login-error" class="text-danger text-center"></div>
       <button type="submit">Login</button>
     </form>
   </div>
 
-  <!-- MAIN FORM CONTAINER (Staff view) -->
+  <!-- MAIN FORM CONTAINER (hidden until login) -->
   <div id="form-container" class="container hidden">
     <img src="https://i.postimg.cc/htZPjx5g/logo-89.png" alt="Logo" class="logo">
     <h1>Dairy Shed Hygiene Checklist</h1>
@@ -155,9 +138,11 @@
       <div class="section mb-4">
         <h2>Farm Details</h2>
         <label for="dairy-number">Dairy Number:</label>
-        <input type="text" class="form-control" id="dairy-number" name="dairy-number" onblur="handleDairyNumberBlur();" autocapitalize="words" autocorrect="off" spellcheck="false">
+        <input type="text" class="form-control" id="dairy-number" name="dairy-number"
+               onblur="handleDairyNumberBlur();" autocapitalize="words" autocorrect="off" spellcheck="false">
         <label for="dairy-company">Dairy Company:</label>
-        <input type="text" class="form-control" id="dairy-company" name="dairy-company" list="dairy-company-list" placeholder="Type or select..." autocapitalize="words" autocorrect="off" spellcheck="false">
+        <input type="text" class="form-control" id="dairy-company" name="dairy-company"
+               list="dairy-company-list" placeholder="Type or select..." autocapitalize="words" autocorrect="off" spellcheck="false">
         <datalist id="dairy-company-list"></datalist>
         <label for="address">Address:</label>
         <input type="text" class="form-control" id="address" name="address" autocapitalize="words" autocorrect="off" spellcheck="false">
@@ -191,13 +176,15 @@
         <label for="visit-date">Visit Date:</label>
         <input type="date" class="form-control" id="visit-date" name="visit-date">
         <label for="visit-type">Visit Type:</label>
-        <input type="text" class="form-control" id="visit-type" name="visit-type" value="Milking Plant & Milk Vat Check" readonly autocapitalize="words" autocorrect="off" spellcheck="false">
+        <input type="text" class="form-control" id="visit-type" name="visit-type"
+               value="Milking Plant & Milk Vat Check" readonly autocapitalize="words" autocorrect="off" spellcheck="false">
         <label for="inspection-start-time">Inspection Start Time:</label>
         <input type="time" class="form-control" id="inspection-start-time" name="inspection-start-time">
         <label for="inspection-end-time">Inspection End Time:</label>
         <input type="time" class="form-control" id="inspection-end-time" name="inspection-end-time">
         <label for="inspection-completed-by">Inspection Completed By:</label>
-        <input type="text" class="form-control" id="inspection-completed-by" name="inspection-completed-by" autocapitalize="words" autocorrect="off" spellcheck="false">
+        <input type="text" class="form-control" id="inspection-completed-by" name="inspection-completed-by"
+               autocapitalize="words" autocorrect="off" spellcheck="false">
         <label for="call-type">Call Type:</label>
         <select id="call-type" name="call-type" class="form-select">
           <option value="alert">Alert</option>
@@ -205,38 +192,40 @@
           <option value="regular-scheduled-visit" selected>Regular Scheduled Visit</option>
         </select>
       </div>
-      <!-- HEALTH & SAFETY Section -->
+      <!-- HEALTH & SAFETY -->
       <div class="section mb-4">
         <h2>Health & Safety</h2>
         <div id="health-safety-top"></div>
       </div>
-      <!-- PLANT CHECKLIST Section -->
+      <!-- PLANT CHECKLIST -->
       <div class="section mb-4">
         <h2>Plant Checklist</h2>
         <div id="checklist-items"></div>
       </div>
-      <!-- SILO CHECKLIST Section -->
+      <!-- SILO CHECKLIST -->
       <div class="section mb-4">
         <h2>Silo Checklist</h2>
         <div id="silo-checklist"></div>
       </div>
-      <!-- ADDITIONAL CHECKS Section -->
+      <!-- ADDITIONAL CHECKS -->
       <div class="section mb-4">
         <h2>Additional Checks</h2>
         <div id="additional-checks"></div>
       </div>
-      <!-- TEMPERATURE MEASUREMENTS Section -->
+      <!-- TEMPERATURE MEASUREMENTS -->
       <div class="section mb-4">
         <h2>Temperature Measurements</h2>
         <div class="checklist-item">
           <label for="hot-water-temp">Hot Water Temp (°C):</label>
-          <input type="text" class="form-control" id="hot-water-temp" name="hot-water-temp" step="0.1" autocapitalize="sentences" autocorrect="off" spellcheck="true">
+          <input type="text" class="form-control" id="hot-water-temp" name="hot-water-temp" step="0.1"
+                 autocapitalize="sentences" autocorrect="off" spellcheck="true">
           <label for="hot-water-time">Time Taken:</label>
           <input type="time" class="form-control" id="hot-water-time" name="hot-water-time">
         </div>
         <div class="checklist-item">
           <label for="milk-temp">Milk Temp (°C):</label>
-          <input type="text" class="form-control" id="milk-temp" name="milk-temp" step="0.1" autocapitalize="sentences" autocorrect="off" spellcheck="true">
+          <input type="text" class="form-control" id="milk-temp" name="milk-temp" step="0.1"
+                 autocapitalize="sentences" autocorrect="off" spellcheck="true">
           <label for="milk-time">Time Taken:</label>
           <input type="time" class="form-control" id="milk-time" name="milk-time">
         </div>
@@ -244,33 +233,21 @@
       <button type="button" onclick="generatePDF()">Generate PDF</button>
       <button type="button" onclick="viewRecords()">View All Records</button>
     </form>
-    <div class="version">Version 8.3 (Staff – Full Features)</div>
+    <div class="version">Version 8.3 (Draft & PDF Features with Login)</div>
   </div>
 
-  <!-- CUSTOMER RECORDS VIEW (for customer users) -->
-  <div id="customer-container" class="container hidden">
-    <h2>Customer Records</h2>
-    <p>Your account allows you to view records for the following Dairy Numbers:</p>
-    <div id="customer-dairy-list"></div>
-    <button class="back-button" onclick="logout()">Logout</button>
-  </div>
-
-  <!-- RECORDS VIEW (for both staff and customers) -->
+  <!-- RECORDS VIEW -->
   <div id="record-container" class="record-container hidden">
-    <h2>Records for Dairy #<span id="record-dairy-number"></span></h2>
+    <h2>All Dairy Shed Hygiene Records</h2>
     <div class="search-container">
-      <input type="text" id="search-dairy-number" class="form-control" placeholder="Search by Date" oninput="filterRecords()">
+      <input type="text" id="search-dairy-number" class="form-control" placeholder="Search by Dairy Number"
+             oninput="filterRecords()">
     </div>
     <div id="record-list" class="record-list"></div>
-    <div id="customer-record-back" class="hidden">
-      <button class="back-button" onclick="backToCustomerRecords()">Back to Dairy Numbers</button>
-    </div>
-    <div id="staff-record-back" class="hidden">
-      <button class="back-button" onclick="goBack()">Back to Checklist</button>
-    </div>
+    <button class="back-button" onclick="goBack()">Back to Checklist</button>
   </div>
 
-  <!-- SCRIPTS -->
+  <!-- PART 4: SCRIPTS -->
   <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
@@ -279,108 +256,34 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
   <script>
     /*******************************************
-     * SIMPLE CLIENT-SIDE LOGIN LOGIC
+     * Simple Client-Side Login Logic
      *******************************************/
-    const STAFF_USERS = {
+    // Hardcoded users (add extra username:password pairs as needed)
+    const USERS = {
       "user1": "password1",
       "user2": "password2"
-    };
-    const CUSTOMER_USERS = {
-      "customer1@example.com": {
-        password: "custpass1",
-        dairyNumbers: ["49", "7040"]
-      },
-      "customer2@example.com": {
-        password: "custpass2",
-        dairyNumbers: ["789"]
-      }
     };
 
     document.getElementById("login-form").addEventListener("submit", function(e) {
       e.preventDefault();
       const username = document.getElementById("login-username").value.trim();
       const password = document.getElementById("login-password").value;
-      const userType = document.querySelector('input[name="userType"]:checked').value;
-      if (userType === "staff") {
-        if (STAFF_USERS[username] && STAFF_USERS[username] === password) {
-          localStorage.setItem("loggedIn", "true");
-          localStorage.setItem("userType", "staff");
-          document.getElementById("login-container").classList.add("hidden");
-          document.getElementById("form-container").classList.remove("hidden");
-        } else {
-          document.getElementById("login-error").textContent = "Invalid staff credentials.";
-        }
-      } else if (userType === "customer") {
-        if (CUSTOMER_USERS[username] && CUSTOMER_USERS[username].password === password) {
-          localStorage.setItem("loggedIn", "true");
-          localStorage.setItem("userType", "customer");
-          localStorage.setItem("allowedDairyNumbers", JSON.stringify(CUSTOMER_USERS[username].dairyNumbers));
-          document.getElementById("login-container").classList.add("hidden");
-          document.getElementById("customer-container").classList.remove("hidden");
-          displayCustomerDairyNumbers();
-        } else {
-          document.getElementById("login-error").textContent = "Invalid customer credentials.";
-        }
+      if (USERS[username] && USERS[username] === password) {
+        localStorage.setItem("loggedIn", "true");
+        document.getElementById("login-container").classList.add("hidden");
+        document.getElementById("form-container").classList.remove("hidden");
+      } else {
+        document.getElementById("login-error").textContent = "Invalid username or password.";
       }
     });
 
-    function logout() {
-      localStorage.removeItem("loggedIn");
-      localStorage.removeItem("userType");
-      localStorage.removeItem("allowedDairyNumbers");
-      location.reload();
-    }
-
     if (localStorage.getItem("loggedIn") === "true") {
-      const userType = localStorage.getItem("userType");
       document.getElementById("login-container").classList.add("hidden");
-      if (userType === "staff") {
-        document.getElementById("form-container").classList.remove("hidden");
-      } else if (userType === "customer") {
-        document.getElementById("customer-container").classList.remove("hidden");
-        displayCustomerDairyNumbers();
-      }
-    }
-
-    // For customers: display allowed dairy numbers as clickable links.
-    function displayCustomerDairyNumbers() {
-      const listDiv = document.getElementById("customer-dairy-list");
-      const allowed = JSON.parse(localStorage.getItem("allowedDairyNumbers") || "[]");
-      listDiv.innerHTML = "";
-      if (allowed.length === 0) {
-        listDiv.textContent = "No dairy numbers assigned to your account.";
-      } else {
-        allowed.forEach(num => {
-          const a = document.createElement("a");
-          a.href = "#";
-          a.textContent = "Dairy #" + num;
-          a.addEventListener("click", function() {
-            loadCustomerRecords(num);
-          });
-          listDiv.appendChild(a);
-        });
-      }
-    }
-
-    // For customers: load the records view for a specific dairy number.
-    function loadCustomerRecords(dairyNumber) {
-      document.getElementById("record-dairy-number").textContent = dairyNumber;
-      document.getElementById("customer-container").classList.add("hidden");
-      document.getElementById("record-container").classList.remove("hidden");
-      // Show the customer back button and hide the staff one.
-      document.getElementById("customer-record-back").classList.remove("hidden");
-      document.getElementById("staff-record-back").classList.add("hidden");
-      loadRecordFiles(dairyNumber);
-    }
-
-    // For customers: back button returns to dairy numbers view.
-    function backToCustomerRecords() {
-      document.getElementById("record-container").classList.add("hidden");
-      document.getElementById("customer-container").classList.remove("hidden");
+      document.getElementById("form-container").classList.remove("hidden");
     }
 
     /*******************************************
-     * FIREBASE & DEXIE INITIALIZATION
+     * A: FIREBASE & DEXIE INIT
      *******************************************/
     const { jsPDF } = window.jspdf;
     const firebaseConfig = {
@@ -407,7 +310,7 @@
         .catch(err => console.error('SW registration failed:', err));
     }
     /*******************************************
-     * TITLE CASE UTILITY
+     * A1: Title Case Utility
      *******************************************/
     function toTitleCase(str) {
       return str.replace(/\w\S*/g, function(txt) {
@@ -420,7 +323,7 @@
       el.addEventListener('blur', () => { el.value = toTitleCase(el.value); });
     }
     /*******************************************
-     * SETUP DAIRY COMPANY DATALIST
+     * B: SETUP DAIRY COMPANY DATALIST
      *******************************************/
     async function setupDairyCompanyDatalist() {
       const defaultCompanies = [
@@ -433,11 +336,7 @@
       userCompanies.forEach(u => { if (!allCompanies.includes(u.name)) { allCompanies.push(u.name); } });
       const datalist = document.getElementById('dairy-company-list');
       datalist.innerHTML = "";
-      allCompanies.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c;
-        datalist.appendChild(opt);
-      });
+      allCompanies.forEach(c => { const opt = document.createElement('option'); opt.value = c; datalist.appendChild(opt); });
       const dairyCompanyInput = document.getElementById('dairy-company');
       dairyCompanyInput.addEventListener('blur', async () => {
         dairyCompanyInput.value = toTitleCase(dairyCompanyInput.value.trim());
@@ -452,7 +351,7 @@
       });
     }
     /*******************************************
-     * FETCH FARM DETAILS
+     * C: FETCH FARM DETAILS
      *******************************************/
     async function fetchFarmDetails() {
       const dairyNumber = document.getElementById('dairy-number').value.trim();
@@ -476,7 +375,7 @@
       }
     }
     /*******************************************
-     * CHECK/CREATE FORM RECORD
+     * D: CHECK/CREATE FORM RECORD
      *******************************************/
     async function checkOrCreateFormRecord() {
       const dairyNumber = document.getElementById('dairy-number').value.trim();
@@ -488,7 +387,8 @@
       }
     }
     /*******************************************
-     * CHECK FOR CACHED DRAFT
+     * NEW: On Page Load, Prompt for a Cached Draft
+     * (A draft is considered if any checklist item’s status is not "ok")
      *******************************************/
     async function checkForCachedFormOnLoad() {
       const records = await db.forms.toArray();
@@ -522,7 +422,7 @@
       await checkOrCreateFormRecord();
     }
     /*******************************************
-     * CREATE FORM SECTIONS
+     * E1: CREATE HEALTH & SAFETY ITEMS
      *******************************************/
     function createHealthSafetyItems(containerId) {
       const container = document.getElementById(containerId);
@@ -536,11 +436,11 @@
       statusSelect.classList.add("form-select");
       statusSelect.name = "status-health-safety-notes";
       statusSelect.innerHTML = `
-        <option value="ok">OK</option>
-        <option value="attention-required">Attention Required</option>
-        <option value="na">N/A</option>
-        <option value="not-checked">Not Checked</option>
-      `;
+                <option value="ok">OK</option>
+                <option value="attention-required">Attention Required</option>
+                <option value="na">N/A</option>
+                <option value="not-checked">Not Checked</option>
+            `;
       itemContainer.appendChild(statusSelect);
       const commentsInput = document.createElement("input");
       commentsInput.type = "text";
@@ -577,6 +477,9 @@
       });
       container.appendChild(itemContainer);
     }
+    /*******************************************
+     * E2: CREATE PLANT CHECKLIST
+     *******************************************/
     function createChecklistItems() {
       const checklistItems = [
         "Pulsator Airline", "Long Bend Elbows", "Automatic Cup and Remover", "Diaphragm", "Receiving Can",
@@ -598,11 +501,11 @@
         statusSelect.classList.add("form-select");
         statusSelect.name = `status-${item}`;
         statusSelect.innerHTML = `
-          <option value="ok">OK</option>
-          <option value="attention-required">Attention Required</option>
-          <option value="na">N/A</option>
-          <option value="not-checked">Not Checked</option>
-        `;
+                    <option value="ok">OK</option>
+                    <option value="attention-required">Attention Required</option>
+                    <option value="na">N/A</option>
+                    <option value="not-checked">Not Checked</option>
+                `;
         itemContainer.appendChild(statusSelect);
         const commentsInput = document.createElement("input");
         commentsInput.type = "text";
@@ -634,6 +537,9 @@
         container.appendChild(itemContainer);
       });
     }
+    /*******************************************
+     * E3: CREATE SILO CHECKLIST
+     *******************************************/
     function createSiloChecklist() {
       const siloItems = [
         "Inlet Valve", "Non-Return Valve", "Spray Ball", "Agitator",
@@ -655,11 +561,11 @@
         statusSelect.classList.add("form-select");
         statusSelect.name = `status-${item}`;
         statusSelect.innerHTML = `
-          <option value="ok">OK</option>
-          <option value="attention-required">Attention Required</option>
-          <option value="na">N/A</option>
-          <option value="not-checked">Not Checked</option>
-        `;
+                    <option value="ok">OK</option>
+                    <option value="attention-required">Attention Required</option>
+                    <option value="na">N/A</option>
+                    <option value="not-checked">Not Checked</option>
+                `;
         itemContainer.appendChild(statusSelect);
         const commentsInput = document.createElement("input");
         commentsInput.type = "text";
@@ -696,6 +602,9 @@
         container.appendChild(itemContainer);
       });
     }
+    /*******************************************
+     * E4: CREATE ADDITIONAL CHECKS
+     *******************************************/
     async function createAdditionalChecks() {
       const container = document.getElementById("additional-checks");
       container.innerHTML = "";
@@ -709,11 +618,11 @@
       statusSelectTeat.classList.add("form-select");
       statusSelectTeat.name = "status-teat-spray-check";
       statusSelectTeat.innerHTML = `
-        <option value="ok">OK</option>
-        <option value="attention-required">Attention Required</option>
-        <option value="na">N/A</option>
-        <option value="not-checked">Not Checked</option>
-      `;
+                <option value="ok">OK</option>
+                <option value="attention-required">Attention Required</option>
+                <option value="na">N/A</option>
+                <option value="not-checked">Not Checked</option>
+            `;
       teatSprayContainer.appendChild(statusSelectTeat);
       const commentsInputTeat = document.createElement("input");
       commentsInputTeat.type = "text";
@@ -763,11 +672,7 @@
       const allRatios = ["1:4"];
       existingRatios.forEach(r => { if (!allRatios.includes(r.ratio)) { allRatios.push(r.ratio); } });
       ratioDataList.innerHTML = "";
-      allRatios.forEach(r => {
-        const opt = document.createElement("option");
-        opt.value = r;
-        ratioDataList.appendChild(opt);
-      });
+      allRatios.forEach(r => { const opt = document.createElement("option"); opt.value = r; ratioDataList.appendChild(opt); });
       ratioInput.addEventListener("blur", async () => {
         ratioInput.value = toTitleCase(ratioInput.value.trim());
         const typedRatio = ratioInput.value;
@@ -790,11 +695,11 @@
       statusSelectChemical.classList.add("form-select");
       statusSelectChemical.name = "status-chemical-check";
       statusSelectChemical.innerHTML = `
-        <option value="ok">OK</option>
-        <option value="attention-required">Attention Required</option>
-        <option value="na">N/A</option>
-        <option value="not-checked">Not Checked</option>
-      `;
+                <option value="ok">OK</option>
+                <option value="attention-required">Attention Required</option>
+                <option value="na">N/A</option>
+                <option value="not-checked">Not Checked</option>
+            `;
       chemicalContainer.appendChild(statusSelectChemical);
       const commentsInputChemical = document.createElement("input");
       commentsInputChemical.type = "text";
@@ -826,16 +731,19 @@
       container.appendChild(chemicalContainer);
     }
     /*******************************************
-     * LOAD FORM DATA FROM DRAFT
+     * F1: LOAD FORM DATA (including images)
+     * Uses the saved object keyed by checklist item name.
      *******************************************/
     function loadFormDataFromRecord(record) {
       const data = record.formData || {};
       document.getElementById("dairy-number").value = record.dairyNumber;
+      // Restore basic fields.
       for (let key in data) {
         if (key === "checklistItems") continue;
         const field = document.getElementById(key) || document.getElementsByName(key)[0];
         if (field) { field.value = data[key]; }
       }
+      // Restore checklist items.
       if (data.checklistItems) {
         const containers = [
           ...document.getElementById("health-safety-top").children,
@@ -877,7 +785,8 @@
       previews.forEach(img => { img.src = ""; img.style.display = "none"; });
     }
     /*******************************************
-     * SAVE FORM DATA (including images)
+     * G: SAVE FORM DATA ON INPUT (including images)
+     * Saves checklist items as an object keyed by the label text.
      *******************************************/
     async function saveFormData() {
       const dairyNumber = document.getElementById("dairy-number").value.trim();
@@ -886,7 +795,9 @@
       if (!record) { record = { dairyNumber, formData: {}, creationTime: Date.now() }; }
       const form = document.getElementById("hygiene-checklist-form");
       const formDataObj = new FormData(form);
+      // Save basic fields.
       const data = Object.fromEntries(Array.from(formDataObj.entries()).filter(([k, v]) => v.trim() !== ""));
+      // For checklist items, build an object keyed by the label text.
       const containersToCheck = [
         document.getElementById("health-safety-top").children,
         document.getElementById("checklist-items").children,
@@ -911,7 +822,9 @@
               imagesBase64.push(base64);
             }
           }
-          if (record.formData.checklistItems && record.formData.checklistItems[key] && imagesBase64.length === 0) {
+          if (record.formData.checklistItems &&
+              record.formData.checklistItems[key] &&
+              imagesBase64.length === 0) {
             imagesBase64 = record.formData.checklistItems[key].imagesBase64 || [];
           }
           checklistItemsData[key] = { status, comments, imagesBase64 };
@@ -930,7 +843,7 @@
       });
     }
     /*******************************************
-     * SAVE FARM DETAILS TO FIREBASE
+     * H: SAVE FARM DETAILS TO FIREBASE
      *******************************************/
     async function saveFarmDetailsToFirebase(fd) {
       const dairyNumber = fd.get("dairy-number") || "";
@@ -953,7 +866,7 @@
       }
     }
     /*******************************************
-     * PDF UPLOAD RETRY LOGIC
+     * H2: PDF UPLOAD RETRY LOGIC
      *******************************************/
     async function uploadPendingPDFs() {
       if (!navigator.onLine) return;
@@ -977,7 +890,7 @@
     }
     window.addEventListener("online", uploadPendingPDFs);
     /*******************************************
-     * GENERATE PDF
+     * I: GENERATE PDF
      *******************************************/
     async function generatePDF() {
       const dairyNumber = document.getElementById("dairy-number").value.trim();
@@ -985,6 +898,7 @@
       const form = document.getElementById("hygiene-checklist-form");
       const fd = new FormData(form);
       await saveFarmDetailsToFirebase(fd);
+      // Build an array of items from the form.
       const containers = [
         ...document.getElementById("health-safety-top").children,
         ...document.getElementById("checklist-items").children,
@@ -1009,8 +923,12 @@
         const imgs = item.querySelectorAll('input[type="file"]');
         let imageFiles = [];
         if (imgs.length > 0) {
-          if (imgs[0].files[0]) imageFiles.push(imgs[0].files[0]);
-          if (imgs[1].files[0]) imageFiles.push(imgs[1].files[0]);
+          if (imgs[0].files[0]) {
+            imageFiles.push(imgs[0].files[0]);
+          }
+          if (imgs[1].files[0]) {
+            imageFiles.push(imgs[1].files[0]);
+          }
         }
         if (imageFiles.length === 0 && window.restoredDraft) {
           const key = labelEl.textContent.trim();
@@ -1086,7 +1004,13 @@
         addLine(`Visit Date: ${fd.get("visit-date") || ""}`);
         addLine(`Visit Type: ${fd.get("visit-type") || ""}`);
         addLine(`Inspection Start Time: ${fd.get("inspection-start-time") || ""}`);
-        addLine(`Inspection End Time: ${fd.get("inspection-end-time") || ""}`);
+        // For Inspection End Time, if blank, use current time.
+        let inspectionEndTime = fd.get("inspection-end-time");
+        if (!inspectionEndTime) {
+          const now = new Date();
+          inspectionEndTime = now.toTimeString().slice(0,5); // Format as HH:MM
+        }
+        addLine(`Inspection End Time: ${inspectionEndTime}`);
         addLine(`Inspection Completed By: ${fd.get("inspection-completed-by") || ""}`);
         addLine(`Call Type: ${fd.get("call-type") || ""}`);
         currentY += 15;
@@ -1115,6 +1039,7 @@
         afterTableY += 15;
         pdf.text(`Time Taken: ${milkTime}`, 40, afterTableY);
         afterTableY += 20;
+        // Place photos together with their label.
         let photoY = afterTableY + 20;
         const pageWidth = pdf.internal.pageSize.getWidth();
         photoStore.forEach(photoObj => {
@@ -1167,11 +1092,32 @@
       }
     }
     /*******************************************
-     * RECORDS VIEW FUNCTIONS
+     * J: RECORDS VIEW PAGE
      *******************************************/
-    // This function loads records for a given dairy number.
+    function viewRecords() {
+      document.getElementById("form-container").classList.add("hidden");
+      document.getElementById("record-container").classList.remove("hidden");
+      loadAllRecords();
+    }
+    async function loadAllRecords() {
+      const recordList = document.getElementById("record-list");
+      recordList.innerHTML = "";
+      const storageRef = storage.ref("customers");
+      try {
+        const folderSnapshot = await storageRef.listAll();
+        folderSnapshot.prefixes.forEach(folderRef => {
+          const dairyNumber = folderRef.name;
+          const link = document.createElement("a");
+          link.textContent = dairyNumber;
+          link.href = "#";
+          link.addEventListener("click", () => loadRecordFiles(dairyNumber));
+          recordList.appendChild(link);
+        });
+      } catch (error) {
+        console.error("Error fetching records:", error);
+      }
+    }
     async function loadRecordFiles(dairyNumber) {
-      document.getElementById("record-dairy-number").textContent = dairyNumber;
       const recordList = document.getElementById("record-list");
       recordList.innerHTML = "";
       const folderRef = storage.ref(`customers/${dairyNumber}`);
@@ -1194,42 +1140,14 @@
           });
           recordList.appendChild(fileLink);
         });
-        // For staff, show a back button.
-        if (localStorage.getItem("userType") === "staff") {
-          document.getElementById("staff-record-back").classList.remove("hidden");
-        }
-        // For customers, show the back-to-dairy-numbers button.
-        if (localStorage.getItem("userType") === "customer") {
-          document.getElementById("customer-record-back").classList.remove("hidden");
-        }
+        const backBtn = document.createElement("button");
+        backBtn.textContent = "Back to Records";
+        backBtn.className = "back-button";
+        backBtn.addEventListener("click", goBackToRecords);
+        recordList.appendChild(backBtn);
       } catch (err) {
         console.error("Error fetching record files:", err);
       }
-    }
-    // For staff: view all records.
-    async function loadAllRecords() {
-      const recordList = document.getElementById("record-list");
-      recordList.innerHTML = "";
-      const storageRef = storage.ref("customers");
-      try {
-        const folderSnapshot = await storageRef.listAll();
-        folderSnapshot.prefixes.forEach(folderRef => {
-          const dairyNumber = folderRef.name;
-          const link = document.createElement("a");
-          link.textContent = dairyNumber;
-          link.href = "#";
-          link.addEventListener("click", () => loadRecordFiles(dairyNumber));
-          recordList.appendChild(link);
-        });
-      } catch (error) {
-        console.error("Error fetching records:", error);
-      }
-    }
-    // Staff-only: view records view.
-    function viewRecords() {
-      document.getElementById("form-container").classList.add("hidden");
-      document.getElementById("record-container").classList.remove("hidden");
-      loadAllRecords();
     }
     function filterRecords() {
       const searchValue = document.getElementById("search-dairy-number").value.toLowerCase();
@@ -1241,29 +1159,29 @@
         link.style.display = (txt.toLowerCase().indexOf(searchValue) > -1) ? "" : "none";
       }
     }
-    // For staff: go back to checklist view.
     function goBack() {
       document.getElementById("form-container").classList.remove("hidden");
       document.getElementById("record-container").classList.add("hidden");
     }
+    function goBackToRecords() { loadAllRecords(); }
     /*******************************************
-     * DOMContentLoaded (Staff Only Initialization)
+     * K: DOMContentLoaded
      *******************************************/
     document.addEventListener("DOMContentLoaded", async () => {
-      if (localStorage.getItem("userType") === "staff") {
-        const fieldsToAutoCap = ["dairy-number", "dairy-company", "address", "customer-name", "farm-name", "inspection-completed-by"];
-        fieldsToAutoCap.forEach(autoCapitalizeInput);
-        await setupDairyCompanyDatalist();
-        createHealthSafetyItems("health-safety-top");
-        createChecklistItems();
-        createSiloChecklist();
-        await createAdditionalChecks();
-        await checkForCachedFormOnLoad();
-        const form = document.getElementById("hygiene-checklist-form");
-        form.addEventListener("input", saveFormData);
-        form.addEventListener("change", saveFormData);
-        uploadPendingPDFs();
-      }
+      const fieldsToAutoCap = ["dairy-number", "dairy-company", "address", "customer-name", "farm-name", "inspection-completed-by"];
+      fieldsToAutoCap.forEach(autoCapitalizeInput);
+      await setupDairyCompanyDatalist();
+      // FIRST, build all the form sections.
+      createHealthSafetyItems("health-safety-top");
+      createChecklistItems();
+      createSiloChecklist();
+      await createAdditionalChecks();
+      // THEN check for any saved draft and restore it.
+      await checkForCachedFormOnLoad();
+      const form = document.getElementById("hygiene-checklist-form");
+      form.addEventListener("input", saveFormData);
+      form.addEventListener("change", saveFormData);
+      uploadPendingPDFs();
     });
   </script>
 </body>
