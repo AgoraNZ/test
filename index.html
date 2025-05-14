@@ -4,8 +4,9 @@
   <!-- PART 1: META & STYLES -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dairy Shed Hygiene Checklist - Login</title>
+  <title>Dairy Shed Hygiene Checklist</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     /* ===== MAIN STYLES ===== */
     body {
@@ -13,7 +14,28 @@
       color: #FFFFFF;
       font-family: Arial, sans-serif;
       margin: 0;
+    }
+    #login-container, #app-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       padding: 20px;
+    }
+    #login-container {
+      background: rgba(0,0,0,0.8);
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 1000;
+    }
+    .login-box {
+      background: #FFFFFF;
+      color: #000;
+      padding: 30px;
+      border-radius: 8px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
     }
     .container {
       background-color: #002B5C;
@@ -22,13 +44,8 @@
       box-shadow: 0 0 20px rgba(0,0,0,0.5);
       max-width: 800px;
       width: 100%;
-      margin: 40px auto;
     }
-    h1, h2 {
-      color: #a7ab01;
-      text-align: center;
-    }
-    h1 { margin-bottom: 40px; }
+    h1, h2 { color: #a7ab01; text-align: center; }
     label { margin-top: 10px; }
     button {
       background-color: #FF851B;
@@ -41,35 +58,10 @@
       border-radius: 5px;
     }
     button:hover { background-color: #FF4136; }
-    .hidden {
-      display: none;
-    }
-    /* Login-specific styles */
-    #login-container {
-      max-width: 400px;
-      margin: 100px auto;
-      background-color: #003366;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.5);
-    }
-    #login-container input {
-      margin-bottom: 15px;
-    }
-    /* The rest of your form styles below */
     .checklist-item { margin-bottom: 30px; }
     .form-control, .form-select { margin-top: 5px; }
-    .version {
-      text-align: center;
-      margin-top: 20px;
-      color: #FFFFFF;
-      font-size: 12px;
-    }
-    .logo {
-      display: block;
-      margin: 0 auto 20px;
-      width: 250px;
-    }
+    .version { text-align: center; margin-top: 20px; color: #FFFFFF; font-size: 12px; }
+    .logo { display: block; margin: 0 auto 20px; width: 250px; }
     .record-container {
       background-color: #FFFFFF;
       color: #000000;
@@ -100,192 +92,285 @@
       border-radius: 5px;
       cursor: pointer;
     }
-    .search-container { margin-bottom: 20px; }
-    /* For Image Previews */
-    .image-preview {
+    #map {
+      height: 400px;
+      margin: 20px auto;
+      width: 100%;
+      border-radius: 10px;
       display: none;
-      max-width: 200px;
-      max-height: 200px;
-      margin-top: 5px;
-      border: 2px solid #ccc;
     }
   </style>
 </head>
 <body>
-  <!-- LOGIN CONTAINER -->
-  <div id="login-container" class="container">
-    <h2>Login</h2>
-    <form id="login-form">
-      <div class="mb-3">
-        <label for="login-username" class="form-label">Username</label>
-        <input type="text" class="form-control" id="login-username" required>
-      </div>
-      <div class="mb-3">
-        <label for="login-password" class="form-label">Password</label>
-        <input type="password" class="form-control" id="login-password" required>
-      </div>
-      <div id="login-error" class="text-danger text-center"></div>
-      <button type="submit">Login</button>
-    </form>
-  </div>
-
-  <!-- MAIN FORM CONTAINER (hidden until login) -->
-  <div id="form-container" class="container hidden">
-    <img src="https://i.postimg.cc/htZPjx5g/logo-89.png" alt="Logo" class="logo">
-    <h1>Dairy Shed Hygiene Checklist</h1>
-    <form id="hygiene-checklist-form">
-      <!-- Farm Details Section -->
-      <div class="section mb-4">
-        <h2>Farm Details</h2>
-        <label for="dairy-number">Dairy Number:</label>
-        <input type="text" class="form-control" id="dairy-number" name="dairy-number"
-               onblur="handleDairyNumberBlur();" autocapitalize="words" autocorrect="off" spellcheck="false">
-        <label for="dairy-company">Dairy Company:</label>
-        <input type="text" class="form-control" id="dairy-company" name="dairy-company"
-               list="dairy-company-list" placeholder="Type or select..." autocapitalize="words" autocorrect="off" spellcheck="false">
-        <datalist id="dairy-company-list"></datalist>
-        <label for="address">Address:</label>
-        <input type="text" class="form-control" id="address" name="address" autocapitalize="words" autocorrect="off" spellcheck="false">
-        <label for="customer-name">Customer Name:</label>
-        <input type="text" class="form-control" id="customer-name" name="customer-name" autocapitalize="words" autocorrect="off" spellcheck="false">
-        <label for="region">Region:</label>
-        <select id="region" name="region" class="form-select">
-          <option value="northland">Northland</option>
-          <option value="auckland">Auckland</option>
-          <option value="waikato">Waikato</option>
-          <option value="bay-of-plenty">Bay of Plenty</option>
-          <option value="gisborne">Gisborne</option>
-          <option value="hawkes-bay">Hawke's Bay</option>
-          <option value="taranaki">Taranaki</option>
-          <option value="manawatu-wanganui">Manawatu-Wanganui</option>
-          <option value="wellington">Wellington</option>
-          <option value="nelson">Nelson</option>
-          <option value="marlborough">Marlborough</option>
-          <option value="west-coast">West Coast</option>
-          <option value="canterbury">Canterbury</option>
-          <option value="otago">Otago</option>
-          <option value="southland">Southland</option>
-        </select>
-        <label for="farm-name">Farm Name:</label>
-        <input type="text" class="form-control" id="farm-name" name="farm-name" autocapitalize="words" autocorrect="off" spellcheck="false">
-        <label for="island">Island:</label>
-        <select id="island" name="island" class="form-select">
-          <option value="north-island">North Island</option>
-          <option value="south-island">South Island</option>
-        </select>
-        <label for="visit-date">Visit Date:</label>
-        <input type="date" class="form-control" id="visit-date" name="visit-date">
-        <label for="visit-type">Visit Type:</label>
-        <input type="text" class="form-control" id="visit-type" name="visit-type"
-               value="Milking Plant & Milk Vat Check" readonly autocapitalize="words" autocorrect="off" spellcheck="false">
-        <label for="inspection-start-time">Inspection Start Time:</label>
-        <input type="time" class="form-control" id="inspection-start-time" name="inspection-start-time">
-        <label for="inspection-end-time">Inspection End Time:</label>
-        <input type="time" class="form-control" id="inspection-end-time" name="inspection-end-time">
-        <label for="inspection-completed-by">Inspection Completed By:</label>
-        <input type="text" class="form-control" id="inspection-completed-by" name="inspection-completed-by"
-               autocapitalize="words" autocorrect="off" spellcheck="false">
-        <label for="call-type">Call Type:</label>
-        <select id="call-type" name="call-type" class="form-select">
-          <option value="alert">Alert</option>
-          <option value="grade-call">Grade Call</option>
-          <option value="regular-scheduled-visit" selected>Regular Scheduled Visit</option>
-        </select>
-      </div>
-      <!-- HEALTH & SAFETY -->
-      <div class="section mb-4">
-        <h2>Health & Safety</h2>
-        <div id="health-safety-top"></div>
-      </div>
-      <!-- PLANT CHECKLIST -->
-      <div class="section mb-4">
-        <h2>Plant Checklist</h2>
-        <div id="checklist-items"></div>
-      </div>
-      <!-- SILO CHECKLIST -->
-      <div class="section mb-4">
-        <h2>Silo Checklist</h2>
-        <div id="silo-checklist"></div>
-      </div>
-      <!-- ADDITIONAL CHECKS -->
-      <div class="section mb-4">
-        <h2>Additional Checks</h2>
-        <div id="additional-checks"></div>
-      </div>
-      <!-- TEMPERATURE MEASUREMENTS -->
-      <div class="section mb-4">
-        <h2>Temperature Measurements</h2>
-        <div class="checklist-item">
-          <label for="hot-water-temp">Hot Water Temp (°C):</label>
-          <input type="text" class="form-control" id="hot-water-temp" name="hot-water-temp" step="0.1"
-                 autocapitalize="sentences" autocorrect="off" spellcheck="true">
-          <label for="hot-water-time">Time Taken:</label>
-          <input type="time" class="form-control" id="hot-water-time" name="hot-water-time">
-        </div>
-        <div class="checklist-item">
-          <label for="milk-temp">Milk Temp (°C):</label>
-          <input type="text" class="form-control" id="milk-temp" name="milk-temp" step="0.1"
-                 autocapitalize="sentences" autocorrect="off" spellcheck="true">
-          <label for="milk-time">Time Taken:</label>
-          <input type="time" class="form-control" id="milk-time" name="milk-time">
-        </div>
-      </div>
-      <button type="button" onclick="generatePDF()">Generate PDF</button>
-      <button type="button" onclick="viewRecords()">View All Records</button>
-    </form>
-    <div class="version">Version 8.3 (Draft & PDF Features with Login)</div>
-  </div>
-
-  <!-- RECORDS VIEW -->
-  <div id="record-container" class="record-container hidden">
-    <h2>All Dairy Shed Hygiene Records</h2>
-    <div class="search-container">
-      <input type="text" id="search-dairy-number" class="form-control" placeholder="Search by Dairy Number"
-             oninput="filterRecords()">
+  <!-- LOGIN SCREEN -->
+  <div id="login-container">
+    <div class="login-box">
+      <h2>Sign In</h2>
+      <input id="login-email" type="email" class="form-control" placeholder="Email" /><br/>
+      <input id="login-password" type="password" class="form-control" placeholder="Password" /><br/>
+      <button id="login-button">Login</button>
+      <div id="login-error" class="text-danger mt-2"></div>
     </div>
-    <div id="record-list" class="record-list"></div>
-    <button class="back-button" onclick="goBack()">Back to Checklist</button>
+  </div>
+
+  <!-- APP -->
+  <div id="app-container" style="display:none; width:100%;">
+    <!-- MAIN FORM CONTAINER -->
+    <div class="container" id="form-container">
+      <img src="https://i.postimg.cc/htZPjx5g/logo-89.png" alt="Logo" class="logo">
+      <h1>Dairy Shed Hygiene Checklist</h1>
+      <form id="hygiene-checklist-form">
+        <!-- SECTION: Farm Details -->
+        <div class="section mb-4">
+          <h2>Farm Details</h2>
+          <label for="dairy-number">Dairy Number:</label>
+          <input type="text" class="form-control" id="dairy-number" name="dairy-number"
+                 onblur="handleDairyNumberBlur();" autocapitalize="words" autocorrect="off" spellcheck="false">
+          <label for="dairy-company">Dairy Company:</label>
+          <input type="text" class="form-control" id="dairy-company" name="dairy-company"
+                 list="dairy-company-list" placeholder="Type or select..." autocapitalize="words" autocorrect="off" spellcheck="false">
+          <datalist id="dairy-company-list"></datalist>
+          <label for="address">Address:</label>
+          <input type="text" class="form-control" id="address" name="address" autocapitalize="words" autocorrect="off" spellcheck="false">
+          <label for="customer-name">Customer Name:</label>
+          <input type="text" class="form-control" id="customer-name" name="customer-name" autocapitalize="words" autocorrect="off" spellcheck="false">
+          <label for="region">Region:</label>
+          <select id="region" name="region" class="form-select">
+            <option value="northland">Northland</option>
+            <option value="auckland">Auckland</option>
+            <option value="waikato">Waikato</option>
+            <option value="bay-of-plenty">Bay of Plenty</option>
+            <option value="gisborne">Gisborne</option>
+            <option value="hawkes-bay">Hawke's Bay</option>
+            <option value="taranaki">Taranaki</option>
+            <option value="manawatu-wanganui">Manawatu-Wanganui</option>
+            <option value="wellington">Wellington</option>
+            <option value="nelson">Nelson</option>
+            <option value="marlborough">Marlborough</option>
+            <option value="west-coast">West Coast</option>
+            <option value="canterbury">Canterbury</option>
+            <option value="otago">Otago</option>
+            <option value="southland">Southland</option>
+          </select>
+          <label for="farm-name">Farm Name:</label>
+          <input type="text" class="form-control" id="farm-name" name="farm-name" autocapitalize="words" autocorrect="off" spellcheck="false">
+          <label for="island">Island:</label>
+          <select id="island" name="island" class="form-select">
+            <option value="north-island">North Island</option>
+            <option value="south-island">South Island</option>
+          </select>
+          <label for="visit-date">Visit Date:</label>
+          <input type="date" class="form-control" id="visit-date" name="visit-date">
+          <label for="visit-type">Visit Type:</label>
+          <input type="text" class="form-control" id="visit-type" name="visit-type"
+                 value="Milking Plant & Milk Vat Check" readonly autocapitalize="words" autocorrect="off" spellcheck="false">
+          <label for="inspection-start-time">Inspection Start Time:</label>
+          <input type="time" class="form-control" id="inspection-start-time" name="inspection-start-time">
+          <label for="inspection-end-time">Inspection End Time:</label>
+          <input type="time" class="form-control" id="inspection-end-time" name="inspection-end-time">
+          <label for="inspection-completed-by">Inspection Completed By:</label>
+          <input type="text" class="form-control" id="inspection-completed-by" name="inspection-completed-by"
+                 autocapitalize="words" autocorrect="off" spellcheck="false">
+          <label for="call-type">Call Type:</label>
+          <select id="call-type" name="call-type" class="form-select">
+            <option value="alert">Alert</option>
+            <option value="grade-call">Grade Call</option>
+            <option value="regular-scheduled-visit" selected>Regular Scheduled Visit</option>
+          </select>
+        </div>
+
+        <!-- HEALTH & SAFETY -->
+        <div class="section mb-4">
+          <h2>Health & Safety</h2>
+          <div id="health-safety-top"></div>
+        </div>
+
+        <!-- PLANT CHECKLIST -->
+        <div class="section mb-4">
+          <h2>Plant Checklist</h2>
+          <div id="checklist-items"></div>
+        </div>
+
+        <!-- SILO CHECKLIST -->
+        <div class="section mb-4">
+          <h2>Silo Checklist</h2>
+          <div id="silo-checklist"></div>
+        </div>
+
+        <!-- ADDITIONAL CHECKS -->
+        <div class="section mb-4">
+          <h2>Additional Checks</h2>
+          <div id="additional-checks"></div>
+        </div>
+
+        <!-- TEMPERATURE MEASUREMENTS -->
+        <div class="section mb-4">
+          <h2>Temperature Measurements</h2>
+          <div class="checklist-item">
+            <label for="hot-water-temp">Hot Water Temp (°C):</label>
+            <input type="text" class="form-control" id="hot-water-temp" name="hot-water-temp" step="0.1"
+                   autocapitalize="sentences" autocorrect="off" spellcheck="true">
+            <label for="hot-water-time">Time Taken:</label>
+            <input type="time" class="form-control" id="hot-water-time" name="hot-water-time">
+          </div>
+          <div class="checklist-item">
+            <label for="milk-temp">Milk Temp (°C):</label>
+            <input type="text" class="form-control" id="milk-temp" name="milk-temp" step="0.1"
+                   autocapitalize="sentences" autocorrect="off" spellcheck="true">
+            <label for="milk-time">Time Taken:</label>
+            <input type="time" class="form-control" id="milk-time" name="milk-time">
+          </div>
+        </div>
+
+        <button type="button" onclick="generatePDF()">Generate PDF</button>
+        <button type="button" onclick="viewRecords()">View All Records</button>
+        <button type="button" id="show-map">Show Farms Map</button>
+      </form>
+      <div class="version">Version 6.1</div>
+      <div id="map"></div>
+    </div>
+
+    <!-- RECORDS VIEW -->
+    <div id="record-container" class="record-container" style="display: none;">
+      <h2>All Dairy Shed Hygiene Records</h2>
+      <div class="search-container">
+        <input type="text" id="search-dairy-number" class="form-control" placeholder="Search by Dairy Number"
+               oninput="filterRecords()">
+      </div>
+      <div id="record-list" class="record-list"></div>
+      <button class="back-button" onclick="goBack()">Back to Checklist</button>
+    </div>
   </div>
 
   <!-- PART 4: SCRIPTS -->
   <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dexie/3.0.3/dexie.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     /*******************************************
-     * Simple Client-Side Login Logic
+     * AUTH & MAP SETUP
      *******************************************/
-    // Hardcoded users (add extra username:password pairs as needed)
-    const USERS = {
-      "user1": "password1",
-      "user2": "password2"
-    };
-
-    document.getElementById("login-form").addEventListener("submit", function(e) {
-      e.preventDefault();
-      const username = document.getElementById("login-username").value.trim();
-      const password = document.getElementById("login-password").value;
-      if (USERS[username] && USERS[username] === password) {
-        localStorage.setItem("loggedIn", "true");
-        document.getElementById("login-container").classList.add("hidden");
-        document.getElementById("form-container").classList.remove("hidden");
+    const auth = firebase.auth();
+    auth.onAuthStateChanged(async user => {
+      if (user) {
+        document.getElementById('login-container').style.display = 'none';
+        document.getElementById('app-container').style.display = 'block';
+        const idToken = await user.getIdTokenResult();
+        window.currentRole = idToken.claims.role || 'customer';
+        if (window.currentRole === 'customer') {
+          await setupCustomerView(user.uid);
+        }
+        attachAppListeners();
       } else {
-        document.getElementById("login-error").textContent = "Invalid username or password.";
+        document.getElementById('login-container').style.display = 'flex';
+        document.getElementById('app-container').style.display = 'none';
       }
     });
 
-    if (localStorage.getItem("loggedIn") === "true") {
-      document.getElementById("login-container").classList.add("hidden");
-      document.getElementById("form-container").classList.remove("hidden");
+    document.getElementById('login-button').addEventListener('click', () => {
+      const email = document.getElementById('login-email').value;
+      const pass  = document.getElementById('login-password').value;
+      auth.signInWithEmailAndPassword(email, pass)
+        .catch(err => document.getElementById('login-error').textContent = err.message);
+    });
+
+    function attachAppListeners() {
+      document.getElementById('show-map').addEventListener('click', initMap);
+    }
+
+    async function setupCustomerView(uid) {
+      const permDoc = await firebase.firestore().collection('user_permissions').doc(uid).get();
+      const allowed = permDoc.exists ? permDoc.data().dairyNumbers || [] : [];
+      const dnInput = document.getElementById('dairy-number');
+      const parent = dnInput.parentNode;
+      const select = document.createElement('select');
+      select.id = 'dairy-number';
+      select.className = 'form-select';
+      allowed.forEach(dn => {
+        const opt = document.createElement('option');
+        opt.value = dn; opt.textContent = dn;
+        select.appendChild(opt);
+      });
+      parent.replaceChild(select, dnInput);
+    }
+
+    let mapInitialized = false;
+    async function initMap() {
+      if (!mapInitialized) {
+        document.getElementById('map').style.display = 'block';
+        window.map = L.map('map').setView([-36.8485, 174.7633], 6);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(window.map);
+        await loadFarmMarkers();
+        mapInitialized = true;
+      } else {
+        window.map.invalidateSize();
+      }
+    }
+
+    async function loadFarmMarkers() {
+      const storageRef = firebase.storage().ref('farm_details');
+      const list = await storageRef.listAll();
+      for (let itemRef of list.items) {
+        const url = await itemRef.getDownloadURL();
+        const data = await fetch(url).then(r=>r.json());
+        if (data.lat && data.lng) {
+          const marker = L.marker([data.lat, data.lng]).addTo(window.map);
+          const dairy = itemRef.name.replace('.json','');
+          const html = `
+            <strong>Dairy #${dairy}</strong><br/>
+            Company: ${data.dairyCompany||''}<br/>
+            Address: ${data.address||''}<br/>
+            <textarea id="note-${dairy}" placeholder="Enter note..."></textarea><br/>
+            <button id="save-${dairy}">Save Note</button>
+            <div id="notes-list-${dairy}"></div>
+          `;
+          marker.bindPopup(html);
+          marker.on('popupopen', () => {
+            document.getElementById(`save-${dairy}`).onclick = () => saveNote(dairy);
+            loadNotes(dairy);
+          });
+        }
+      }
+    }
+
+    function saveNote(dairy) {
+      const text = document.getElementById(`note-${dairy}`).value.trim();
+      if (!text) return alert('Enter a note');
+      firebase.firestore()
+        .collection('farm_notes').doc(dairy)
+        .collection('notes')
+        .add({ text, timestamp: firebase.firestore.FieldValue.serverTimestamp(), uid: auth.currentUser.uid })
+        .then(() => {
+          document.getElementById(`note-${dairy}`).value = '';
+          loadNotes(dairy);
+        });
+    }
+
+    async function loadNotes(dairy) {
+      const listDiv = document.getElementById(`notes-list-${dairy}`);
+      listDiv.innerHTML = '';
+      const snaps = await firebase.firestore()
+        .collection('farm_notes').doc(dairy)
+        .collection('notes').orderBy('timestamp','desc').get();
+      snaps.forEach(doc => {
+        const d = doc.data();
+        const time = d.timestamp?.toDate().toLocaleString() || '';
+        const div = document.createElement('div');
+        div.textContent = `[${time}] ${d.text}`;
+        listDiv.appendChild(div);
+      });
     }
 
     /*******************************************
      * A: FIREBASE & DEXIE INIT
      *******************************************/
-    const { jsPDF } = window.jspdf;
     const firebaseConfig = {
       apiKey: "AIzaSyDr9nA44Kkej*****GUzbMDECI8cTFI",
       authDomain: "dairy-farm-record-system.firebaseapp.com",
@@ -294,7 +379,7 @@
       messagingSenderId: "422124188212",
       appId: "1:422124188212:web:1bd31bee8d6e91e301d061"
     };
-    firebase.initializeApp(firebaseConfig);
+    // Already initialized above for auth
     const storage = firebase.storage();
     const firestore = firebase.firestore();
     const db = new Dexie("OfflineData");
@@ -309,6 +394,7 @@
         .then(reg => console.log('Service Worker registered:', reg.scope))
         .catch(err => console.error('SW registration failed:', err));
     }
+
     /*******************************************
      * A1: Title Case Utility
      *******************************************/
@@ -322,6 +408,7 @@
       if (!el) return;
       el.addEventListener('blur', () => { el.value = toTitleCase(el.value); });
     }
+
     /*******************************************
      * B: SETUP DAIRY COMPANY DATALIST
      *******************************************/
@@ -333,10 +420,14 @@
       ];
       const userCompanies = await db.dairyCompanies.toArray();
       const allCompanies = [...defaultCompanies];
-      userCompanies.forEach(u => { if (!allCompanies.includes(u.name)) { allCompanies.push(u.name); } });
+      userCompanies.forEach(u => { if (!allCompanies.includes(u.name)) allCompanies.push(u.name); });
       const datalist = document.getElementById('dairy-company-list');
       datalist.innerHTML = "";
-      allCompanies.forEach(c => { const opt = document.createElement('option'); opt.value = c; datalist.appendChild(opt); });
+      allCompanies.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        datalist.appendChild(opt);
+      });
       const dairyCompanyInput = document.getElementById('dairy-company');
       dairyCompanyInput.addEventListener('blur', async () => {
         dairyCompanyInput.value = toTitleCase(dairyCompanyInput.value.trim());
@@ -350,6 +441,7 @@
         }
       });
     }
+
     /*******************************************
      * C: FETCH FARM DETAILS
      *******************************************/
@@ -374,6 +466,7 @@
         console.log('No farm details found or error fetching from Firebase.');
       }
     }
+
     /*******************************************
      * D: CHECK/CREATE FORM RECORD
      *******************************************/
@@ -386,9 +479,9 @@
         await db.forms.put(record);
       }
     }
+
     /*******************************************
      * NEW: On Page Load, Prompt for a Cached Draft
-     * (A draft is considered if any checklist item’s status is not "ok")
      *******************************************/
     async function checkForCachedFormOnLoad() {
       const records = await db.forms.toArray();
@@ -415,12 +508,14 @@
         }
       }
     }
+
     async function handleDairyNumberBlur() {
       const dairyNumber = document.getElementById('dairy-number').value.trim();
       if (!dairyNumber) return;
       fetchFarmDetails();
       await checkOrCreateFormRecord();
     }
+
     /*******************************************
      * E1: CREATE HEALTH & SAFETY ITEMS
      *******************************************/
@@ -477,6 +572,7 @@
       });
       container.appendChild(itemContainer);
     }
+
     /*******************************************
      * E2: CREATE PLANT CHECKLIST
      *******************************************/
@@ -526,17 +622,17 @@
           itemContainer.appendChild(imagePreview);
         }
         statusSelect.addEventListener("change", () => {
+          const allInputs = itemContainer.querySelectorAll('input[type="file"]');
           if (statusSelect.value === "attention-required") {
-            const allInputs = itemContainer.querySelectorAll('input[type="file"]');
             allInputs.forEach(inp => inp.style.display = "block");
           } else {
-            const allInputs = itemContainer.querySelectorAll('input[type="file"]');
             allInputs.forEach(inp => inp.style.display = "none");
           }
         });
         container.appendChild(itemContainer);
       });
     }
+
     /*******************************************
      * E3: CREATE SILO CHECKLIST
      *******************************************/
@@ -586,11 +682,10 @@
           itemContainer.appendChild(imagePreview);
         }
         statusSelect.addEventListener("change", () => {
+          const allInputs = itemContainer.querySelectorAll('input[type="file"]');
           if (statusSelect.value === "attention-required") {
-            const allInputs = itemContainer.querySelectorAll('input[type="file"]');
             allInputs.forEach(inp => inp.style.display = "block");
           } else {
-            const allInputs = itemContainer.querySelectorAll('input[type="file"]');
             allInputs.forEach(inp => inp.style.display = "none");
           }
           if (statusSelect.value === "not-checked" && siloItemsToAutoFill.includes(item)) {
@@ -602,12 +697,14 @@
         container.appendChild(itemContainer);
       });
     }
+
     /*******************************************
      * E4: CREATE ADDITIONAL CHECKS
      *******************************************/
     async function createAdditionalChecks() {
       const container = document.getElementById("additional-checks");
       container.innerHTML = "";
+
       // Teat Spray Check
       const teatSprayContainer = document.createElement("div");
       teatSprayContainer.classList.add("checklist-item");
@@ -643,11 +740,10 @@
         teatSprayContainer.appendChild(imagePreview);
       }
       statusSelectTeat.addEventListener("change", () => {
+        const allInputs = teatSprayContainer.querySelectorAll('input[type="file"]');
         if (statusSelectTeat.value === "attention-required") {
-          const allInputs = teatSprayContainer.querySelectorAll('input[type="file"]');
           allInputs.forEach(inp => inp.style.display = "block");
         } else {
-          const allInputs = teatSprayContainer.querySelectorAll('input[type="file"]');
           allInputs.forEach(inp => inp.style.display = "none");
         }
       });
@@ -670,9 +766,13 @@
       teatSprayContainer.appendChild(ratioDataList);
       const existingRatios = await db.teatSprayRatios.toArray();
       const allRatios = ["1:4"];
-      existingRatios.forEach(r => { if (!allRatios.includes(r.ratio)) { allRatios.push(r.ratio); } });
+      existingRatios.forEach(r => { if (!allRatios.includes(r.ratio)) allRatios.push(r.ratio); });
       ratioDataList.innerHTML = "";
-      allRatios.forEach(r => { const opt = document.createElement("option"); opt.value = r; ratioDataList.appendChild(opt); });
+      allRatios.forEach(r => {
+        const opt = document.createElement("option");
+        opt.value = r;
+        ratioDataList.appendChild(opt);
+      });
       ratioInput.addEventListener("blur", async () => {
         ratioInput.value = toTitleCase(ratioInput.value.trim());
         const typedRatio = ratioInput.value;
@@ -685,6 +785,7 @@
         }
       });
       container.appendChild(teatSprayContainer);
+
       // Chemical Check
       const chemicalContainer = document.createElement("div");
       chemicalContainer.classList.add("checklist-item");
@@ -720,30 +821,27 @@
         chemicalContainer.appendChild(imagePreview);
       }
       statusSelectChemical.addEventListener("change", () => {
+        const allInputs = chemicalContainer.querySelectorAll('input[type="file"]');
         if (statusSelectChemical.value === "attention-required") {
-          const allInputs = chemicalContainer.querySelectorAll('input[type="file"]');
           allInputs.forEach(inp => inp.style.display = "block");
         } else {
-          const allInputs = chemicalContainer.querySelectorAll('input[type="file"]');
           allInputs.forEach(inp => inp.style.display = "none");
         }
       });
       container.appendChild(chemicalContainer);
     }
+
     /*******************************************
      * F1: LOAD FORM DATA (including images)
-     * Uses the saved object keyed by checklist item name.
      *******************************************/
     function loadFormDataFromRecord(record) {
       const data = record.formData || {};
       document.getElementById("dairy-number").value = record.dairyNumber;
-      // Restore basic fields.
       for (let key in data) {
         if (key === "checklistItems") continue;
         const field = document.getElementById(key) || document.getElementsByName(key)[0];
         if (field) { field.value = data[key]; }
       }
-      // Restore checklist items.
       if (data.checklistItems) {
         const containers = [
           ...document.getElementById("health-safety-top").children,
@@ -777,27 +875,24 @@
         });
       }
     }
+
     function clearEntireForm() {
       document.getElementById("hygiene-checklist-form").reset();
-      const imageUploads = document.querySelectorAll(".image-upload");
-      imageUploads.forEach(inp => { inp.style.display = "none"; });
-      const previews = document.querySelectorAll(".image-preview");
-      previews.forEach(img => { img.src = ""; img.style.display = "none"; });
+      document.querySelectorAll(".image-upload").forEach(inp => inp.style.display = "none");
+      document.querySelectorAll(".image-preview").forEach(img => { img.src=""; img.style.display="none"; });
     }
+
     /*******************************************
      * G: SAVE FORM DATA ON INPUT (including images)
-     * Saves checklist items as an object keyed by the label text.
      *******************************************/
     async function saveFormData() {
       const dairyNumber = document.getElementById("dairy-number").value.trim();
       if (!dairyNumber) return;
       let record = await db.forms.get(dairyNumber);
-      if (!record) { record = { dairyNumber, formData: {}, creationTime: Date.now() }; }
+      if (!record) record = { dairyNumber, formData: {}, creationTime: Date.now() };
       const form = document.getElementById("hygiene-checklist-form");
       const formDataObj = new FormData(form);
-      // Save basic fields.
-      const data = Object.fromEntries(Array.from(formDataObj.entries()).filter(([k, v]) => v.trim() !== ""));
-      // For checklist items, build an object keyed by the label text.
+      const data = Object.fromEntries(Array.from(formDataObj.entries()).filter(([k,v])=>v.trim()!==""));
       const containersToCheck = [
         document.getElementById("health-safety-top").children,
         document.getElementById("checklist-items").children,
@@ -805,27 +900,22 @@
         document.getElementById("silo-checklist").children
       ];
       const checklistItemsData = {};
-      for (let container of containersToCheck) {
-        for (let item of container) {
+      for (let containerGroup of containersToCheck) {
+        for (let item of containerGroup) {
           const label = item.querySelector("label");
           if (!label) continue;
           const key = label.textContent.trim();
-          const statusSelect = item.querySelector("select");
-          const status = statusSelect ? statusSelect.value : "";
-          const commentsInput = item.querySelector('input[type="text"]');
-          const comments = commentsInput ? commentsInput.value : "";
+          const status = item.querySelector("select")?.value||"";
+          const comments = item.querySelector('input[type="text"]')?.value||"";
           let imagesBase64 = [];
-          const fileInputs = item.querySelectorAll('input[type="file"]');
-          for (let fi of fileInputs) {
-            if (fi.files && fi.files[0]) {
+          for (let fi of item.querySelectorAll('input[type="file"]')) {
+            if (fi.files?.[0]) {
               const base64 = await convertFileToBase64(fi.files[0]);
               imagesBase64.push(base64);
             }
           }
-          if (record.formData.checklistItems &&
-              record.formData.checklistItems[key] &&
-              imagesBase64.length === 0) {
-            imagesBase64 = record.formData.checklistItems[key].imagesBase64 || [];
+          if (record.formData.checklistItems?.[key] && imagesBase64.length===0) {
+            imagesBase64 = record.formData.checklistItems[key].imagesBase64||[];
           }
           checklistItemsData[key] = { status, comments, imagesBase64 };
         }
@@ -834,37 +924,42 @@
       record.formData = data;
       await db.forms.put(record);
     }
+
     function convertFileToBase64(file) {
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve,reject)=>{
         const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
+        reader.onload = ()=>resolve(reader.result);
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
     }
+
     /*******************************************
      * H: SAVE FARM DETAILS TO FIREBASE
      *******************************************/
     async function saveFarmDetailsToFirebase(fd) {
-      const dairyNumber = fd.get("dairy-number") || "";
+      const dairyNumber = fd.get("dairy-number")||"";
       if (!dairyNumber) return;
       const farmDetails = {
-        dairyCompany: fd.get("dairy-company") || "",
-        address: fd.get("address") || "",
-        customerName: fd.get("customer-name") || "",
-        region: fd.get("region") || "",
-        farmName: fd.get("farm-name") || "",
-        island: fd.get("island") || ""
+        dairyCompany: fd.get("dairy-company")||"",
+        address: fd.get("address")||"",
+        customerName: fd.get("customer-name")||"",
+        region: fd.get("region")||"",
+        farmName: fd.get("farm-name")||"",
+        island: fd.get("island")||"",
+        lat: window.currentLat||null,
+        lng: window.currentLng||null
       };
       const storageRef = storage.ref(`farm_details/${dairyNumber}.json`);
       const metadata = { contentType: "application/json" };
       try {
-        await storageRef.put(new Blob([JSON.stringify(farmDetails)], { type: "application/json" }), metadata);
+        await storageRef.put(new Blob([JSON.stringify(farmDetails)],{type:"application/json"}), metadata);
         console.log("Farm details saved to Firebase successfully.");
-      } catch (err) {
+      } catch(err) {
         console.error("Error saving farm details to Firebase:", err);
       }
     }
+
     /*******************************************
      * H2: PDF UPLOAD RETRY LOGIC
      *******************************************/
@@ -874,21 +969,22 @@
       for (let pdfRecord of queuedPDFs) {
         try {
           await uploadSinglePDF(pdfRecord.dairyNumber, pdfRecord.fileName, pdfRecord.pdfBlob);
-          await db.pdfQueue.update(pdfRecord.id, { uploaded: true });
+          await db.pdfQueue.update(pdfRecord.id,{uploaded:true});
           console.log(`Retried PDF for ${pdfRecord.dairyNumber} uploaded successfully.`);
-        } catch (err) {
+        } catch(err) {
           console.error("Retry PDF upload failed:", err);
         }
       }
     }
-    function uploadSinglePDF(dairyNumber, fileName, pdfBlob) {
-      return new Promise((resolve, reject) => {
+    function uploadSinglePDF(dairyNumber,fileName,pdfBlob) {
+      return new Promise((resolve,reject)=>{
         const uploadRef = storage.ref(`customers/${dairyNumber}/${fileName}`);
         const task = uploadRef.put(pdfBlob);
-        task.on("state_changed", null, (err) => { reject(err); }, () => { resolve(); });
+        task.on("state_changed",null,err=>reject(err),()=>resolve());
       });
     }
-    window.addEventListener("online", uploadPendingPDFs);
+    window.addEventListener("online",uploadPendingPDFs);
+
     /*******************************************
      * I: GENERATE PDF
      *******************************************/
@@ -898,7 +994,6 @@
       const form = document.getElementById("hygiene-checklist-form");
       const fd = new FormData(form);
       await saveFarmDetailsToFirebase(fd);
-      // Build an array of items from the form.
       const containers = [
         ...document.getElementById("health-safety-top").children,
         ...document.getElementById("checklist-items").children,
@@ -906,57 +1001,43 @@
         ...document.getElementById("silo-checklist").children
       ];
       const itemDataArray = [];
-      containers.forEach((item) => {
+      containers.forEach(item=>{
         const labelEl = item.querySelector("label");
-        if (!labelEl) return;
+        if(!labelEl) return;
         const itemName = labelEl.textContent;
-        const statusSelect = item.querySelector("select");
-        const status = statusSelect ? statusSelect.value : "";
-        const commentsInput = item.querySelector('input[type="text"]');
-        let comments = commentsInput ? commentsInput.value : "";
-        if (itemName === "Teat Spray Check") {
+        const status = item.querySelector("select")?.value||"";
+        let comments = item.querySelector('input[type="text"]')?.value||"";
+        if(itemName==="Teat Spray Check") {
           const ratioField = item.querySelector("#teat-dilution");
-          if (ratioField && ratioField.value.trim()) {
-            comments += comments ? ` | Ratio: ${ratioField.value}` : `Ratio: ${ratioField.value}`;
-          }
+          if(ratioField?.value) comments+=comments?` | Ratio: ${ratioField.value}`:`Ratio: ${ratioField.value}`;
         }
-        const imgs = item.querySelectorAll('input[type="file"]');
         let imageFiles = [];
-        if (imgs.length > 0) {
-          if (imgs[0].files[0]) {
-            imageFiles.push(imgs[0].files[0]);
-          }
-          if (imgs[1].files[0]) {
-            imageFiles.push(imgs[1].files[0]);
-          }
+        item.querySelectorAll('input[type="file"]').forEach(fi=>{
+          if(fi.files?.[0]) imageFiles.push(fi.files[0]);
+        });
+        if(imageFiles.length===0 && window.restoredDraft){
+          const key = itemName.trim();
+          if(window.restoredDraft[key]?.imagesBase64) imageFiles = window.restoredDraft[key].imagesBase64;
         }
-        if (imageFiles.length === 0 && window.restoredDraft) {
-          const key = labelEl.textContent.trim();
-          if (window.restoredDraft[key] && window.restoredDraft[key].imagesBase64 && window.restoredDraft[key].imagesBase64.length > 0) {
-            imageFiles = window.restoredDraft[key].imagesBase64;
-          }
+        if(status==="attention-required" && imageFiles.length>0){
+          comments+= imageFiles.length>1?" (see attached photos)":" (see attached photo)";
         }
-        if (status === "attention-required" && imageFiles.length > 0) {
-          const photoNote = imageFiles.length > 1 ? " (see attached photos)" : " (see attached photo)";
-          comments += comments ? photoNote : photoNote;
-        }
-        itemDataArray.push({ itemName, status, comments, imageFiles });
+        itemDataArray.push({itemName,status,comments,imageFiles});
       });
-      let pendingImages = 0;
-      let photoStore = [];
-      itemDataArray.forEach((obj) => {
-        if (obj.imageFiles.length > 0) {
-          const p = { itemName: obj.itemName, images: [] };
-          obj.imageFiles.forEach((file, idx) => {
-            if (typeof file === "string") {
-              p.images[idx] = file;
+      let pendingImages=0,photoStore=[];
+      itemDataArray.forEach(obj=>{
+        if(obj.imageFiles.length>0){
+          const p={itemName:obj.itemName,images:[]};
+          obj.imageFiles.forEach((file,idx)=>{
+            if(typeof file==="string"){
+              p.images[idx]=file;
             } else {
               pendingImages++;
-              const reader = new FileReader();
-              reader.onload = (evt) => {
-                p.images[idx] = evt.target.result;
+              const reader=new FileReader();
+              reader.onload=evt=>{
+                p.images[idx]=evt.target.result;
                 pendingImages--;
-                if (pendingImages === 0) finalizePDF();
+                if(pendingImages===0) finalizePDF();
               };
               reader.readAsDataURL(file);
             }
@@ -964,117 +1045,93 @@
           photoStore.push(p);
         }
       });
-      if (pendingImages === 0) finalizePDF();
+      if(pendingImages===0) finalizePDF();
       async function finalizePDF() {
-        const pdf = new jsPDF("p", "pt", "a4");
+        const pdf = new jsPDF("p","pt","a4");
         let currentY = 80;
         try {
           const logoRef = storage.ref("Picture3.jpg");
           const logoUrl = await logoRef.getDownloadURL();
-          const logoBlob = await fetch(logoUrl).then(res => res.blob());
+          const logoBlob = await fetch(logoUrl).then(res=>res.blob());
           const logoBase64 = await blobToBase64(logoBlob);
           const pageWidth = pdf.internal.pageSize.getWidth();
           const imgProps = pdf.getImageProperties(logoBase64);
           const imgWidth = pageWidth - 80;
-          const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
-          const x = (pageWidth - imgWidth) / 2;
-          pdf.addImage(logoBase64, "JPEG", x, 40, imgWidth, imgHeight);
-          pdf.setFontSize(12);
-          pdf.setTextColor("#000000");
-          pdf.setFont("helvetica", "bold");
-          pdf.text("Farm Details:", 40, imgHeight + 60);
-          currentY = imgHeight + 80;
-        } catch (err) {
-          console.error("No logo found or error retrieving logo. Generating PDF without logo.");
-          pdf.setFontSize(12);
-          pdf.setTextColor("#000000");
-          pdf.setFont("helvetica", "bold");
-          pdf.text("Farm Details:", 40, currentY);
-          currentY += 20;
+          const imgHeight = (imgProps.height*imgWidth)/imgProps.width;
+          const x=(pageWidth-imgWidth)/2;
+          pdf.addImage(logoBase64,"JPEG",x,40,imgWidth,imgHeight);
+          pdf.setFontSize(12); pdf.setTextColor("#000000"); pdf.setFont("helvetica","bold");
+          pdf.text("Farm Details:",40,imgHeight+60);
+          currentY = imgHeight+80;
+        } catch(err) {
+          console.error("Error retrieving logo. Generating PDF without logo.");
+          pdf.setFontSize(12); pdf.setTextColor("#000000"); pdf.setFont("helvetica","bold");
+          pdf.text("Farm Details:",40,currentY); currentY+=20;
         }
-        pdf.setFont("helvetica", "normal");
-        function addLine(text) { pdf.text(text, 40, currentY); currentY += 15; }
-        addLine(`Dairy Company: ${fd.get("dairy-company") || ""}`);
-        addLine(`Dairy Number: ${fd.get("dairy-number") || ""}`);
-        addLine(`Address: ${fd.get("address") || ""}`);
-        addLine(`Customer Name: ${fd.get("customer-name") || ""}`);
-        addLine(`Region: ${fd.get("region") || ""}`);
-        addLine(`Farm Name: ${fd.get("farm-name") || ""}`);
-        addLine(`Island: ${fd.get("island") || ""}`);
-        addLine(`Visit Date: ${fd.get("visit-date") || ""}`);
-        addLine(`Visit Type: ${fd.get("visit-type") || ""}`);
-        addLine(`Inspection Start Time: ${fd.get("inspection-start-time") || ""}`);
-        // For Inspection End Time, if blank, use current time.
-        let inspectionEndTime = fd.get("inspection-end-time");
-        if (!inspectionEndTime) {
-          const now = new Date();
-          inspectionEndTime = now.toTimeString().slice(0,5); // Format as HH:MM
-        }
-        addLine(`Inspection End Time: ${inspectionEndTime}`);
-        addLine(`Inspection Completed By: ${fd.get("inspection-completed-by") || ""}`);
-        addLine(`Call Type: ${fd.get("call-type") || ""}`);
-        currentY += 15;
-        const tableData = itemDataArray.map(obj => [obj.itemName, obj.status, obj.comments]);
+        pdf.setFont("helvetica","normal");
+        const addLine=text=>{ pdf.text(text,40,currentY); currentY+=15; };
+        addLine(`Dairy Company: ${fd.get("dairy-company")||""}`);
+        addLine(`Dairy Number: ${fd.get("dairy-number")||""}`);
+        addLine(`Address: ${fd.get("address")||""}`);
+        addLine(`Customer Name: ${fd.get("customer-name")||""}`);
+        addLine(`Region: ${fd.get("region")||""}`);
+        addLine(`Farm Name: ${fd.get("farm-name")||""}`);
+        addLine(`Island: ${fd.get("island")||""}`);
+        addLine(`Visit Date: ${fd.get("visit-date")||""}`);
+        addLine(`Visit Type: ${fd.get("visit-type")||""}`);
+        addLine(`Inspection Start Time: ${fd.get("inspection-start-time")||""}`);
+        addLine(`Inspection End Time: ${fd.get("inspection-end-time")||""}`);
+        addLine(`Inspection Completed By: ${fd.get("inspection-completed-by")||""}`);
+        addLine(`Call Type: ${fd.get("call-type")||""}`);
+        currentY+=15;
+        const tableData=itemDataArray.map(obj=>[obj.itemName,obj.status,obj.comments]);
         pdf.autoTable({
           startY: currentY,
-          head: [["Item", "Status", "Comments"]],
-          body: tableData,
-          styles: { fontSize: 10, cellPadding: 5 },
-          headStyles: { fillColor: "#002B5C", textColor: "#FFFFFF" }
+          head:[["Item","Status","Comments"]],
+          body:tableData,
+          styles:{fontSize:10,cellPadding:5},
+          headStyles:{fillColor:"#002B5C",textColor:"#FFFFFF"}
         });
-        let afterTableY = pdf.lastAutoTable.finalY + 20;
-        pdf.setFont("helvetica", "bold");
-        pdf.text("Temperature Measurements:", 40, afterTableY);
-        afterTableY += 20;
-        pdf.setFont("helvetica", "normal");
-        const hotWaterTemp = fd.get("hot-water-temp") || "";
-        const hotWaterTime = fd.get("hot-water-time") || "";
-        pdf.text(`Hot Water Temp: ${hotWaterTemp} °C`, 40, afterTableY);
-        afterTableY += 15;
-        pdf.text(`Time Taken: ${hotWaterTime}`, 40, afterTableY);
-        afterTableY += 20;
-        const milkTemp = fd.get("milk-temp") || "";
-        const milkTime = fd.get("milk-time") || "";
-        pdf.text(`Milk Temp: ${milkTemp} °C`, 40, afterTableY);
-        afterTableY += 15;
-        pdf.text(`Time Taken: ${milkTime}`, 40, afterTableY);
-        afterTableY += 20;
-        // Place photos together with their label.
-        let photoY = afterTableY + 20;
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        photoStore.forEach(photoObj => {
-          const requiredHeight = 15 + 200 + 10; // label + image + margin
-          if (photoY + requiredHeight > pdf.internal.pageSize.getHeight()) {
-            pdf.addPage();
-            photoY = 60;
+        let afterTableY=pdf.lastAutoTable.finalY+20;
+        pdf.setFont("helvetica","bold"); pdf.text("Temperature Measurements:",40,afterTableY);
+        afterTableY+=20; pdf.setFont("helvetica","normal");
+        const hotW=fd.get("hot-water-temp")||"", hotT=fd.get("hot-water-time")||"";
+        pdf.text(`Hot Water Temp: ${hotW} °C`,40,afterTableY); afterTableY+=15;
+        pdf.text(`Time Taken: ${hotT}`,40,afterTableY); afterTableY+=20;
+        const milkW=fd.get("milk-temp")||"", milkT=fd.get("milk-time")||"";
+        pdf.text(`Milk Temp: ${milkW} °C`,40,afterTableY); afterTableY+=15;
+        pdf.text(`Time Taken: ${milkT}`,40,afterTableY); afterTableY+=20;
+        let photoY=afterTableY+20;
+        const pw=pdf.internal.pageSize.getWidth();
+        photoStore.forEach(photoObj=>{
+          const reqH=15+200+10;
+          if(photoY+reqH>pdf.internal.pageSize.getHeight()){
+            pdf.addPage(); photoY=60;
           }
-          pdf.setFontSize(12);
-          pdf.text(photoObj.itemName, 40, photoY);
-          if (photoObj.images.length === 1) {
-            pdf.addImage(photoObj.images[0], "JPEG", 40, photoY + 15, 250, 200);
-          } else if (photoObj.images.length === 2) {
-            const imageWidth = (pageWidth - 120) / 2;
-            pdf.addImage(photoObj.images[0], "JPEG", 40, photoY + 15, imageWidth, 200);
-            pdf.addImage(photoObj.images[1], "JPEG", 60 + imageWidth, photoY + 15, imageWidth, 200);
+          pdf.setFontSize(12); pdf.text(photoObj.itemName,40,photoY);
+          if(photoObj.images.length===1){
+            pdf.addImage(photoObj.images[0],"JPEG",40,photoY+15,250,200);
+          } else if(photoObj.images.length===2){
+            const iw=(pw-120)/2;
+            pdf.addImage(photoObj.images[0],"JPEG",40,photoY+15,iw,200);
+            pdf.addImage(photoObj.images[1],"JPEG",60+iw,photoY+15,iw,200);
           }
-          photoY += requiredHeight;
+          photoY+=reqH;
         });
-        const pdfBlob = pdf.output("blob");
-        const timestamp = new Date().toISOString().split("T")[0];
-        const fileName = `${dairyNumber}-form-${timestamp}.pdf`;
-        let uploadSuccessful = false;
-        if (navigator.onLine) {
-          try {
-            await uploadSinglePDF(dairyNumber, fileName, pdfBlob);
-            uploadSuccessful = true;
-            console.log("PDF uploaded successfully to customers folder.");
-          } catch (err) {
-            console.error("Immediate PDF upload failed:", err);
-          }
+        const pdfBlob=pdf.output("blob");
+        const timestamp=new Date().toISOString().split("T")[0];
+        const fileName=`${dairyNumber}-form-${timestamp}.pdf`;
+        let uploadSuccessful=false;
+        if(navigator.onLine){
+          try{
+            await uploadSinglePDF(dairyNumber,fileName,pdfBlob);
+            uploadSuccessful=true;
+            console.log("PDF uploaded successfully.");
+          }catch(err){ console.error("Immediate PDF upload failed:",err); }
         }
-        if (!uploadSuccessful) {
-          await db.pdfQueue.add({ dairyNumber: dairyNumber, fileName: fileName, pdfBlob: pdfBlob, uploaded: false });
-          console.log("PDF upload queued for later retry.");
+        if(!uploadSuccessful){
+          await db.pdfQueue.add({ dairyNumber, fileName, pdfBlob, uploaded:false });
+          console.log("PDF queued for retry.");
         }
         await db.forms.delete(dairyNumber);
         pdf.save(`Dairy_Shed_Hygiene_Checklist_${dairyNumber}.pdf`);
@@ -1082,21 +1139,22 @@
         clearEntireForm();
         location.reload();
       }
-      function blobToBase64(blob) {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = reject;
+      function blobToBase64(blob){
+        return new Promise((resolve,reject)=>{
+          const reader=new FileReader();
+          reader.onload=()=>resolve(reader.result);
+          reader.onerror=reject;
           reader.readAsDataURL(blob);
         });
       }
     }
+
     /*******************************************
      * J: RECORDS VIEW PAGE
      *******************************************/
     function viewRecords() {
-      document.getElementById("form-container").classList.add("hidden");
-      document.getElementById("record-container").classList.remove("hidden");
+      document.getElementById("form-container").style.display = "none";
+      document.getElementById("record-container").style.display = "block";
       loadAllRecords();
     }
     async function loadAllRecords() {
@@ -1151,32 +1209,31 @@
     }
     function filterRecords() {
       const searchValue = document.getElementById("search-dairy-number").value.toLowerCase();
-      const recordList = document.getElementById("record-list");
-      const links = recordList.getElementsByTagName("a");
-      for (let i = 0; i < links.length; i++) {
-        const link = links[i];
+      const links = document.getElementById("record-list").getElementsByTagName("a");
+      for (let link of links) {
         const txt = link.textContent || link.innerText;
-        link.style.display = (txt.toLowerCase().indexOf(searchValue) > -1) ? "" : "none";
+        link.style.display = txt.toLowerCase().includes(searchValue) ? "" : "none";
       }
     }
     function goBack() {
-      document.getElementById("form-container").classList.remove("hidden");
-      document.getElementById("record-container").classList.add("hidden");
+      document.getElementById("form-container").style.display = "block";
+      document.getElementById("record-container").style.display = "none";
     }
-    function goBackToRecords() { loadAllRecords(); }
+    function goBackToRecords() {
+      loadAllRecords();
+    }
+
     /*******************************************
      * K: DOMContentLoaded
      *******************************************/
     document.addEventListener("DOMContentLoaded", async () => {
-      const fieldsToAutoCap = ["dairy-number", "dairy-company", "address", "customer-name", "farm-name", "inspection-completed-by"];
+      const fieldsToAutoCap = ["dairy-number","dairy-company","address","customer-name","farm-name","inspection-completed-by"];
       fieldsToAutoCap.forEach(autoCapitalizeInput);
       await setupDairyCompanyDatalist();
-      // FIRST, build all the form sections.
       createHealthSafetyItems("health-safety-top");
       createChecklistItems();
       createSiloChecklist();
       await createAdditionalChecks();
-      // THEN check for any saved draft and restore it.
       await checkForCachedFormOnLoad();
       const form = document.getElementById("hygiene-checklist-form");
       form.addEventListener("input", saveFormData);
