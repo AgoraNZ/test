@@ -163,7 +163,7 @@
           <input type="date" class="form-control" id="visit-date" name="visit-date">
           <label for="visit-type">Visit Type:</label>
           <input type="text" class="form-control" id="visit-type" name="visit-type"
-                 value="Milking Plant & Milk Vat Check" readonly autocapitalize="words" autocorrect="off" spellcheck="false">
+                 value="Milking Plant & Milk Vat Check" readonly>
           <label for="inspection-start-time">Inspection Start Time:</label>
           <input type="time" class="form-control" id="inspection-start-time" name="inspection-start-time">
           <label for="inspection-end-time">Inspection End Time:</label>
@@ -208,15 +208,13 @@
           <h2>Temperature Measurements</h2>
           <div class="checklist-item">
             <label for="hot-water-temp">Hot Water Temp (°C):</label>
-            <input type="text" class="form-control" id="hot-water-temp" name="hot-water-temp" step="0.1"
-                   autocapitalize="sentences" autocorrect="off" spellcheck="true">
+            <input type="text" class="form-control" id="hot-water-temp" name="hot-water-temp">
             <label for="hot-water-time">Time Taken:</label>
             <input type="time" class="form-control" id="hot-water-time" name="hot-water-time">
           </div>
           <div class="checklist-item">
             <label for="milk-temp">Milk Temp (°C):</label>
-            <input type="text" class="form-control" id="milk-temp" name="milk-temp" step="0.1"
-                   autocapitalize="sentences" autocorrect="off" spellcheck="true">
+            <input type="text" class="form-control" id="milk-temp" name="milk-temp">
             <label for="milk-time">Time Taken:</label>
             <input type="time" class="form-control" id="milk-time" name="milk-time">
           </div>
@@ -263,17 +261,14 @@
       messagingSenderId: "422124188212",
       appId: "1:422124188212:web:1bd31bee8d6e91e301d061"
     };
-    // MUST initialize BEFORE using any Firebase services:
+
+    // Initialize Firebase app
     firebase.initializeApp(firebaseConfig);
 
-   // Initialize Firebase FIRST:
-firebase.initializeApp(firebaseConfig);
-
-// THEN grab services:
-const auth      = firebase.auth();
-const storage   = firebase.storage();
-const firestore = firebase.firestore();
-
+    // Grab Firebase services
+    const auth      = firebase.auth();
+    const storage   = firebase.storage();
+    const firestore = firebase.firestore();
 
     /*******************************************
      * AUTH STATE & LOGIN
@@ -466,38 +461,9 @@ const firestore = firebase.firestore();
         document.getElementById('region').value = data.region||'';
         document.getElementById('farm-name').value = toTitleCase(data.farmName||'');
         document.getElementById('island').value = data.island||'';
-        // capture lat/lng for save
         window.currentLat = data.lat; window.currentLng = data.lng;
       } catch(err) {
         console.log('No farm details found or error fetching:', err);
-      }
-    }
-
-    async function checkOrCreateFormRecord() {
-      const dairyNumber = document.getElementById('dairy-number').value.trim();
-      if (!dairyNumber) return;
-      let record = await db.forms.get(dairyNumber);
-      if (!record) {
-        record = { dairyNumber, formData:{}, creationTime:Date.now() };
-        await db.forms.put(record);
-      }
-    }
-
-    async function checkForCachedFormOnLoad() {
-      const all = await db.forms.toArray();
-      for (let rec of all) {
-        if (rec.formData?.checklistItems) {
-          if (Object.values(rec.formData.checklistItems).some(i => i.status!=='ok')) {
-            if (confirm(`Restore draft for #${rec.dairyNumber}? OK=Yes, Cancel=New`)) {
-              loadFormDataFromRecord(rec);
-              window.restoredDraft = rec.formData.checklistItems;
-            } else {
-              await db.forms.delete(rec.dairyNumber);
-              clearEntireForm();
-            }
-            break;
-          }
-        }
       }
     }
 
@@ -505,6 +471,32 @@ const firestore = firebase.firestore();
       if (!document.getElementById('dairy-number').value.trim()) return;
       await fetchFarmDetails();
       await checkOrCreateFormRecord();
+    }
+
+    async function checkOrCreateFormRecord() {
+      const dairyNumber = document.getElementById('dairy-number').value.trim();
+      if (!dairyNumber) return;
+      let record = await db.forms.get(dairyNumber);
+      if (!record) {
+        record = { dairyNumber, formData: {}, creationTime: Date.now() };
+        await db.forms.put(record);
+      }
+    }
+
+    async function checkForCachedFormOnLoad() {
+      const all = await db.forms.toArray();
+      for (let rec of all) {
+        if (rec.formData?.checklistItems && Object.values(rec.formData.checklistItems).some(i => i.status !== 'ok')) {
+          if (confirm(`Restore draft for #${rec.dairyNumber}? OK=Yes, Cancel=New`)) {
+            loadFormDataFromRecord(rec);
+            window.restoredDraft = rec.formData.checklistItems;
+          } else {
+            await db.forms.delete(rec.dairyNumber);
+            clearEntireForm();
+          }
+          break;
+        }
+      }
     }
 
     function createHealthSafetyItems(id) {
@@ -529,8 +521,7 @@ const firestore = firebase.firestore();
       const sel = c.querySelector('select');
       sel.addEventListener('change', () => {
         const imgs = c.querySelectorAll('.image-upload');
-        if (sel.value==='attention-required') imgs.forEach(i=>i.style.display='block');
-        else imgs.forEach(i=>i.style.display='none');
+        imgs.forEach(i => i.style.display = sel.value === 'attention-required' ? 'block' : 'none');
       });
       container.appendChild(c);
     }
@@ -549,10 +540,9 @@ const firestore = firebase.firestore();
       items.forEach(labelText => {
         const div = document.createElement('div');
         div.classList.add('checklist-item');
-        const selectName = `status-${labelText}`;
         div.innerHTML = `
           <label>${labelText}</label>
-          <select class="form-select" name="${selectName}">
+          <select class="form-select" name="status-${labelText}">
             <option value="ok">OK</option>
             <option value="attention-required">Attention Required</option>
             <option value="na">N/A</option>
@@ -567,7 +557,7 @@ const firestore = firebase.firestore();
         const sel = div.querySelector('select');
         sel.addEventListener('change', () => {
           const files = div.querySelectorAll('.image-upload');
-          files.forEach(i => i.style.display = sel.value==='attention-required'?'block':'none');
+          files.forEach(i => i.style.display = sel.value === 'attention-required' ? 'block' : 'none');
         });
         container.appendChild(div);
       });
@@ -597,10 +587,10 @@ const firestore = firebase.firestore();
         const sel = div.querySelector('select');
         sel.addEventListener('change', () => {
           const files = div.querySelectorAll('.image-upload');
-          files.forEach(i => i.style.display = sel.value==='attention-required'?'block':'none');
-          if (sel.value==='not-checked') {
+          files.forEach(i => i.style.display = sel.value === 'attention-required' ? 'block' : 'none');
+          if (sel.value === 'not-checked') {
             div.querySelector('input[type=text]').value = "Milk in Vat";
-          } else if (div.querySelector('input[type=text]').value==="Milk in Vat") {
+          } else if (div.querySelector('input[type=text]').value === "Milk in Vat") {
             div.querySelector('input[type=text]').value = "";
           }
         });
@@ -612,7 +602,7 @@ const firestore = firebase.firestore();
       const container = document.getElementById('additional-checks');
       container.innerHTML = '';
 
-      // Teat Spray
+      // Teat Spray Check
       const teat = document.createElement('div');
       teat.classList.add('checklist-item');
       teat.innerHTML = `
@@ -633,21 +623,21 @@ const firestore = firebase.firestore();
         <datalist id="teat-dilution-list"></datalist>
       `;
       container.appendChild(teat);
-      // populate ratios
       const existingRatios = await db.teatSprayRatios.toArray();
-      const allRatios = ["1:4", ...existingRatios.map(r=>r.ratio)];
+      const allRatios = ["1:4", ...existingRatios.map(r => r.ratio)];
       const dl = teat.querySelector('#teat-dilution-list');
-      allRatios.forEach(r=>{
+      allRatios.forEach(r => {
         const o = document.createElement('option'); o.value = r; dl.appendChild(o);
       });
-      teat.querySelector('#teat-dilution').addEventListener('blur', async (e)=>{
+      teat.querySelector('#teat-dilution').addEventListener('blur', async e => {
         const v = toTitleCase(e.target.value.trim());
         if (v && !allRatios.includes(v)) {
-          await db.teatSprayRatios.add({ratio:v});
-          const o = document.createElement('option'); o.value=v; dl.appendChild(o);
+          await db.teatSprayRatios.add({ ratio: v });
+          const o = document.createElement('option'); o.value = v; dl.appendChild(o);
         }
       });
-      // chemical
+
+      // Chemical Check
       const chem = document.createElement('div');
       chem.classList.add('checklist-item');
       chem.innerHTML = `
@@ -665,74 +655,64 @@ const firestore = firebase.firestore();
         <img class="image-preview" style="display:none;max-width:200px;max-height:200px;border:2px solid #ccc;">
       `;
       container.appendChild(chem);
-      chem.querySelector('select').addEventListener('change', e=>{
+      chem.querySelector('select').addEventListener('change', e => {
         const files = chem.querySelectorAll('.image-upload');
-        files.forEach(i=>i.style.display = e.target.value==='attention-required'?'block':'none');
-      });
-      // add both to container
-      // event listeners for image toggles:
-      container.querySelectorAll('.checklist-item select').forEach(sel=>{
-        sel.addEventListener('change', ()=>{
-          const par = sel.closest('.checklist-item');
-          par.querySelectorAll('.image-upload').forEach(i=>{
-            i.style.display = sel.value==='attention-required'?'block':'none';
-          });
-        });
+        files.forEach(i => i.style.display = e.target.value === 'attention-required' ? 'block' : 'none');
       });
     }
 
     function loadFormDataFromRecord(rec) {
-      const d = rec.formData||{};
+      const data = rec.formData || {};
       document.getElementById('dairy-number').value = rec.dairyNumber;
-      Object.keys(d).forEach(key=>{
-        if (key==='checklistItems') return;
+      Object.keys(data).forEach(key => {
+        if (key === 'checklistItems') return;
         const el = document.getElementById(key) || document.getElementsByName(key)[0];
-        if (el) el.value = d[key];
+        if (el) el.value = data[key];
       });
-      if (d.checklistItems) {
+
+      if (data.checklistItems) {
         const groups = [
           ...document.getElementById('health-safety-top').children,
           ...document.getElementById('checklist-items').children,
           ...document.getElementById('additional-checks').children,
           ...document.getElementById('silo-checklist').children
         ];
-        groups.forEach(item=>{
+        groups.forEach(item => {
           const lbl = item.querySelector('label');
           if (!lbl) return;
           const key = lbl.textContent.trim();
-          const recItem = d.checklistItems[key];
+          const recItem = data.checklistItems[key];
           if (!recItem) return;
           const sel = item.querySelector('select');
           sel.value = recItem.status;
           sel.dispatchEvent(new Event('change'));
           const inp = item.querySelector('input[type=text]');
           if (inp) inp.value = recItem.comments;
-          if (recItem.imagesBase64) {
-            item.querySelectorAll('.image-preview').forEach((img,i)=>{
-              if (recItem.imagesBase64[i]) {
-                img.src = recItem.imagesBase64[i];
-                img.style.display = 'block';
-              }
-            });
-          }
+          const previews = item.querySelectorAll('.image-preview');
+          recItem.imagesBase64?.forEach((img64, i) => {
+            if (previews[i]) {
+              previews[i].src = img64;
+              previews[i].style.display = 'block';
+            }
+          });
         });
       }
     }
 
     function clearEntireForm() {
       document.getElementById('hygiene-checklist-form').reset();
-      document.querySelectorAll('.image-upload').forEach(i=>i.style.display='none');
-      document.querySelectorAll('.image-preview').forEach(i=>{i.src='';i.style.display='none';});
+      document.querySelectorAll('.image-upload').forEach(i => i.style.display = 'none');
+      document.querySelectorAll('.image-preview').forEach(img => { img.src = ''; img.style.display = 'none'; });
     }
 
     async function saveFormData() {
       const dn = document.getElementById('dairy-number').value.trim();
       if (!dn) return;
       let rec = await db.forms.get(dn);
-      if (!rec) rec = {dairyNumber:dn,formData:{},creationTime:Date.now()};
-      const form = document.getElementById('hygiene-checklist-form');
-      const fm = new FormData(form);
-      const obj = Object.fromEntries([...fm.entries()].filter(([,v])=>v.trim()!==""));
+      if (!rec) rec = { dairyNumber: dn, formData: {}, creationTime: Date.now() };
+      const fm = new FormData(document.getElementById('hygiene-checklist-form'));
+      const obj = Object.fromEntries([...fm.entries()].filter(([, v]) => v.trim() !== ""));
+
       const groups = [
         ...document.getElementById('health-safety-top').children,
         ...document.getElementById('checklist-items').children,
@@ -744,18 +724,18 @@ const firestore = firebase.firestore();
         const lbl = item.querySelector('label');
         if (!lbl) continue;
         const key = lbl.textContent.trim();
-        const status = item.querySelector('select')?.value||"";
-        const comments = item.querySelector('input[type=text]')?.value||"";
+        const status = item.querySelector('select')?.value || "";
+        const comments = item.querySelector('input[type=text]')?.value || "";
         let imagesBase64 = [];
         for (let fi of item.querySelectorAll('input[type=file]')) {
           if (fi.files[0]) {
             imagesBase64.push(await convertFileToBase64(fi.files[0]));
           }
         }
-        if (rec.formData.checklistItems?.[key] && imagesBase64.length===0) {
-          imagesBase64 = rec.formData.checklistItems[key].imagesBase64||[];
+        if (rec.formData.checklistItems?.[key] && imagesBase64.length === 0) {
+          imagesBase64 = rec.formData.checklistItems[key].imagesBase64 || [];
         }
-        ci[key] = {status,comments,imagesBase64};
+        ci[key] = { status, comments, imagesBase64 };
       }
       obj.checklistItems = ci;
       rec.formData = obj;
@@ -763,32 +743,29 @@ const firestore = firebase.firestore();
     }
 
     function convertFileToBase64(file) {
-      return new Promise((res,rej)=>{
-        const r=new FileReader();
-        r.onload=()=>res(r.result);
-        r.onerror=rej;
-        r.readAsDataURL(file);
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
       });
     }
 
     async function saveFarmDetailsToFirebase(fd) {
-      const dn = fd.get("dairy-number")||"";
+      const dn = fd.get("dairy-number") || "";
       if (!dn) return;
       const details = {
-        dairyCompany: fd.get("dairy-company")||"",
-        address: fd.get("address")||"",
-        customerName: fd.get("customer-name")||"",
-        region: fd.get("region")||"",
-        farmName: fd.get("farm-name")||"",
-        island: fd.get("island")||"",
-        lat: window.currentLat||null,
-        lng: window.currentLng||null
+        dairyCompany: fd.get("dairy-company") || "",
+        address: fd.get("address") || "",
+        customerName: fd.get("customer-name") || "",
+        region: fd.get("region") || "",
+        farmName: fd.get("farm-name") || "",
+        island: fd.get("island") || "",
+        lat: window.currentLat || null,
+        lng: window.currentLng || null
       };
       const ref = storage.ref(`farm_details/${dn}.json`);
-      try {
-        await ref.put(new Blob([JSON.stringify(details)],{type:"application/json"}));
-        console.log("Saved farm details.");
-      } catch(e){ console.error("Save farm details error:",e); }
+      await ref.put(new Blob([JSON.stringify(details)], { type: "application/json" }));
     }
 
     async function uploadPendingPDFs() {
@@ -796,27 +773,28 @@ const firestore = firebase.firestore();
       const all = await db.pdfQueue.where("uploaded").equals(false).toArray();
       for (let r of all) {
         try {
-          await uploadSinglePDF(r.dairyNumber,r.fileName,r.pdfBlob);
-          await db.pdfQueue.update(r.id,{uploaded:true});
-        } catch(e){ console.error("Retry failed:",e); }
+          await uploadSinglePDF(r.dairyNumber, r.fileName, r.pdfBlob);
+          await db.pdfQueue.update(r.id, { uploaded: true });
+        } catch (e) {}
       }
     }
-    function uploadSinglePDF(dn,fn,blob) {
-      return new Promise((res,rej)=>{
-        const t = storage.ref(`customers/${dn}/${fn}`).put(blob);
-        t.on("state_changed",null,rej,()=>res());
+
+    function uploadSinglePDF(dn, fn, blob) {
+      return new Promise((res, rej) => {
+        const task = storage.ref(`customers/${dn}/${fn}`).put(blob);
+        task.on("state_changed", null, rej, () => res());
       });
     }
-    window.addEventListener("online",uploadPendingPDFs);
+
+    window.addEventListener("online", uploadPendingPDFs);
 
     async function generatePDF() {
       const dn = document.getElementById('dairy-number').value.trim();
       if (!dn) return alert("Enter Dairy Number");
-      const form = document.getElementById('hygiene-checklist-form');
-      const fd = new FormData(form);
+      const fd = new FormData(document.getElementById('hygiene-checklist-form'));
       await saveFarmDetailsToFirebase(fd);
 
-      // collect data...
+      // build items...
       const groups = [
         ...document.getElementById('health-safety-top').children,
         ...document.getElementById('checklist-items').children,
@@ -828,122 +806,137 @@ const firestore = firebase.firestore();
         const lbl = item.querySelector('label');
         if (!lbl) continue;
         const name = lbl.textContent;
-        const status = item.querySelector('select')?.value||"";
-        let comments = item.querySelector('input[type=text]')?.value||"";
-        if (name==="Teat Spray Check") {
+        const status = item.querySelector('select')?.value || "";
+        let comments = item.querySelector('input[type=text]')?.value || "";
+        if (name === "Teat Spray Check") {
           const r = item.querySelector('#teat-dilution')?.value;
-          if (r) comments += comments?` | Ratio: ${r}`:`Ratio: ${r}`;
+          if (r) comments += comments ? ` | Ratio: ${r}` : `Ratio: ${r}`;
         }
         let files = [];
         for (let fi of item.querySelectorAll('input[type=file]')) {
           if (fi.files[0]) files.push(fi.files[0]);
         }
-        if (files.length===0 && window.restoredDraft?.[name]?.imagesBase64) {
+        if (files.length === 0 && window.restoredDraft?.[name]?.imagesBase64) {
           files = window.restoredDraft[name].imagesBase64;
         }
-        if (status==="attention-required" && files.length>0) {
-          comments += files.length>1?" (see attached photos)":" (see attached photo)";
+        if (status === "attention-required" && files.length > 0) {
+          comments += files.length > 1 ? " (see attached photos)" : " (see attached photo)";
         }
-        arr.push({name,status,comments,files});
+        arr.push({ name, status, comments, files });
       }
 
-      let pending=0,photoStore=[];
-      arr.forEach(o=>{
-        if (o.files.length>0) {
-          const p={name:o.name,images:[]};
-          o.files.forEach((f,i)=>{
-            if (typeof f==="string") {
-              p.images[i]=f;
+      let pending = 0;
+      const photoStore = [];
+      arr.forEach(o => {
+        if (o.files.length > 0) {
+          const p = { name: o.name, images: [] };
+          o.files.forEach((f, i) => {
+            if (typeof f === "string") {
+              p.images[i] = f;
             } else {
               pending++;
-              const r=new FileReader();
-              r.onload=evt=>{
-                p.images[i]=evt.target.result;
+              const reader = new FileReader();
+              reader.onload = evt => {
+                p.images[i] = evt.target.result;
                 pending--;
-                if (!pending) finalizePDF();
+                if (pending === 0) finalizePDF();
               };
-              r.readAsDataURL(f);
+              reader.readAsDataURL(f);
             }
           });
           photoStore.push(p);
         }
       });
-      if (!pending) finalizePDF();
+      if (pending === 0) finalizePDF();
 
       async function finalizePDF() {
         const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF("p","pt","a4");
-        let y=80;
+        const pdf = new jsPDF("p", "pt", "a4");
+        let y = 80;
         try {
-          const logoBlob = await fetch(await storage.ref("Picture3.jpg").getDownloadURL()).then(r=>r.blob());
-          const logo64 = await blobToBase64(logoBlob);
+          const logoUrl = await storage.ref("Picture3.jpg").getDownloadURL();
+          const logoBlob = await fetch(logoUrl).then(r => r.blob());
+          const logoBase64 = await blobToBase64(logoBlob);
           const pw = pdf.internal.pageSize.getWidth();
-          const props = pdf.getImageProperties(logo64);
-          const w = pw-80, h = props.height*w/props.width;
-          pdf.addImage(logo64,"JPEG",(pw-w)/2,40,w,h);
-          y = h+80;
-        } catch{}
-        pdf.setFont("helvetica","bold").setFontSize(12).text("Farm Details:",40,y);
-        y+=20; pdf.setFont("helvetica","normal");
-        ["dairy-company","dairy-number","address","customer-name","region","farm-name","island","visit-date","visit-type","inspection-start-time","inspection-end-time","inspection-completed-by","call-type"]
-          .forEach(key=>{
-            const v = fd.get(key)||"";
-            pdf.text(`${key.replace(/-/g," ")}: ${v}`,40,y);
-            y+=15;
-          });
-        y+=10;
+          const props = pdf.getImageProperties(logoBase64);
+          const w = pw - 80;
+          const h = (props.height * w) / props.width;
+          pdf.addImage(logoBase64, "JPEG", (pw - w) / 2, 40, w, h);
+          y = h + 80;
+        } catch {}
+        pdf.setFont("helvetica", "bold").text("Farm Details:", 40, y);
+        y += 20;
+        pdf.setFont("helvetica", "normal");
+        [
+          "dairy-company", "dairy-number", "address", "customer-name",
+          "region", "farm-name", "island", "visit-date", "visit-type",
+          "inspection-start-time", "inspection-end-time", "inspection-completed-by", "call-type"
+        ].forEach(key => {
+          const v = fd.get(key) || "";
+          pdf.text(`${key.replace(/-/g, " ")}: ${v}`, 40, y);
+          y += 15;
+        });
+        y += 10;
         pdf.autoTable({
           startY: y,
-          head:[["Item","Status","Comments"]],
-          body: arr.map(o=>[o.name,o.status,o.comments]),
-          styles:{fontSize:10,cellPadding:5},
-          headStyles:{fillColor:"#002B5C",textColor:"#FFFFFF"}
+          head: [["Item", "Status", "Comments"]],
+          body: arr.map(o => [o.name, o.status, o.comments]),
+          styles: { fontSize: 10, cellPadding: 5 },
+          headStyles: { fillColor: "#002B5C", textColor: "#FFFFFF" }
         });
         y = pdf.lastAutoTable.finalY + 20;
-        pdf.setFont("helvetica","bold").text("Temperature Measurements:",40,y);
-        y+=20; pdf.setFont("helvetica","normal");
-        const hw = fd.get("hot-water-temp")||"", ht = fd.get("hot-water-time")||"";
-        pdf.text(`Hot Water Temp: ${hw} °C`,40,y); y+=15;
-        pdf.text(`Time Taken: ${ht}`,40,y); y+=15;
-        const mt = fd.get("milk-temp")||"", mt2 = fd.get("milk-time")||"";
-        pdf.text(`Milk Temp: ${mt} °C`,40,y); y+=15;
-        pdf.text(`Time Taken: ${mt2}`,40,y); y+=20;
+        pdf.setFont("helvetica", "bold").text("Temperature Measurements:", 40, y);
+        y += 20;
+        const hw = fd.get("hot-water-temp") || "",
+              ht = fd.get("hot-water-time") || "";
+        pdf.text(`Hot Water Temp: ${hw} °C`, 40, y); y += 15;
+        pdf.text(`Time Taken: ${ht}`, 40, y); y += 15;
+        const mt = fd.get("milk-temp") || "",
+              mt2 = fd.get("milk-time") || "";
+        pdf.text(`Milk Temp: ${mt} °C`, 40, y); y += 15;
+        pdf.text(`Time Taken: ${mt2}`, 40, y); y += 20;
 
-        const pw = pdf.internal.pageSize.getWidth();
-        for (let p of photoStore) {
-          const req = 15+200+10;
-          if (y+req>pdf.internal.pageSize.getHeight()) { pdf.addPage(); y=60; }
-          pdf.setFont("helvetica","bold").text(p.name,40,y);
-          if (p.images.length===1) {
-            pdf.addImage(p.images[0],"JPEG",40,y+15,250,200);
-          } else if (p.images.length===2) {
-            const iw=(pw-120)/2;
-            pdf.addImage(p.images[0],"JPEG",40,y+15,iw,200);
-            pdf.addImage(p.images[1],"JPEG",60+iw,y+15,iw,200);
+        const pwAgain = pdf.internal.pageSize.getWidth();
+        photoStore.forEach(p => {
+          const req = 15 + 200 + 10;
+          if (y + req > pdf.internal.pageSize.getHeight()) {
+            pdf.addPage();
+            y = 60;
           }
-          y+=req;
-        }
+          pdf.setFont("helvetica", "bold").text(p.name, 40, y);
+          if (p.images.length === 1) {
+            pdf.addImage(p.images[0], "JPEG", 40, y + 15, 250, 200);
+          } else if (p.images.length === 2) {
+            const iw = (pwAgain - 120) / 2;
+            pdf.addImage(p.images[0], "JPEG", 40, y + 15, iw, 200);
+            pdf.addImage(p.images[1], "JPEG", 60 + iw, y + 15, iw, 200);
+          }
+          y += req;
+        });
 
         const blob = pdf.output("blob");
         const fileName = `${dn}-form-${new Date().toISOString().split("T")[0]}.pdf`;
-        let uploaded=false;
+        let uploaded = false;
         if (navigator.onLine) {
-          try{ await uploadSinglePDF(dn,fileName,blob); uploaded=true; }
-          catch{} 
+          try { await uploadSinglePDF(dn, fileName, blob); uploaded = true; }
+          catch {}
         }
-        if (!uploaded) await db.pdfQueue.add({dairyNumber:dn,fileName,uploaded:false,pdfBlob:blob});
+        if (!uploaded) {
+          await db.pdfQueue.add({ dairyNumber: dn, fileName, pdfBlob: blob, uploaded: false });
+        }
         await db.forms.delete(dn);
         pdf.save(`Dairy_Shed_Hygiene_Checklist_${dn}.pdf`);
         uploadPendingPDFs();
         clearEntireForm();
         location.reload();
       }
-      function blobToBase64(b) {
-        return new Promise((r,j)=>{
-          const rd=new FileReader();
-          rd.onload=()=>r(rd.result);
-          rd.onerror=j;
-          rd.readAsDataURL(b);
+
+      function blobToBase64(blob) {
+        return new Promise((r, j) => {
+          const rd = new FileReader();
+          rd.onload = () => r(rd.result);
+          rd.onerror = j;
+          rd.readAsDataURL(blob);
         });
       }
     }
@@ -952,71 +945,81 @@ const firestore = firebase.firestore();
      * RECORDS VIEW
      *******************************************/
     function viewRecords() {
-      document.getElementById('form-container').style.display='none';
-      document.getElementById('record-container').style.display='block';
+      document.getElementById('form-container').style.display = 'none';
+      document.getElementById('record-container').style.display = 'block';
       loadAllRecords();
     }
+
     async function loadAllRecords() {
       const rl = document.getElementById('record-list');
-      rl.innerHTML='';
+      rl.innerHTML = '';
       const snap = await storage.ref('customers').listAll();
-      snap.prefixes.forEach(pref=>{
-        const a=document.createElement('a');
-        a.textContent=pref.name;
-        a.href="#";
-        a.addEventListener('click',()=>loadRecordFiles(pref.name));
+      snap.prefixes.forEach(pref => {
+        const a = document.createElement('a');
+        a.textContent = pref.name;
+        a.href = "#";
+        a.addEventListener('click', () => loadRecordFiles(pref.name));
         rl.appendChild(a);
       });
     }
+
     async function loadRecordFiles(dn) {
       const rl = document.getElementById('record-list');
-      rl.innerHTML='';
+      rl.innerHTML = '';
       const snap = await storage.ref(`customers/${dn}`).listAll();
-      snap.items.forEach(fileRef=>{
-        const match=fileRef.name.match(/(\d{4}-\d{2}-\d{2})/);
-        const disp = match?match[0]:fileRef.name;
-        const a=document.createElement('a');
-        a.textContent=disp;
-        a.href="#";
-        a.addEventListener('click',async()=>{
-          const url=await fileRef.getDownloadURL();
-          window.open(url,'_blank');
+      snap.items.forEach(fileRef => {
+        const match = fileRef.name.match(/(\d{4}-\d{2}-\d{2})/);
+        const disp = match ? match[0] : fileRef.name;
+        const a = document.createElement('a');
+        a.textContent = disp;
+        a.href = "#";
+        a.addEventListener('click', async () => {
+          const url = await fileRef.getDownloadURL();
+          window.open(url, '_blank');
         });
         rl.appendChild(a);
       });
-      const btn=document.createElement('button');
-      btn.textContent='Back to Records';
-      btn.className='back-button';
-      btn.addEventListener('click',goBackToRecords);
+      const btn = document.createElement('button');
+      btn.textContent = 'Back to Records';
+      btn.className = 'back-button';
+      btn.addEventListener('click', goBackToRecords);
       rl.appendChild(btn);
     }
+
     function filterRecords() {
-      const v=document.getElementById('search-dairy-number').value.toLowerCase();
-      [...document.getElementById('record-list').getElementsByTagName('a')].forEach(a=>{
-        a.style.display = a.textContent.toLowerCase().includes(v)?'':'none';
+      const v = document.getElementById('search-dairy-number').value.toLowerCase();
+      [...document.getElementById('record-list').getElementsByTagName('a')].forEach(a => {
+        a.style.display = a.textContent.toLowerCase().includes(v) ? '' : 'none';
       });
     }
+
     function goBack() {
-      document.getElementById('record-container').style.display='none';
-      document.getElementById('form-container').style.display='block';
+      document.getElementById('record-container').style.display = 'none';
+      document.getElementById('form-container').style.display = 'block';
     }
-    function goBackToRecords() { loadAllRecords(); }
+
+    function goBackToRecords() {
+      loadAllRecords();
+    }
 
     /*******************************************
      * DOMCONTENTLOADED
      *******************************************/
-    document.addEventListener('DOMContentLoaded', async()=>{
+    document.addEventListener('DOMContentLoaded', async () => {
       ["dairy-number","dairy-company","address","customer-name","farm-name","inspection-completed-by"]
         .forEach(autoCapitalizeInput);
+
       await setupDairyCompanyDatalist();
       createHealthSafetyItems('health-safety-top');
       createChecklistItems();
       createSiloChecklist();
       await createAdditionalChecks();
       await checkForCachedFormOnLoad();
+
       const form = document.getElementById('hygiene-checklist-form');
       form.addEventListener('input', saveFormData);
       form.addEventListener('change', saveFormData);
+
       uploadPendingPDFs();
     });
   </script>
