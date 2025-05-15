@@ -266,9 +266,14 @@
     // MUST initialize BEFORE using any Firebase services:
     firebase.initializeApp(firebaseConfig);
 
-    const auth = firebase.auth();
-    const storage = firebase.storage();
-    const firestore = firebase.firestore();
+   // Initialize Firebase FIRST:
+firebase.initializeApp(firebaseConfig);
+
+// THEN grab services:
+const auth      = firebase.auth();
+const storage   = firebase.storage();
+const firestore = firebase.firestore();
+
 
     /*******************************************
      * AUTH STATE & LOGIN
